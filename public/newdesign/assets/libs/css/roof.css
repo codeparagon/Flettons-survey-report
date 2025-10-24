@@ -1,0 +1,232 @@
+/* brand.css  — include AFTER bootstrap.css */
+
+/* Root (you already have these; keeping here for a single source of truth) */
+:root {
+    --primary: #C1EC4A;
+    --ink: #1A202C;
+    --bg: #ffffff;
+    --card: #ffffff;
+    --border: #d5d7d9;
+    --muted: #6b7280;
+    --shadow: 0 10px 30px rgba(56, 69, 88, .08);
+    --shadow-hover: 0 16px 36px rgba(28, 27, 55, .18);
+    --radius: 10px;
+    --ctl-h: 52px;
+    --gap: 20px;
+    --padding:12px 28px;
+    /* palette + fonts from your snippet */
+    --font-family-Poppins: 'Poppins', sans-serif;
+    --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+
+
+
+/* Upload header: segmented control + Add button */
+.roof-form .upload-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.roof-form .segmented {
+    display: inline-grid;
+    grid-auto-flow: column;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px;
+}
+
+.roof-form .segmented input {
+    display: none;
+}
+
+.roof-form .segmented label {
+    cursor: pointer;
+    padding: 6px 14px;
+    margin-bottom: 0 !important;
+    border-radius: 999px;
+    user-select: none;
+    color: var(--ink);
+}
+
+.roof-form .segmented input:checked+label {
+    background: var(--primary);
+    color: #111;
+    box-shadow: var(--shadow);
+}
+
+/* Add media button */
+.roof-form .btn-addmedia {
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: .2s;
+}
+
+.roof-form .btn-addmedia:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow);
+}
+
+/* Dropzone */
+.roof-form .dropzone {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    background: #fff;
+    transition: .2s;
+}
+
+.roof-form .dropzone.is-drag {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, #fff);
+}
+
+/* Preview rail */
+.roof-form .preview-rail {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.roof-form .thumb {
+    width: 140px;
+    height: 80px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    background: #f6f8fa;
+}
+
+.roof-form .thumb img,
+.roof-form .thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.roof-form .thumb .remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    width: 26px;
+    height: 26px;
+    line-height: 24px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* Chips (checkboxes) */
+.roof-form .chips {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.roof-form .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.roof-form .chip input {
+    display: none;
+}
+
+.roof-form .chip span {
+   padding: var(--padding);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.roof-form .chip input:checked+span {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--ink);
+    box-shadow: var(--shadow);
+}
+
+/* Radio pills */
+.roof-form .radios {
+    display: flex;
+        column-gap: 15px;
+    row-gap: 25px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.roof-form .radio-pill input {
+    display: none;
+}
+
+.roof-form .radio-pill span {
+   padding: var(--padding);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.roof-form .radio-pill input:checked+span {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #111;
+    box-shadow: var(--shadow);
+}
+
+/* Form actions */
+.roof-form .form-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 22px;
+}
+
+.roof-form .btn-back {
+    display: inline-flex;
+    gap: 14px;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+   padding: var(--padding);
+    border: none;
+    border-radius: var(--radius);
+    font-weight: 500;
+    background: var(--ink);
+    color: var(--bg);
+    cursor: pointer;
+    font-size: clamp(16px, 2.8vw, 22px);
+}
+
+.roof-form .btn-save {
+    padding: var(--padding);
+    border: none;
+    border-radius: var(--radius);
+    font-weight: 500;
+    background: var(--primary);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: clamp(16px, 2.8vw, 22px);
+}
+
+.roof-form .btn-save:hover {
+    background: var(--primary);
+
+}
