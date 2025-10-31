@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             SurveyCategorySeeder::class,
             SurveySectionSeeder::class,
+            SurveyLevelSeeder::class,
             SurveySeeder::class,
         ]);
     }

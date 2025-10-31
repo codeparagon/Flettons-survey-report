@@ -201,6 +201,14 @@ class Survey extends Model
     }
 
     /**
+     * Get a human-friendly status label (e.g., "In Progress").
+     */
+    public function getStatusLabelAttribute()
+    {
+        return ucwords(str_replace('_', ' ', (string) $this->status));
+    }
+
+    /**
      * Get client name from form data.
      */
     public function getClientNameAttribute()

@@ -16,6 +16,10 @@ class SurveySectionAssessment extends Model
         'defects_noted',
         'recommendations',
         'notes',
+        'report_content',
+        'material',
+        'defects',
+        'remaining_life',
         'is_completed',
         'completed_at',
         'completed_by',
@@ -28,6 +32,7 @@ class SurveySectionAssessment extends Model
         'completed_at' => 'datetime',
         'photos' => 'array',
         'additional_data' => 'array',
+        'defects' => 'array',
     ];
 
     /**

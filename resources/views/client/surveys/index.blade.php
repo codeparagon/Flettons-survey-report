@@ -42,7 +42,7 @@
                                     </td>
                                     <td>
                                         <span class="badge {{ $survey->status_badge }}">
-                                            {{ ucfirst($survey->status) }}
+                                            {{ $survey->status_label }}
                                         </span>
                                     </td>
                                     <td>{{ $survey->surveyor ? $survey->surveyor->name : 'Pending' }}</td>

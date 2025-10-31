@@ -17,11 +17,14 @@ class SurveySection extends Model
         'description',
         'sort_order',
         'is_active',
+        'generation_method',
+        'field_config',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'field_config' => 'array',
     ];
 
     /**
@@ -38,6 +41,24 @@ class SurveySection extends Model
     public function assessments()
     {
         return $this->hasMany(SurveySectionAssessment::class);
+    }
+
+    /**
+     * Get all fields for this section.
+     */
+    public function fields()
+    {
+        return $this->hasMany(SectionField::class, 'survey_section_id');
+    }
+
+    /**
+     * Get active fields ordered by field_order.
+     */
+    public function getActiveFields()
+    {
+        // Ensure we refresh the relationship to get latest data
+        $this->load('fields');
+        return $this->fields()->where('is_active', true)->orderBy('field_order')->orderBy('field_label')->get();
     }
 
     /**
@@ -82,5 +103,47 @@ class SurveySection extends Model
         }
         
         return $surveyLevel->sections->groupBy('category.display_name');
+    }
+
+    /**
+     * Get all levels that this section belongs to.
+     */
+    public function levels()
+    {
+        return $this->belongsToMany(SurveyLevel::class, 'survey_level_sections', 'survey_section_id', 'survey_level_id')
+                    ->withPivot('sort_order')
+                    ->orderBy('survey_level_sections.sort_order');
+    }
+
+    /**
+     * Scope for database-driven sections.
+     */
+    public function scopeDatabaseDriven($query)
+    {
+        return $query->where('generation_method', 'database');
+    }
+
+    /**
+     * Scope for AI-generated sections.
+     */
+    public function scopeAiGenerated($query)
+    {
+        return $query->where('generation_method', 'ai');
+    }
+
+    /**
+     * Scope for hybrid sections.
+     */
+    public function scopeHybrid($query)
+    {
+        return $query->where('generation_method', 'hybrid');
+    }
+
+    /**
+     * Get field configurations ordered by field_order.
+     */
+    public function getFieldConfigurations()
+    {
+        return $this->fields()->active()->ordered()->get();
     }
 }

@@ -48,7 +48,8 @@ class LoginController extends Controller
             if ($user->isSuperAdmin()) {
                 return redirect()->intended('/admin/dashboard');
             } elseif ($user->isSurveyor()) {
-                return redirect()->intended('/surveyor/dashboard');
+                // Land surveyors on their jobs list by default
+                return redirect()->intended(route('surveyor.surveys.index'));
             } else {
                 return redirect()->intended('/client/dashboard');
             }
@@ -74,6 +75,7 @@ class LoginController extends Controller
         return redirect('/login');
     }
 }
+
 
 
 

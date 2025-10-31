@@ -218,7 +218,6 @@ h5,
 h6 {
     color: var(--ink);
     margin: 0px 0px 15px 0px;
-    font-family: 'Circular Std Medium';
 }
 
 h1 {
@@ -6072,6 +6071,7 @@ Vertical Timeline - by CodyHouse.co
     display: -ms-inline-flexbox;
     display: inline-flex;
     vertical-align: middle;
+    gap: 0.5em;
 }
 
 .email-filters input {

@@ -69,7 +69,7 @@
                         <label>Current Status:</label>
                         <div>
                             <span class="badge {{ $survey->status_badge }} p-2">
-                                {{ ucfirst($survey->status) }}
+                                {{ $survey->status_label }}
                             </span>
                         </div>
                     </div>
@@ -91,6 +91,12 @@
                 <hr>
                 
                 @if($survey->surveyor_id === auth()->id())
+                    
+                    <!-- Add Media Button - Available for assigned, in_progress, and completed surveys -->
+                    <a href="{{ route('surveyor.survey.media', $survey) }}" class="btn btn-outline-primary btn-block mb-2">
+                        <i class="fas fa-camera"></i> Add Media
+                    </a>
+                
                     @if($survey->status === 'assigned')
                         <form action="{{ route('surveyor.surveys.start', $survey) }}" method="POST" class="mb-2">
                             @csrf
@@ -108,10 +114,6 @@
                         </a>
                     @endif
                     
-                    <!-- Add Media Button - Available for assigned, in_progress, and completed surveys -->
-                    <a href="{{ route('surveyor.survey.media', $survey) }}" class="btn btn-outline-primary btn-block mb-2">
-                        <i class="fas fa-camera"></i> Add Media
-                    </a>
                 @elseif(!$survey->surveyor_id)
                     <form action="{{ route('surveyor.surveys.claim', $survey) }}" method="POST" class="mb-2">
                         @csrf

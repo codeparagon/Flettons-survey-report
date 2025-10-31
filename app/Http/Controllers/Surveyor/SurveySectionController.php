@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Survey;
 use App\Models\SurveySection;
 use App\Models\SurveySectionAssessment;
+use App\Services\SectionAssessmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -78,6 +79,84 @@ class SurveySectionController extends Controller
     }
 
     /**
+     * Get all sections for a survey grouped by category with completion status.
+     */
+    private function getSectionsHierarchy(Survey $survey)
+    {
+        $categories = \App\Models\SurveyCategory::getCategoriesWithSectionsForLevel($survey->level);
+        $assessments = $survey->sectionAssessments()->with('section')->get()->keyBy('survey_section_id');
+        
+        return $categories->map(function($category) use ($assessments) {
+            $sections = $category->sections->map(function($section) use ($assessments) {
+                $assessment = $assessments->get($section->id);
+                return [
+                    'id' => $section->id,
+                    'model' => $section, // Include model for route binding
+                    'name' => $section->name,
+                    'display_name' => $section->display_name,
+                    'description' => $section->description,
+                    'icon' => $section->icon,
+                    'is_completed' => $assessment ? $assessment->is_completed : false,
+                    'sort_order' => $section->sort_order,
+                ];
+            })->sortBy('sort_order')->values();
+            
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'display_name' => $category->display_name,
+                'description' => $category->description,
+                'icon' => $category->icon,
+                'sections' => $sections,
+            ];
+        })->filter(function($category) {
+            // Only include categories that have at least one section
+            return $category['sections']->count() > 0;
+        })->values();
+    }
+
+    /**
+     * Get next incomplete section after the current section.
+     */
+    private function getNextSection(Survey $survey, SurveySection $currentSection)
+    {
+        $requiredSections = $survey->getRequiredSections()->sortBy('sort_order')->values();
+        $assessments = $survey->sectionAssessments()->where('is_completed', true)->pluck('survey_section_id')->toArray();
+        
+        $foundCurrent = false;
+        
+        foreach ($requiredSections as $section) {
+            if ($foundCurrent && !in_array($section->id, $assessments)) {
+                return $section;
+            }
+            
+            if ($section->id === $currentSection->id) {
+                $foundCurrent = true;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get previous section before the current section.
+     */
+    private function getPreviousSection(Survey $survey, SurveySection $currentSection)
+    {
+        $requiredSections = $survey->getRequiredSections()->sortBy('sort_order')->values();
+        $previousSection = null;
+        
+        foreach ($requiredSections as $section) {
+            if ($section->id === $currentSection->id) {
+                return $previousSection;
+            }
+            $previousSection = $section;
+        }
+        
+        return null;
+    }
+
+    /**
      * Show form for a specific section assessment.
      */
     public function showSectionForm(Survey $survey, SurveySection $section)
@@ -106,7 +185,18 @@ class SurveySectionController extends Controller
             ]);
         }
 
-        return view('surveyor.survey.section-form', compact('survey', 'section', 'assessment'));
+        // Load section with fields for dynamic form rendering
+        $section->load('fields');
+
+        // Get hierarchy for sidebar
+        $hierarchy = $this->getSectionsHierarchy($survey);
+        $progress = $survey->getCompletionProgress();
+        
+        // Get next/previous sections for navigation
+        $nextSection = $this->getNextSection($survey, $section);
+        $previousSection = $this->getPreviousSection($survey, $section);
+
+        return view('surveyor.survey.section-form', compact('survey', 'section', 'assessment', 'hierarchy', 'progress', 'nextSection', 'previousSection'));
     }
 
     /**
@@ -119,15 +209,13 @@ class SurveySectionController extends Controller
             abort(403, 'Unauthorized');
         }
 
+        $sectionService = new SectionAssessmentService();
+        
+        // Build validation rules dynamically
+        $validationRules = $sectionService->buildValidationRules($section);
+
         // Validate the request
-        $validated = $request->validate([
-            'condition_rating' => 'required|in:excellent,good,fair,poor',
-            'defects_noted' => 'nullable|string|max:2000',
-            'recommendations' => 'nullable|string|max:2000',
-            'notes' => 'nullable|string|max:2000',
-            'photos.*' => 'nullable|image|max:5120', // 5MB max per photo
-            'additional_data' => 'nullable|array',
-        ]);
+        $validated = $request->validate($validationRules);
 
         // Handle photo uploads
         $photoPaths = [];
@@ -138,13 +226,69 @@ class SurveySectionController extends Controller
             }
         }
 
-        // Get existing photos and merge with new ones
-        $existingAssessment = $survey->sectionAssessments()
-            ->where('survey_section_id', $section->id)
-            ->first();
+        // Extract field values if using custom fields
+        $section->refresh();
+        $section->load(['fields' => function($query) {
+            $query->where('is_active', true);
+        }]);
+        $customFields = $section->fields;
+        
+        $assessmentData = [
+            'is_completed' => true,
+            'completed_at' => now(),
+            'completed_by' => auth()->id(),
+        ];
 
-        $existingPhotos = $existingAssessment ? ($existingAssessment->photos ?? []) : [];
-        $allPhotos = array_merge($existingPhotos, $photoPaths);
+        if ($customFields && $customFields->count() > 0) {
+            // Store custom field values in additional_data
+            $fieldValues = $sectionService->extractFieldValues($request, $section);
+            $assessmentData['additional_data'] = $fieldValues;
+            
+            // Handle photos for custom fields too
+            $existingPhotosInput = $request->input('existing_photos', []);
+            $existingPhotos = is_array($existingPhotosInput) ? $existingPhotosInput : [];
+            $assessmentData['photos'] = array_merge($existingPhotos, $photoPaths);
+            
+            // Set condition_rating from first rating field if exists, or null
+            $ratingField = $customFields->firstWhere('field_type', 'rating');
+            if ($ratingField && isset($validated['field_' . $ratingField->id])) {
+                $assessmentData['condition_rating'] = $validated['field_' . $ratingField->id];
+            } else {
+                $assessmentData['condition_rating'] = null;
+            }
+        } else {
+            // Use new default fields structure
+            $assessmentData['report_content'] = $validated['report_content'] ?? null;
+            $assessmentData['material'] = $validated['material'] ?? null;
+            
+            // Handle defects - ensure it's an array
+            $defects = $request->input('defects', []);
+            
+            // If defects is not an array, try to convert it
+            if (!is_array($defects)) {
+                if (is_string($defects)) {
+                    $defects = json_decode($defects, true);
+                }
+                if (!is_array($defects)) {
+                    $defects = [];
+                }
+            }
+            
+            // Filter out empty values and ensure array format
+            $defects = array_values(array_filter($defects, function($value) {
+                return !empty($value) && $value !== '';
+            }));
+            
+            $assessmentData['defects'] = $defects;
+            
+            $assessmentData['remaining_life'] = $validated['remaining_life'] ?? null;
+            $assessmentData['notes'] = $validated['notes'] ?? null;
+            
+            // Handle photos: preserve existing photos (that weren't deleted) + add new ones
+            $existingPhotosInput = $request->input('existing_photos', []);
+            $existingPhotos = is_array($existingPhotosInput) ? $existingPhotosInput : [];
+            $assessmentData['photos'] = array_merge($existingPhotos, $photoPaths);
+        }
 
         // Update or create assessment
         $assessment = SurveySectionAssessment::updateOrCreate(
@@ -152,22 +296,22 @@ class SurveySectionController extends Controller
                 'survey_id' => $survey->id,
                 'survey_section_id' => $section->id,
             ],
-            [
-                'condition_rating' => $validated['condition_rating'],
-                'defects_noted' => $validated['defects_noted'],
-                'recommendations' => $validated['recommendations'],
-                'notes' => $validated['notes'],
-                'photos' => $allPhotos,
-                'additional_data' => $validated['additional_data'] ?? [],
-                'is_completed' => true,
-                'completed_at' => now(),
-                'completed_by' => auth()->id(),
-            ]
+            $assessmentData
         );
 
+        // Get next incomplete section for auto-navigation
+        $nextSection = $this->getNextSection($survey, $section);
+        
+        if ($nextSection) {
+            return redirect()
+                ->route('surveyor.survey.section.form', [$survey, $nextSection])
+                ->with('success', "{$section->display_name} saved! Moving to next section: {$nextSection->display_name}");
+        } else {
+            // All sections completed - go to categories summary
         return redirect()
-            ->route('surveyor.survey.sections', $survey)
-            ->with('success', "{$section->display_name} assessment saved successfully!");
+                ->route('surveyor.survey.categories', $survey)
+                ->with('success', "🎉 All sections completed!");
+        }
     }
 
     /**

@@ -21,7 +21,8 @@ Route::get('/', function () {
         if ($user->isSuperAdmin()) {
             return redirect()->route('admin.dashboard');
         } elseif ($user->isSurveyor()) {
-            return redirect()->route('surveyor.dashboard');
+            // Default landing page for surveyors: My Surveys (jobs list)
+            return redirect()->route('surveyor.surveys.index');
         } elseif ($user->isClient()) {
             return redirect()->route('client.dashboard');
         }
@@ -93,6 +94,13 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
         'destroy' => 'admin.survey-sections.destroy',
     ]);
     Route::post('/survey-sections/{surveySection}/toggle-status', [\App\Http\Controllers\Admin\SurveySectionController::class, 'toggleStatus'])->name('admin.survey-sections.toggle-status');
+    
+    // Section Fields Management
+    Route::get('/survey-sections/{surveySection}/fields/{field}', [\App\Http\Controllers\Admin\SurveySectionController::class, 'showField'])->name('admin.survey-sections.fields.show');
+    Route::post('/survey-sections/{surveySection}/fields', [\App\Http\Controllers\Admin\SurveySectionController::class, 'storeField'])->name('admin.survey-sections.fields.store');
+    Route::put('/survey-sections/{surveySection}/fields/{field}', [\App\Http\Controllers\Admin\SurveySectionController::class, 'updateField'])->name('admin.survey-sections.fields.update');
+    Route::delete('/survey-sections/{surveySection}/fields/{field}', [\App\Http\Controllers\Admin\SurveySectionController::class, 'deleteField'])->name('admin.survey-sections.fields.delete');
+    Route::post('/survey-sections/{surveySection}/fields/reorder', [\App\Http\Controllers\Admin\SurveySectionController::class, 'reorderFields'])->name('admin.survey-sections.fields.reorder');
     
     // Survey Levels CMS (update existing routes)
     Route::post('/survey-levels/{surveyLevel}/toggle-status', [\App\Http\Controllers\Admin\SurveyLevelController::class, 'toggleStatus'])->name('admin.survey-levels.toggle-status');

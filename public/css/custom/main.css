@@ -1,0 +1,22 @@
+/* Main Custom CSS - Import All Custom Styles */
+
+/* General Layout Styles */
+@import url('general.css');
+
+/* DataTable Styles */
+@import url('datatable.css');
+
+/* Button Styles */
+@import url('buttons.css');
+
+/* Badge Styles */
+@import url('badges.css');
+
+/* Card Styles */
+@import url('cards.css');
+
+/* Table Styles */
+@import url('tables.css');
+
+/* Form Styles */
+@import url('forms.css');

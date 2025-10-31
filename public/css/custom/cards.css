@@ -1,0 +1,15 @@
+/* Card styling */
+.card {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+}
+
+.card-header {
+    background-color: #1a202c !important;
+    border-color: #1a202c !important;
+    color: #c1ec4a !important;
+}
+
+.card-body {
+    color: #1a202c !important;
+}

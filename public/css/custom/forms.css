@@ -1,0 +1,20 @@
+/* Form styling */
+.form-control {
+    background-color: #ffffff !important;
+    border-color: #d1d5db !important;
+    color: #1a202c !important;
+}
+
+.form-control:focus {
+    background-color: #ffffff !important;
+    /* border-color: #00d4aa !important; */
+    color: #1a202c !important;
+    /* box-shadow: 0 0 0 0.2rem rgba(0, 212, 170, 0.25) !important; */
+    border-color: #C1EC4A !important;
+    box-shadow: 0 0 0 0.2rem #c1ec4aa6 !important;
+    outline: none !important;
+}
+
+.form-label {
+    color: #1a202c !important;
+}

@@ -48,11 +48,11 @@
                             </a>
                         </li>
                         
-                        <li class="nav-item">
+                        <!-- <li class="nav-item">
                             <a class="nav-link" href="#">
                                 <i class="fa fa-fw fa-cog"></i>Settings
                             </a>
-                        </li>
+                        </li> -->
                     @elseif(auth()->user()->isSurveyor())
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('surveyor/dashboard') ? 'active' : '' }}" href="{{ route('surveyor.dashboard') }}">
@@ -64,11 +64,11 @@
                                 <i class="fa fa-fw fa-clipboard-list"></i>My Survey Jobs
                             </a>
                         </li>
-                        <li class="nav-item">
+                        <!-- <li class="nav-item">
                             <a class="nav-link" href="#">
                                 <i class="fa fa-fw fa-chart-bar"></i>Reports
                             </a>
-                        </li>
+                        </li> -->
                     @elseif(auth()->user()->isClient())
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('client/dashboard') ? 'active' : '' }}" href="{{ route('client.dashboard') }}">
@@ -87,10 +87,10 @@
                         </li>
                     @endif
 
-                    <li class="nav-divider">Account</li>
+                    <!-- <li class="nav-divider">Account</li>
                     <li class="nav-item">
                         <a class="nav-link" href="#"><i class="fa fa-fw fa-user-circle"></i>Profile</a>
-                    </li>
+                    </li> -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('logout') }}"
                            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
