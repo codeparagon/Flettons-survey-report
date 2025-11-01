@@ -82,6 +82,14 @@ class SurveySectionAssessment extends Model
     }
 
     /**
+     * Check if assessment has report content.
+     */
+    public function hasReportContent()
+    {
+        return !empty(trim($this->report_content ?? ''));
+    }
+
+    /**
      * Get formatted completion date.
      */
     public function getFormattedCompletedAtAttribute()

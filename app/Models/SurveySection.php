@@ -140,6 +140,14 @@ class SurveySection extends Model
     }
 
     /**
+     * Scope for custom fields sections.
+     */
+    public function scopeCustomFields($query)
+    {
+        return $query->where('generation_method', 'custom_fields');
+    }
+
+    /**
      * Get field configurations ordered by field_order.
      */
     public function getFieldConfigurations()

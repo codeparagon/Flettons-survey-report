@@ -10,7 +10,7 @@ class Survey extends Model
     use HasFactory;
 
     protected $fillable = [
-        // Signup form (initial details)
+        // Client information
         'first_name',
         'last_name',
         'email_address',
@@ -24,7 +24,7 @@ class Survey extends Model
         'over1650',
         'sqft_area',
 
-        // Listing page calculated fields
+        // Level and pricing
         'level',
         'breakdown',
         'aerial',
@@ -38,45 +38,27 @@ class Survey extends Model
         'inf_field_LastName',
         'inf_field_Email',
         'inf_field_Phone1',
-
-        // Home/billing address
-        'inf_field_StreetAddress1',
+        'inf_field_Phone2',
+        'inf_field_Address1Street1',
+        'inf_field_Address1Street2',
+        'inf_field_City',
+        'inf_field_State',
+        'inf_field_Country',
         'inf_field_PostalCode',
 
-        // Survey property address
+        // Additional client fields
         'inf_field_Address2Street1',
+        'inf_field_Address2Street2',
+        'inf_field_City2',
+        'inf_field_State2',
+        'inf_field_Country2',
         'inf_field_PostalCode2',
-        'inf_custom_PropertyLink',
-
-        // Property features & concerns
-        'inf_custom_VacantorOccupied',
-        'inf_custom_AnyExtensions',
-        'inf_custom_Garage',
-        'inf_custom_GarageLocation',
-        'inf_custom_Garden',
-        'inf_custom_GardenLocation',
-        'inf_custom_SpecificConcerns',
-
-        // Solicitor details
-        'inf_custom_SolicitorFirm',
-        'inf_custom_SolicitorFirmName',
-        'inf_custom_ConveyancerName',
-        'inf_custom_SolicitorPhoneNumber1',
-        'inf_custom_SolicitorsEmail',
-        'inf_custom_SolicitorAddress',
-        'inf_custom_SolicitorPostalCode',
-
-        // Exchange timeline
-        'inf_custom_exchange_known',
-        'inf_custom_ExchangeDate',
-
-        // Estate agent details
-        'inf_custom_AgentCompanyName',
-        'inf_custom_AgentName',
-        'inf_custom_AgentPhoneNumber',
-        'inf_custom_AgentsEmail',
         'inf_field_Address3Street1',
         'inf_field_PostalCode3',
+
+        // Agent information
+        'inf_custom_AgentsName',
+        'inf_custom_AgentsEmail',
 
         // Pricing
         'level1_price',
@@ -154,54 +136,28 @@ class Survey extends Model
     public function getCompletionProgress()
     {
         $requiredSections = $this->getRequiredSections();
-        $completedAssessments = $this->sectionAssessments()->completed()->count();
         $totalSections = $requiredSections->count();
         
+        if ($totalSections === 0) {
+            return ['percentage' => 0, 'completed' => 0, 'total' => 0];
+        }
+        
+        $completedSections = $this->sectionAssessments()
+            ->where('is_completed', true)
+            ->whereIn('survey_section_id', $requiredSections->pluck('id'))
+            ->count();
+        
+        $percentage = ($completedSections / $totalSections) * 100;
+        
         return [
-            'completed' => $completedAssessments,
+            'percentage' => round($percentage, 1),
+            'completed' => $completedSections,
             'total' => $totalSections,
-            'percentage' => $totalSections > 0 ? round(($completedAssessments / $totalSections) * 100) : 0,
         ];
     }
 
     /**
-     * Check if survey is fully completed.
-     */
-    public function isFullyCompleted()
-    {
-        $progress = $this->getCompletionProgress();
-        return $progress['completed'] === $progress['total'];
-    }
-
-    /**
-     * Get assessment for a specific section.
-     */
-    public function getAssessmentForSection($sectionName)
-    {
-        return $this->sectionAssessments()
-            ->whereHas('section', function($query) use ($sectionName) {
-                $query->where('name', $sectionName);
-            })
-            ->first();
-    }
-
-    /**
-     * Get status badge class.
-     */
-    public function getStatusBadgeAttribute()
-    {
-        $badges = [
-            'pending' => 'badge-warning',
-            'assigned' => 'badge-info',
-            'in_progress' => 'badge-primary',
-            'completed' => 'badge-success',
-            'cancelled' => 'badge-danger',
-        ];
-        return $badges[$this->status] ?? 'badge-secondary';
-    }
-
-    /**
-     * Get a human-friendly status label (e.g., "In Progress").
+     * Get human-readable status label.
      */
     public function getStatusLabelAttribute()
     {
@@ -209,26 +165,98 @@ class Survey extends Model
     }
 
     /**
-     * Get client name from form data.
+     * Get status badge class for styling.
+     */
+    public function getStatusBadgeAttribute()
+    {
+        $badges = [
+            'pending' => 'badge-secondary',
+            'assigned' => 'badge-info',
+            'in_progress' => 'badge-warning',
+            'completed' => 'badge-success',
+            'cancelled' => 'badge-danger',
+        ];
+        
+        return $badges[$this->status] ?? 'badge-secondary';
+    }
+
+    /**
+     * Get client full name.
      */
     public function getClientNameAttribute()
     {
-        return trim(($this->inf_field_FirstName ?? $this->first_name) . ' ' . ($this->inf_field_LastName ?? $this->last_name));
+        if ($this->inf_field_FirstName && $this->inf_field_LastName) {
+            return trim($this->inf_field_FirstName . ' ' . $this->inf_field_LastName);
+        }
+        if ($this->first_name && $this->last_name) {
+            return trim($this->first_name . ' ' . $this->last_name);
+        }
+        return $this->first_name ?? $this->inf_field_FirstName ?? 'Unknown Client';
     }
 
     /**
-     * Get client email from form data.
+     * Get client email.
      */
     public function getClientEmailAttribute()
     {
-        return $this->inf_field_Email ?? $this->email_address;
+        return $this->inf_field_Email ?? $this->email_address ?? null;
     }
 
     /**
-     * Get property address from form data.
+     * Get full property address.
      */
     public function getPropertyAddressFullAttribute()
     {
-        return $this->inf_field_Address2Street1 ?? $this->full_address;
+        $parts = [];
+        
+        if ($this->inf_field_Address1Street1) {
+            $parts[] = $this->inf_field_Address1Street1;
+            if ($this->inf_field_Address1Street2) {
+                $parts[] = $this->inf_field_Address1Street2;
+            }
+        }
+        
+        if ($this->inf_field_City) {
+            $parts[] = $this->inf_field_City;
+        }
+        
+        if ($this->inf_field_State) {
+            $parts[] = $this->inf_field_State;
+        }
+        
+        if ($this->inf_field_PostalCode) {
+            $parts[] = $this->inf_field_PostalCode;
+        }
+        
+        if (empty($parts) && $this->full_address) {
+            return $this->full_address;
+        }
+        
+        return !empty($parts) ? implode(', ', $parts) : 'Address not provided';
+    }
+
+    /**
+     * Get assessments with report content (for report generation).
+     */
+    public function getAssessmentsWithReportContent()
+    {
+        return $this->sectionAssessments()
+            ->with('section')
+            ->get()
+            ->filter(function($assessment) {
+                return $assessment->hasReportContent();
+            });
+    }
+
+    /**
+     * Get assessments grouped by category with report content.
+     */
+    public function getAssessmentsByCategoryWithContent()
+    {
+        $assessments = $this->getAssessmentsWithReportContent();
+        
+        return $assessments->groupBy(function($assessment) {
+            return $assessment->section->category->display_name ?? 'Uncategorized';
+        });
     }
 }

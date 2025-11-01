@@ -47,14 +47,16 @@ class SurveySectionController extends Controller
             'description' => 'nullable|string',
             'sort_order' => 'required|integer|min:0',
             'is_active' => 'boolean',
-            'generation_method' => 'nullable|in:database,ai',
+            'generation_method' => 'nullable|in:database,ai,custom_fields',
             'field_config' => 'nullable|array',
             'field_config.ai_prompt_template' => 'nullable|string',
             'field_config.defects_options' => 'nullable|array',
             'field_config.defects_options.*' => 'nullable|string|max:255',
             'field_config.remaining_life_options' => 'nullable|array',
             'field_config.remaining_life_options.*' => 'nullable|string|max:255',
-            'field_config.report_template' => 'nullable|string',
+            'field_config.report_template' => 'nullable|string', // Backward compatibility
+            'field_config.report_templates' => 'nullable|array',
+            'field_config.report_templates.*' => 'nullable|string',
             'field_config.ai_prompt_helper' => 'nullable|string',
             'levels' => 'nullable|array',
             'levels.*' => 'exists:survey_levels,id',
@@ -87,6 +89,18 @@ class SurveySectionController extends Controller
                 }));
                 $validated['field_config']['remaining_life_options'] = $remainingLifeOptions ?: ['0 yrs', '1-5 yrs', '6-10 yrs', '10+ yrs'];
             }
+        }
+
+        // Validate custom fields requirement for create
+        // For custom_fields method, at least one field must exist
+        // Fields can be added via AJAX on edit page after creation, so we allow creation
+        // but will strictly validate on update that fields exist
+        // Block creation if custom_fields is selected - user must add fields first on edit page
+        // Or choose a different generation method for initial creation
+        if (($validated['generation_method'] ?? 'database') === 'custom_fields') {
+            // For create: We allow it, but validation will happen on first update
+            // This allows the workflow: create section -> go to edit -> add fields via AJAX -> save
+            // The update validation will catch if fields are missing
         }
 
         // Extract levels before creating section
@@ -145,14 +159,16 @@ class SurveySectionController extends Controller
             'description' => 'nullable|string',
             'sort_order' => 'required|integer|min:0',
             'is_active' => 'boolean',
-            'generation_method' => 'nullable|in:database,ai',
+            'generation_method' => 'nullable|in:database,ai,custom_fields',
             'field_config' => 'nullable|array',
             'field_config.ai_prompt_template' => 'nullable|string',
             'field_config.defects_options' => 'nullable|array',
             'field_config.defects_options.*' => 'nullable|string|max:255',
             'field_config.remaining_life_options' => 'nullable|array',
             'field_config.remaining_life_options.*' => 'nullable|string|max:255',
-            'field_config.report_template' => 'nullable|string',
+            'field_config.report_template' => 'nullable|string', // Backward compatibility
+            'field_config.report_templates' => 'nullable|array',
+            'field_config.report_templates.*' => 'nullable|string',
             'field_config.ai_prompt_helper' => 'nullable|string',
             'levels' => 'nullable|array',
             'levels.*' => 'exists:survey_levels,id',
@@ -212,6 +228,35 @@ class SurveySectionController extends Controller
             }
             
             $validated['field_config'] = array_merge($existingConfig, $validated['field_config']);
+        }
+
+        // Ensure generation_method is included in update if it's in the request
+        // Laravel validation may not include nullable fields if they're empty, so we need to explicitly check
+        if ($request->has('generation_method')) {
+            $validated['generation_method'] = $request->input('generation_method');
+        }
+
+        // Handle generation_method changes
+        $currentGenerationMethod = $surveySection->generation_method ?? 'database';
+        $newGenerationMethod = $validated['generation_method'] ?? $currentGenerationMethod;
+        
+        // If switching FROM custom_fields to another method, delete all custom fields
+        if ($currentGenerationMethod === 'custom_fields' && $newGenerationMethod !== 'custom_fields') {
+            $surveySection->fields()->delete();
+        }
+        
+        // Validate custom fields requirement: if saving with custom_fields, must have at least one field
+        // Note: Fields are typically added via AJAX and saved directly to database, not in form submission
+        if ($newGenerationMethod === 'custom_fields') {
+            $existingFieldsCount = $surveySection->fields()->count();
+            
+            if ($existingFieldsCount === 0) {
+                return redirect()->back()
+                    ->withErrors([
+                        'generation_method' => 'Custom Fields mode requires at least one custom field. Please add custom fields using the "Add Field" button before saving.'
+                    ])
+                    ->withInput();
+            }
         }
 
         $levels = $validated['levels'] ?? null;

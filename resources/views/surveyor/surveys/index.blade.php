@@ -153,7 +153,7 @@
                 <x-datatable id="surveysTable" :columns="['Address', 'Level', 'Status', 'Survey Date', 'Actions']">
                     @forelse($assignedSurveys as $survey)
                         <tr>
-                            <td>{{ Str::limit($survey->property_address_full, 60) }}</td>
+                            <td>{{ Str::limit($survey->full_address, 60) }}</td>
                             <td><span class="badge badge-info">{{ $survey->level ?? 'N/A' }}</span></td>
                             <td><span class="badge {{ $survey->status_badge }}">{{ $survey->status_label }}</span></td>
                             <td>{{ $survey->scheduled_date ? $survey->scheduled_date->format('Y-m-d') : '' }}</td>

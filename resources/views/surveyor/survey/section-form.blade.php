@@ -67,20 +67,45 @@
                       enctype="multipart/form-data">
                     @csrf
                     
+                    {{-- ==========================================
+                         FORM FIELD DISPLAY LOGIC
+                         ==========================================
+                         This form adapts based on section generation_method:
+                         
+                         1. CUSTOM_FIELDS: Shows only custom configured fields
+                         2. AI: Shows Report Content + Material + Images + 
+                                 Defects + Remaining Life + Notes
+                         3. DATABASE: Shows Report Content + Material + Images + Notes
+                                     (NO Defects/Remaining Life - those are AI-only)
+                         
+                         This matches the admin section creation/edit forms.
+                         ========================================== --}}
+                    
                     @php
+                        // Initialize section service and load custom fields
                         $sectionService = app(\App\Services\SectionAssessmentService::class);
-                        // Force reload from database to get latest fields
                         $section->refresh();
                         $section->load(['fields' => function($query) {
-                            $query->where('is_active', true)->orderBy('field_order')->orderBy('field_label');
+                            $query->where('is_active', true)
+                                  ->orderBy('field_order')
+                                  ->orderBy('field_label');
                         }]);
+                        
                         $customFields = $section->fields;
                         $hasCustomFields = $customFields && $customFields->count() > 0;
                         $fieldValues = $hasCustomFields ? $sectionService->prepareFieldValuesForForm($section, $assessment) : [];
+                        
+                        // Get field configuration for database/AI sections
+                        $fieldConfig = $section->field_config ?? [];
+                        $generationMethod = $section->generation_method ?? 'database';
                     @endphp
 
+                    {{-- ==========================================
+                         CUSTOM FIELDS MODE
+                         ========================================== --}}
+                    @if($generationMethod === 'custom_fields')
                     @if($hasCustomFields)
-                        {{-- Custom Fields Configuration --}}
+                            {{-- Render custom fields --}}
                         @foreach($customFields as $field)
                             <x-dynamic-field 
                                 :field="$field" 
@@ -88,11 +113,49 @@
                                 :errors="$errors" />
                         @endforeach
                     @else
-                        {{-- Default Fields with New Design --}}
+                            {{-- Custom fields method but no fields configured yet --}}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> 
+                                <strong>Custom Fields Mode:</strong> This section is configured to use custom fields, but no custom fields have been added yet. Please contact an administrator to configure the fields for this section.
+                            </div>
+                        @endif
+                    @else
+                        {{-- ==========================================
+                             DATABASE OR AI MODE
+                             ========================================== --}}
                         @php
-                            $fieldConfig = $section->field_config ?? [];
-                            $defectsOptions = $fieldConfig['defects_options'] ?? ['Rot', 'Deflection', 'Moss', 'Lichen', 'ACMs'];
-                            $remainingLifeOptions = $fieldConfig['remaining_life_options'] ?? ['0 yrs', '1-5 yrs', '6-10 yrs', '10+ yrs'];
+                            // Prepare report content value with level-specific template support
+                            $defaultReportContent = '';
+                            if ($generationMethod === 'database') {
+                                $levelTemplates = $fieldConfig['report_templates'] ?? [];
+                                
+                                // Get level ID from survey level name (stable lookup)
+                                $surveyLevelName = $survey->level ?? 'Level 1';
+                                $surveyLevelModel = \App\Models\SurveyLevel::where('name', $surveyLevelName)->first();
+                                
+                                if ($surveyLevelModel) {
+                                    // Try by level ID first (most stable)
+                                    $defaultReportContent = $levelTemplates[$surveyLevelModel->id] 
+                                        ?? $levelTemplates[$surveyLevelName] 
+                                        ?? $fieldConfig['report_template'] 
+                                        ?? '';
+                                } else {
+                                    // Fallback to level name if model not found, then legacy template
+                                    $defaultReportContent = $levelTemplates[$surveyLevelName] 
+                                        ?? $fieldConfig['report_template'] 
+                                        ?? '';
+                                }
+                            }
+                            $reportContentValue = old('report_content', $assessment->report_content ?: $defaultReportContent);
+                            
+                            // Prepare default fields values (only for AI mode)
+                            $showDefaultFields = ($generationMethod === 'ai');
+                            $defectsOptions = $showDefaultFields 
+                                ? ($fieldConfig['defects_options'] ?? ['Rot', 'Deflection', 'Moss', 'Lichen', 'ACMs'])
+                                : [];
+                            $remainingLifeOptions = $showDefaultFields
+                                ? ($fieldConfig['remaining_life_options'] ?? ['0 yrs', '1-5 yrs', '6-10 yrs', '10+ yrs'])
+                                : [];
                             $selectedDefects = old('defects', $assessment->defects ?? []);
                             $selectedRemainingLife = old('remaining_life', $assessment->remaining_life ?? '');
                             if (!is_array($selectedDefects)) {
@@ -100,140 +163,192 @@
                             }
                         @endphp
 
-                        {{-- Report Content Textarea (Top) --}}
-                        @php
-                            // Get default report template for database-driven sections
-                            $defaultReportContent = '';
-                            if ($section->generation_method === 'database') {
-                                $defaultReportContent = $fieldConfig['report_template'] ?? '';
-                            }
-                            // Use existing assessment content, or default template, or old input
-                            $reportContentValue = old('report_content', $assessment->report_content ?: $defaultReportContent);
-                        @endphp
-                    <div class="form-group">
-                            <label for="report_content">Report Content</label>
-                            @if($section->generation_method === 'ai')
-                                <small class="form-text text-muted mb-2 d-block">
-                                    <i class="fas fa-info-circle text-primary"></i> This report will be generated by AI based on the configured prompt template.
-                                </small>
-                            @endif
-                            <textarea class="form-control @error('report_content') is-invalid @enderror" 
-                                      id="report_content" 
-                                      name="report_content" 
-                                      rows="6"
-                                      placeholder="{{ $section->generation_method === 'database' ? 'Enter or edit the report content...' : 'AI-generated report content will appear here...' }}">{{ $reportContentValue }}</textarea>
-                            <small class="form-text text-muted">
-                                @if($section->generation_method === 'database')
+                        @if($generationMethod === 'database')
+                            {{-- ==========================================
+                                 DATABASE MODE: Only Report Content + Photos
+                                 ========================================== --}}
+                            
+                            {{-- Report Content --}}
+                            <div class="form-group">
+                                <label for="report_content">Report Content</label>
+                                <textarea class="form-control @error('report_content') is-invalid @enderror" 
+                                          id="report_content" 
+                                          name="report_content" 
+                                          rows="6"
+                                          placeholder="Enter or edit the report content...">{{ $reportContentValue }}</textarea>
+                                <small class="form-text text-muted">
                                     Main report content (pre-filled from template, can be edited)
-                                @else
-                                    Main report content (generated by AI, can be edited)
-                                @endif
-                            </small>
-                            @error('report_content')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
-                    </div>
+                                </small>
+                                @error('report_content')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
 
-                        {{-- Material Input --}}
-                    <div class="form-group">
-                            <label for="material">Materials</label>
-                            <input type="text" 
-                                   class="form-control @error('material') is-invalid @enderror" 
-                                   id="material" 
-                                   name="material" 
-                                   value="{{ old('material', $assessment->material) }}"
-                                   placeholder="e.g., Clay tiles">
-                            @error('material')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                        {{-- Images Upload --}}
-                        <div class="form-group">
-                            <label>Images</label>
-                            <div class="media-upload-container">
-                                <div class="tab-content">
-                                    <div class="tab-pane fade show active" id="image-panel" role="tabpanel">
-                                        <div class="dropzone-container" id="image-dropzone">
-                                            <div class="dropzone-area" id="image-drop-area">
-                                                <p class="dropzone-text">Drag & drop here or use 'Add Image'</p>
+                            {{-- Images Upload --}}
+                            <div class="form-group">
+                                <label>Images</label>
+                                <div class="media-upload-container">
+                                    <div class="tab-content">
+                                        <div class="tab-pane fade show active" id="image-panel" role="tabpanel">
+                                            <div class="dropzone-container" id="image-dropzone">
+                                                <div class="dropzone-area" id="image-drop-area">
+                                                    <p class="dropzone-text">Drag & drop here or use 'Add Image'</p>
+                                                </div>
+                                                <button type="button" class="btn btn-primary mt-2" onclick="document.getElementById('photos').click()">
+                                                    <i class="fas fa-plus"></i> Add Image
+                                                </button>
+                                                <input type="file" class="d-none" id="photos" name="photos[]" multiple accept="image/*" onchange="handleImageFiles(this.files)">
                                             </div>
-                                            <button type="button" class="btn btn-primary mt-2" onclick="document.getElementById('photos').click()">
-                                                <i class="fas fa-plus"></i> Add Image
-                                            </button>
-                                            <input type="file" class="d-none" id="photos" name="photos[]" multiple accept="image/*" onchange="handleImageFiles(this.files)">
-                                        </div>
-                                        <div id="image-preview-container" class="mt-3 row">
-                                            @if($assessment->photos && count($assessment->photos) > 0)
-                                                @foreach($assessment->photos as $photo)
-                                                    <div class="col-md-3 mb-2 image-preview-item">
-                                                        <div class="position-relative">
-                                                            <img src="{{ Storage::url($photo) }}" class="img-thumbnail" style="width: 100%; height: 150px; object-fit: cover;">
-                                                            <button type="button" class="btn btn-sm btn-danger position-absolute" style="top: 5px; right: 5px;" onclick="deletePhotoPreview(this, '{{ $photo }}')">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                            <input type="hidden" name="existing_photos[]" value="{{ $photo }}">
+                                            <div id="image-preview-container" class="mt-3 row">
+                                                @if($assessment->photos && count($assessment->photos) > 0)
+                                                    @foreach($assessment->photos as $photo)
+                                                        <div class="col-md-3 mb-2 image-preview-item">
+                                                            <div class="position-relative">
+                                                                <img src="{{ Storage::url($photo) }}" class="img-thumbnail" style="width: 100%; height: 150px; object-fit: cover;">
+                                                                <button type="button" class="btn btn-sm btn-danger position-absolute" style="top: 5px; right: 5px;" onclick="deletePhotoPreview(this, '{{ $photo }}')">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                                <input type="hidden" name="existing_photos[]" value="{{ $photo }}">
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                @endforeach
-                                            @endif
+                                                    @endforeach
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                                @error('photos.*')
+                                    <div class="text-danger">{{ $message }}</div>
+                                @enderror
                             </div>
-                            @error('photos.*')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
-                        </div>
 
-                        {{-- Defects Single-select Tag Buttons (stored as array) --}}
-                        <div class="form-group">
-                            <label>Defects</label>
-                            <div class="tag-buttons-container" id="defects-container">
-                                @foreach($defectsOptions as $option)
-                                    <button type="button" 
-                                            class="tag-button defects-tag {{ (is_array($selectedDefects) && count($selectedDefects) > 0 && $selectedDefects[0] == $option) ? 'selected' : '' }}" 
-                                            data-value="{{ htmlspecialchars($option, ENT_QUOTES, 'UTF-8') }}">
-                                        {{ $option }}
-                                    </button>
-                                @endforeach
+                        @elseif($generationMethod === 'ai')
+                            {{-- ==========================================
+                                 AI MODE: All fields, Report Content at bottom
+                                 ========================================== --}}
+                            
+                            {{-- Material Input --}}
+                            <div class="form-group">
+                                <label for="material">Materials</label>
+                                <input type="text" 
+                                       class="form-control @error('material') is-invalid @enderror" 
+                                       id="material" 
+                                       name="material" 
+                                       value="{{ old('material', $assessment->material) }}"
+                                       placeholder="e.g., Clay tiles">
+                                @error('material')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
                             </div>
-                            <input type="hidden" name="defects" id="defects-input" value="{{ json_encode($selectedDefects, JSON_HEX_QUOT | JSON_HEX_APOS) }}">
-                            @error('defects')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                            @enderror
-                        </div>
 
-                        {{-- Remaining Life Single-select Tag Buttons --}}
-                        <div class="form-group">
-                            <label>Remaining Life</label>
-                            <div class="tag-buttons-container" id="remaining-life-container">
-                                @foreach($remainingLifeOptions as $option)
-                                    <button type="button" 
-                                            class="tag-button remaining-life-tag {{ $selectedRemainingLife == $option ? 'selected' : '' }}" 
-                                            data-value="{{ htmlspecialchars($option, ENT_QUOTES, 'UTF-8') }}">
-                                        {{ $option }}
-                                    </button>
-                                @endforeach
+                            {{-- Images Upload --}}
+                            <div class="form-group">
+                                <label>Images</label>
+                                <div class="media-upload-container">
+                                    <div class="tab-content">
+                                        <div class="tab-pane fade show active" id="image-panel" role="tabpanel">
+                                            <div class="dropzone-container" id="image-dropzone">
+                                                <div class="dropzone-area" id="image-drop-area">
+                                                    <p class="dropzone-text">Drag & drop here or use 'Add Image'</p>
+                                                </div>
+                                                <button type="button" class="btn btn-primary mt-2" onclick="document.getElementById('photos').click()">
+                                                    <i class="fas fa-plus"></i> Add Image
+                                                </button>
+                                                <input type="file" class="d-none" id="photos" name="photos[]" multiple accept="image/*" onchange="handleImageFiles(this.files)">
+                                            </div>
+                                            <div id="image-preview-container" class="mt-3 row">
+                                                @if($assessment->photos && count($assessment->photos) > 0)
+                                                    @foreach($assessment->photos as $photo)
+                                                        <div class="col-md-3 mb-2 image-preview-item">
+                                                            <div class="position-relative">
+                                                                <img src="{{ Storage::url($photo) }}" class="img-thumbnail" style="width: 100%; height: 150px; object-fit: cover;">
+                                                                <button type="button" class="btn btn-sm btn-danger position-absolute" style="top: 5px; right: 5px;" onclick="deletePhotoPreview(this, '{{ $photo }}')">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                                <input type="hidden" name="existing_photos[]" value="{{ $photo }}">
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @error('photos.*')
+                                    <div class="text-danger">{{ $message }}</div>
+                                @enderror
                             </div>
-                            <input type="hidden" name="remaining_life" id="remaining-life-input" value="{{ $selectedRemainingLife }}">
-                            @error('remaining_life')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                            @enderror
-                        </div>
 
-                        {{-- Additional Notes --}}
-                        <div class="form-group">
-                            <label for="notes">Additional Notes</label>
-                            <textarea class="form-control @error('notes') is-invalid @enderror" 
-                                      id="notes" 
-                                      name="notes" 
-                                      rows="4"
-                                      placeholder="Evidence of localised deterioration, further inspection advised.">{{ old('notes', $assessment->notes) }}</textarea>
-                            @error('notes')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                            @enderror
-                    </div>
+                            {{-- Default Fields (Defects & Remaining Life) - Only shown for AI mode --}}
+                            {{-- Defects Single-select Tag Buttons (stored as array) --}}
+                            <div class="form-group">
+                                <label>Defects</label>
+                                <div class="tag-buttons-container" id="defects-container">
+                                    @foreach($defectsOptions as $option)
+                                        <button type="button" 
+                                                class="tag-button defects-tag {{ (is_array($selectedDefects) && count($selectedDefects) > 0 && $selectedDefects[0] == $option) ? 'selected' : '' }}" 
+                                                data-value="{{ htmlspecialchars($option, ENT_QUOTES, 'UTF-8') }}">
+                                            {{ $option }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                                <input type="hidden" name="defects" id="defects-input" value="{{ json_encode($selectedDefects, JSON_HEX_QUOT | JSON_HEX_APOS) }}">
+                                @error('defects')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Remaining Life Single-select Tag Buttons --}}
+                            <div class="form-group">
+                                <label>Remaining Life</label>
+                                <div class="tag-buttons-container" id="remaining-life-container">
+                                    @foreach($remainingLifeOptions as $option)
+                                        <button type="button" 
+                                                class="tag-button remaining-life-tag {{ $selectedRemainingLife == $option ? 'selected' : '' }}" 
+                                                data-value="{{ htmlspecialchars($option, ENT_QUOTES, 'UTF-8') }}">
+                                            {{ $option }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                                <input type="hidden" name="remaining_life" id="remaining-life-input" value="{{ $selectedRemainingLife }}">
+                                @error('remaining_life')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Additional Notes --}}
+                            <div class="form-group">
+                                <label for="notes">Additional Notes</label>
+                                <textarea class="form-control @error('notes') is-invalid @enderror" 
+                                          id="notes" 
+                                          name="notes" 
+                                          rows="4"
+                                          placeholder="Evidence of localised deterioration, further inspection advised.">{{ old('notes', $assessment->notes) }}</textarea>
+                                @error('notes')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Report Content - Moved to bottom for AI mode --}}
+                            <div class="form-group">
+                                <label for="report_content">Report Content</label>
+                                <small class="form-text text-muted mb-2 d-block">
+                                    <i class="fas fa-info-circle text-primary"></i> This report will be generated by AI based on the configured prompt template.
+                                </small>
+                                <textarea class="form-control @error('report_content') is-invalid @enderror" 
+                                          id="report_content" 
+                                          name="report_content" 
+                                          rows="6"
+                                          placeholder="AI-generated report content will appear here...">{{ $reportContentValue }}</textarea>
+                                <small class="form-text text-muted">
+                                    Main report content (generated by AI, can be edited)
+                                </small>
+                                @error('report_content')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                        @endif
                     @endif
 
                     <div class="form-navigation-bar">
@@ -323,7 +438,13 @@
 @endsection
 @push('scripts')
 <script>
-// Initialize selected values from PHP
+// Initialize selected values from PHP (only if default fields are shown)
+@php
+    $generationMethod = $section->generation_method ?? 'database';
+    $showDefaultFields = ($generationMethod === 'ai');
+@endphp
+
+@if($showDefaultFields)
 let selectedDefects = @json($selectedDefects ?? []);
 let selectedRemainingLife = '{{ $selectedRemainingLife ?? "" }}';
 
@@ -331,6 +452,11 @@ let selectedRemainingLife = '{{ $selectedRemainingLife ?? "" }}';
 if (!Array.isArray(selectedDefects)) {
     selectedDefects = [];
 }
+@else
+    // Default fields not shown, initialize empty arrays
+    let selectedDefects = [];
+    let selectedRemainingLife = '';
+@endif
 
 // Tag button handler functions - defined immediately
 (function() {
@@ -401,9 +527,9 @@ if (!Array.isArray(selectedDefects)) {
     window.toggleDefectTag = handleDefectClick;
     window.selectRemainingLife = handleRemainingLifeClick;
     
-    // Set up event delegation when DOM is ready
+    // Set up event delegation when DOM is ready (only if default fields are shown)
     function initTagButtons() {
-        // Defects container - event delegation
+        // Defects container - event delegation (only initialize if element exists)
         var defectsContainer = document.getElementById('defects-container');
         if (defectsContainer) {
             defectsContainer.addEventListener('click', function(e) {
@@ -424,7 +550,7 @@ if (!Array.isArray(selectedDefects)) {
             }, true); // Use capture phase for better reliability
         }
         
-        // Remaining life container - event delegation
+        // Remaining life container - event delegation (only initialize if element exists)
         var remainingLifeContainer = document.getElementById('remaining-life-container');
         if (remainingLifeContainer) {
             remainingLifeContainer.addEventListener('click', function(e) {
@@ -446,7 +572,7 @@ if (!Array.isArray(selectedDefects)) {
         }
     }
     
-    // Initialize when DOM is ready
+    // Initialize when DOM is ready (always try, but handlers check for element existence)
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initTagButtons);
     } else {
@@ -455,22 +581,23 @@ if (!Array.isArray(selectedDefects)) {
 })();
 
 // Update hidden inputs and initialize button states on page load
+// Only initialize if default fields are shown (AI mode)
 document.addEventListener('DOMContentLoaded', function() {
     const defectsInput = document.getElementById('defects-input');
     const remainingLifeInput = document.getElementById('remaining-life-input');
     
-    // Initialize hidden inputs
-    if (defectsInput) {
-        defectsInput.value = JSON.stringify(selectedDefects);
+    // Only initialize if elements exist (they only exist in AI mode)
+    if (!defectsInput || !remainingLifeInput) {
+        return; // Default fields not shown, skip initialization
     }
     
-    if (remainingLifeInput) {
+    // Initialize hidden inputs
+    defectsInput.value = JSON.stringify(selectedDefects);
         remainingLifeInput.value = selectedRemainingLife;
-    }
     
     // Convert defects JSON to array format on form submit for Laravel validation
-    const form = defectsInput ? defectsInput.closest('form') : null;
-    if (form && defectsInput) {
+    const form = defectsInput.closest('form');
+    if (form) {
         form.addEventListener('submit', function(e) {
             // Ensure defects is sent as array format for Laravel
             // The validation rule expects: 'defects' => 'nullable|array'

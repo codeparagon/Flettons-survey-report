@@ -122,6 +122,84 @@
         object-fit: contain;
     }
 
+    /* Level-wise Report Templates Accordion Styling */
+    #reportTemplatesAccordion .card {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+    
+    #reportTemplatesAccordion .card-header {
+        background: linear-gradient(135deg, #1A202C 0%, #2d3748 100%);
+        border: none;
+        padding: 0;
+        border-radius: 0;
+    }
+    
+    #reportTemplatesAccordion .card-header button {
+        color: #C1EC4A !important;
+        font-size: 16px;
+        font-weight: 600;
+        padding: 16px 20px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        transition: all 0.3s ease;
+        border: none;
+        background: transparent;
+    }
+    
+    #reportTemplatesAccordion .card-header button:hover {
+        background: rgba(193, 236, 74, 0.15);
+        color: #ffffff !important;
+    }
+    
+    #reportTemplatesAccordion .card-header button:focus {
+        outline: none;
+        box-shadow: inset 0 0 0 2px rgba(193, 236, 74, 0.5);
+    }
+    
+    #reportTemplatesAccordion .card-header button strong {
+        font-size: 16px;
+        font-weight: 600;
+        color: #C1EC4A;
+    }
+    
+    #reportTemplatesAccordion .card-header button:hover strong {
+        color: #ffffff;
+    }
+    
+    #reportTemplatesAccordion .card-header button i {
+        font-size: 14px;
+        transition: transform 0.3s ease;
+        color: #C1EC4A;
+        margin-left: 10px;
+    }
+    
+    #reportTemplatesAccordion .card-header button:hover i {
+        color: #ffffff;
+    }
+    
+    #reportTemplatesAccordion .card-header button[aria-expanded="true"] i {
+        transform: rotate(180deg);
+    }
+    
+    #reportTemplatesAccordion .card-header .level-helper-text {
+        display: block;
+        font-size: 12px;
+        font-weight: 400;
+        color: rgba(193, 236, 74, 0.8);
+        margin-top: 4px;
+        line-height: 1.4;
+    }
+    
+    #reportTemplatesAccordion .card-header button:hover .level-helper-text {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
     /* Tag buttons for Levels (match theme) */
     .tag-buttons-container {
         display: flex;
@@ -423,10 +501,14 @@
                                 <option value="ai" {{ old('generation_method', $surveySection->generation_method ?? 'database') == 'ai' ? 'selected' : '' }}>
                                     🤖 AI-Generated (ChatGPT)
                                 </option>
+                                <option value="custom_fields" {{ old('generation_method', $surveySection->generation_method ?? 'database') == 'custom_fields' ? 'selected' : '' }}>
+                                    📝 Custom Fields (Configure your own fields)
+                                </option>
                             </select>
                             <small class="form-text text-muted">
                                 <strong>Database-Driven:</strong> Surveyors fill forms manually, you can set default report template.<br>
-                                <strong>AI-Generated:</strong> AI generates report content, you can configure AI prompt template.
+                                <strong>AI-Generated:</strong> AI generates report content, you can configure AI prompt template.<br>
+                                <strong>Custom Fields:</strong> Define custom fields instead of using default fields.
                             </small>
                             @error('generation_method')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -469,17 +551,61 @@
                             </div>
                         </div>
 
-                        {{-- Report Template (for Database-driven sections) --}}
+                        {{-- Report Templates by Level (for Database-driven sections) --}}
                         <div class="form-group" id="report-template-group" style="display: {{ (old('generation_method', $surveySection->generation_method ?? 'database') == 'database') ? 'block' : 'none' }};">
-                            <label for="report_template">
-                                <i class="fas fa-file-alt text-muted"></i> Default Report Template
+                            @php
+                                $levels = \App\Models\SurveyLevel::active()->ordered()->get();
+                                $reportTemplates = old('field_config.report_templates', $fieldConfig['report_templates'] ?? []);
+                                $legacyReportTemplate = old('field_config.report_template', $fieldConfig['report_template'] ?? '');
+                            @endphp
+                            <label>
+                                <i class="fas fa-file-alt text-muted"></i> Report Templates by Level
                             </label>
-                            <textarea class="form-control @error('field_config.report_template') is-invalid @enderror" 
-                                      id="report_template" 
-                                      name="field_config[report_template]" 
+                            <small class="form-text text-muted d-block mb-3">
+                                Configure different report templates for each survey level. The template matching the survey's level will be pre-filled for surveyors.
+                            </small>
+                            
+                            <div class="accordion" id="reportTemplatesAccordion">
+                                @foreach($levels as $index => $level)
+                                    <div class="card mb-2">
+                                        <div class="card-header" id="heading{{ $level->id }}">
+                                            <button class="btn btn-link text-left w-100" type="button" 
+                                                    data-toggle="collapse" 
+                                                    data-target="#collapse{{ $level->id }}" 
+                                                    aria-expanded="{{ $index === 0 ? 'true' : 'false' }}" 
+                                                    aria-controls="collapse{{ $level->id }}">
+                                                <div>
+                                                    <strong>{{ $level->display_name }}</strong>
+                                                    <span class="level-helper-text">
+                                                        <i class="fas fa-info-circle"></i> Configure the default report template for {{ $level->display_name }} surveys. This text will be pre-filled for surveyors but can be edited.
+                                                    </span>
+                                                </div>
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                        <div id="collapse{{ $level->id }}" 
+                                             class="collapse {{ $index === 0 ? 'show' : '' }}" 
+                                             aria-labelledby="heading{{ $level->id }}" 
+                                             data-parent="#reportTemplatesAccordion">
+                                            <div class="card-body">
+                                                <textarea class="form-control @error('field_config.report_templates.' . $level->id) is-invalid @enderror" 
+                                                          id="report_template_{{ $level->id }}" 
+                                                          name="field_config[report_templates][{{ $level->id }}]" 
                                       rows="6"
-                                      placeholder="Enter default report text that will be pre-filled in the surveyor form. This can be edited by the surveyor...">{{ old('field_config.report_template', $fieldConfig['report_template'] ?? '') }}</textarea>
-                            <small class="form-text text-muted">Default report text saved to database. Surveyors can edit this in the surveyor dashboard.</small>
+                                                          placeholder="Enter default report text for {{ $level->display_name }} that will be pre-filled in the surveyor form. This can be edited by the surveyor...">{{ old('field_config.report_templates.' . $level->id, $reportTemplates[$level->id] ?? ($reportTemplates[$level->name] ?? ($index === 0 && empty($reportTemplates) ? $legacyReportTemplate : ''))) }}</textarea>
+                                                <small class="form-text text-muted">Default report text for {{ $level->display_name }} surveys. Surveyors can edit this in the surveyor dashboard.</small>
+                                                @error('field_config.report_templates.' . $level->id)
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            
+                            {{-- Backward compatibility: Keep single template field hidden for legacy support --}}
+                            <input type="hidden" name="field_config[report_template]" value="{{ $legacyReportTemplate }}">
+                            
                             @error('field_config.report_template')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -492,8 +618,8 @@
                             $remainingLifeOptions = $fieldConfig['remaining_life_options'] ?? ['0 yrs', '1-5 yrs', '6-10 yrs', '10+ yrs'];
                         @endphp
                         
-                        {{-- Defects and Remaining Life Options (Always Editable) --}}
-                        <div class="form-group" id="default-fields-config-group">
+                        {{-- Defects and Remaining Life Options (Shown only for ai, hidden for database and custom_fields) --}}
+                        <div class="form-group" id="default-fields-config-group" style="display: {{ (old('generation_method', $surveySection->generation_method ?? 'database') == 'ai') ? 'block' : 'none' }};">
                             <div class="alert alert-info mb-3">
                                 <i class="fas fa-info-circle"></i> <strong>Default Fields Configuration</strong><br>
                                 <small>Configure options for defects and remaining life fields. These will appear as selectable buttons in the surveyor form.</small>
@@ -560,14 +686,14 @@
 
                     </div>
 
-                    <!-- Custom Fields Configuration -->
-                    <div class="form-section" id="fields">
+                    <!-- Custom Fields Configuration (Shown for custom_fields method) -->
+                    <div class="form-section" id="fields" style="display: {{ (old('generation_method', $surveySection->generation_method ?? 'database') == 'custom_fields' || $hasCustomFields) ? 'block' : 'none' }};">
                         <div class="form-section-title">
                             <i class="fas fa-list-alt text-primary"></i>
                             Custom Fields Configuration
                         </div>
                         <p class="text-muted mb-3">
-                            <i class="fas fa-info-circle"></i> Add custom fields to replace default fields. If custom fields are added, they will be used instead of default fields (Condition Rating, Defects Noted, Recommendations, Notes).
+                            <i class="fas fa-info-circle"></i> Define custom fields for this section. When custom fields are added, they replace all default fields (Report Content, Material, Defects, Remaining Life, Additional Notes).
                         </p>
                         <div class="form-group">
                             <div id="fields-list" class="mb-3">
@@ -1044,28 +1170,100 @@ document.addEventListener('DOMContentLoaded', function() {
     const fieldForm = document.getElementById('fieldForm');
     const fieldModal = document.getElementById('fieldModal');
     
-    // Function to update default fields visibility (for custom fields - defects/remaining life always visible)
-    function updateDefaultFieldsVisibility() {
-        // Defects and remaining life options are always visible regardless of generation method or custom fields
-        // This function is kept for future use if needed
-    }
-    
-    // Toggle AI prompt and report template based on generation method
+    // Toggle sections based on generation method
     const reportTemplateGroup = document.getElementById('report-template-group');
+    const customFieldsGroup = document.getElementById('fields');
+    const defaultFieldsGroup = document.getElementById('default-fields-config-group');
+    
     generationMethodSelect.addEventListener('change', function() {
         if (this.value === 'ai') {
             aiPromptGroup.style.display = 'block';
             if (reportTemplateGroup) reportTemplateGroup.style.display = 'none';
+            if (customFieldsGroup) customFieldsGroup.style.display = 'none';
+            if (defaultFieldsGroup) defaultFieldsGroup.style.display = 'block'; // Show for AI too
+            // Make AI prompt template required
+            const aiPromptTemplate = document.getElementById('ai_prompt_template');
+            if (aiPromptTemplate) {
+                aiPromptTemplate.setAttribute('required', 'required');
+            }
+        } else if (this.value === 'custom_fields') {
+            aiPromptGroup.style.display = 'none';
+            if (reportTemplateGroup) reportTemplateGroup.style.display = 'none';
+            if (customFieldsGroup) customFieldsGroup.style.display = 'block';
+            if (defaultFieldsGroup) defaultFieldsGroup.style.display = 'none';
+            // Remove required from AI prompt template
+            const aiPromptTemplate = document.getElementById('ai_prompt_template');
+            if (aiPromptTemplate) {
+                aiPromptTemplate.removeAttribute('required');
+            }
         } else {
+            // database
             aiPromptGroup.style.display = 'none';
             if (reportTemplateGroup) reportTemplateGroup.style.display = 'block';
+            if (customFieldsGroup) customFieldsGroup.style.display = 'none';
+            if (defaultFieldsGroup) defaultFieldsGroup.style.display = 'none'; // Hide default fields for database
+            // Remove required from AI prompt template
+            const aiPromptTemplate = document.getElementById('ai_prompt_template');
+            if (aiPromptTemplate) {
+                aiPromptTemplate.removeAttribute('required');
+            }
         }
-        // Defects and remaining life options remain visible for both methods
-        updateDefaultFieldsVisibility();
     });
+    
+    // When editing default fields, ensure generation_method is ai (not custom_fields or database)
+    if (defaultFieldsGroup) {
+        const defectsList = document.getElementById('defects-options-list');
+        const remainingLifeList = document.getElementById('remaining-life-options-list');
+        function checkDefaultFieldsEdit() {
+            if ((defectsList && defectsList.children.length > 0) || (remainingLifeList && remainingLifeList.children.length > 0)) {
+                if (generationMethodSelect && generationMethodSelect.value !== 'ai') {
+                    // If not ai and user tries to edit default fields, switch to ai (since default fields only show for AI)
+                    generationMethodSelect.value = 'ai';
+                    generationMethodSelect.dispatchEvent(new Event('change'));
+                }
+            }
+        }
+        // Watch for changes in default fields
+        if (defectsList || remainingLifeList) {
+            const observer = new MutationObserver(checkDefaultFieldsEdit);
+            [defectsList, remainingLifeList].forEach(el => {
+                if (el) observer.observe(el, { childList: true, subtree: true });
+            });
+        }
+        
+        // Also prevent editing default fields if generation_method is not ai
+        const defectsInputs = defectsList ? defectsList.querySelectorAll('input') : [];
+        const remainingLifeInputs = remainingLifeList ? remainingLifeList.querySelectorAll('input') : [];
+        [...defectsInputs, ...remainingLifeInputs].forEach(input => {
+            input.addEventListener('focus', function() {
+                if (generationMethodSelect && generationMethodSelect.value !== 'ai') {
+                    alert('Default fields can only be edited when generation method is "AI-Generated". Please change the generation method to AI first.');
+                    generationMethodSelect.focus();
+                    return false;
+                }
+            });
+        });
+    }
     
     // Functions for managing defects options
     window.addDefectsOption = function() {
+        // Force to ai mode when editing default fields (since default fields are only shown for AI)
+        if (generationMethodSelect) {
+            if (generationMethodSelect.value !== 'ai') {
+                generationMethodSelect.value = 'ai';
+            }
+            // Show AI prompt and default fields, hide others
+            if (aiPromptGroup) aiPromptGroup.style.display = 'block';
+            if (reportTemplateGroup) reportTemplateGroup.style.display = 'none';
+            if (customFieldsGroup) customFieldsGroup.style.display = 'none';
+            if (defaultFieldsGroup) defaultFieldsGroup.style.display = 'block';
+            // Make AI prompt template required
+            const aiPromptTemplate = document.getElementById('ai_prompt_template');
+            if (aiPromptTemplate) {
+                aiPromptTemplate.setAttribute('required', 'required');
+            }
+        }
+        
         const list = document.getElementById('defects-options-list');
         const index = list.children.length;
         const optionDiv = document.createElement('div');
@@ -1106,6 +1304,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Functions for managing remaining life options
     window.addRemainingLifeOption = function() {
+        // Force to ai mode when editing default fields (since default fields are only shown for AI)
+        if (generationMethodSelect) {
+            if (generationMethodSelect.value !== 'ai') {
+                generationMethodSelect.value = 'ai';
+            }
+            // Show AI prompt and default fields, hide others
+            if (aiPromptGroup) aiPromptGroup.style.display = 'block';
+            if (reportTemplateGroup) reportTemplateGroup.style.display = 'none';
+            if (customFieldsGroup) customFieldsGroup.style.display = 'none';
+            if (defaultFieldsGroup) defaultFieldsGroup.style.display = 'block';
+            // Make AI prompt template required
+            const aiPromptTemplate = document.getElementById('ai_prompt_template');
+            if (aiPromptTemplate) {
+                aiPromptTemplate.setAttribute('required', 'required');
+            }
+        }
+        
         const list = document.getElementById('remaining-life-options-list');
         const index = list.children.length;
         const optionDiv = document.createElement('div');

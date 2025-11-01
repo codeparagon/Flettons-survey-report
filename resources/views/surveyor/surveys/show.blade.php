@@ -42,7 +42,7 @@
                     </tr>
                     <tr>
                         <th>Property:</th>
-                        <td>{{ $survey->property_address_full }}</td>
+                        <td>{{ $survey->full_address }}</td>
                     </tr>
                     <tr>
                         <th>Survey Level:</th>
