@@ -18,237 +18,420 @@
     });
 @endphp
 
-<div class="row">
+<!-- Page Header -->
+<div class="row mb-1">
     <div class="col-xl-12">
-        <div class="page-header d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="pageheader-title mb-1">My Surveys</h2>
-                <p class="pageheader-text mb-0">Your assigned jobs at a glance</p>
-            </div>
-        </div>
+        <h1 class="surveys-page-title">My Surveys</h1>
+        <p class="surveys-page-subtitle">Your assigned jobs at a glance</p>
     </div>
 </div>
 
 <!-- KPI Cards -->
-<div class="row mb-3">
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-muted">Total Jobs</div>
-                    <div class="h3 mb-0">{{ $total }}</div>
-                </div>
-                <i class="fas fa-briefcase" style="color:#C1EC4A"></i>
+<div class="row mb-1">
+    <div class="col-md-3 mb-1">
+        <div class="kpi-card">
+            <div class="kpi-content">
+                <div class="kpi-label">Total Jobs</div>
+                <div class="kpi-value">{{ $total }}</div>
             </div>
+            <i class="fas fa-briefcase kpi-icon"></i>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-muted">Pending</div>
-                    <div class="h3 mb-0">{{ $pending }}</div>
-                </div>
-                <i class="fas fa-clock" style="color:#C1EC4A"></i>
+    <div class="col-md-3 mb-1">
+        <div class="kpi-card">
+            <div class="kpi-content">
+                <div class="kpi-label">Pending</div>
+                <div class="kpi-value">{{ $pending }}</div>
             </div>
+            <i class="fas fa-clock kpi-icon"></i>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-muted">In Progress</div>
-                    <div class="h3 mb-0">{{ $inProgress }}</div>
-                </div>
-                <i class="fas fa-spinner" style="color:#C1EC4A"></i>
+    <div class="col-md-3 mb-1">
+        <div class="kpi-card">
+            <div class="kpi-content">
+                <div class="kpi-label">In Progress</div>
+                <div class="kpi-value">{{ $inProgress }}</div>
             </div>
+            <i class="fas fa-spinner kpi-icon"></i>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-muted">Completed</div>
-                    <div class="h3 mb-0">{{ $completed }}</div>
-                </div>
-                <i class="fas fa-check-circle" style="color:#C1EC4A"></i>
+    <div class="col-md-3 mb-1">
+        <div class="kpi-card">
+            <div class="kpi-content">
+                <div class="kpi-label">Completed</div>
+                <div class="kpi-value">{{ $completed }}</div>
             </div>
+            <i class="fas fa-check-circle kpi-icon"></i>
         </div>
     </div>
 </div>
 
-@if($unassignedSurveys->count() > 0)
-<!-- <div class="row">
-    <div class="col-xl-12">
-        <div class="card border-warning">
-            <div class="card-header bg-warning text-white">
-                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Available Surveys to Claim</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered" id="surveys-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Client</th>
-                                <th>Property Address</th>
-                                <th>Level</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($unassignedSurveys as $survey)
-                                <tr>
-                                    <td>{{ $survey->id }}</td>
-                                    <td>{{ $survey->client_name }}</td>
-                                    <td>{{ Str::limit($survey->property_address_full, 40) }}</td>
-                                    <td>
-                                        <span class="badge badge-info">{{ $survey->level ?? 'N/A' }}</span>
-                                    </td>
-                                    <td>{{ $survey->created_at->format('M d, Y') }}</td>
-                                    <td>
-                                        <a href="{{ route('surveyor.surveys.show', $survey->id) }}" class="btn btn-sm btn-warning">
-                                            <i class="fas fa-hand-paper"></i> Claim
-                                        </a>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div> -->
-@endif
-
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">My Assigned Surveys</h5>
-                    <div class="d-flex align-items-center" style="gap:10px;">
-                        <select id="filter-status" class="form-control form-control-sm" style="min-width:160px;">
+<!-- Surveys Table Section -->
+<div class="row surveys-table-section">
+    <div class="col-12">
+        <x-datatable 
+            id="surveysTable" 
+            :columns="['Address', 'Level', 'Status', 'Survey Date']"
+            title="My Assigned Surveys"
+            :search="true"
+            searchPlaceholder="Search surveys..."
+            :filter="true"
+            :clickableRows="true"
+            rowDataAttribute="data-href"
+        >
+            @slot('filters')
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label class="filter-label">Status</label>
+                        <select id="filter-status" class="filter-select">
                             <option value="">All Statuses</option>
                             @foreach($statusesList as $st)
                                 <option value="{{ $st }}">{{ ucfirst(str_replace('_',' ', $st)) }}</option>
                             @endforeach
                         </select>
-                        <select id="filter-level" class="form-control form-control-sm" style="min-width:120px;">
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Level</label>
+                        <select id="filter-level" class="filter-select">
                             <option value="">All Levels</option>
                             @foreach($levelsList as $lvl)
                                 <option value="{{ $lvl }}">{{ $lvl }}</option>
                             @endforeach
                         </select>
-                        <input type="date" id="filter-from" class="form-control form-control-sm" />
-                        <span class="text-muted" style="font-size:12px;">to</span>
-                        <input type="date" id="filter-to" class="form-control form-control-sm" />
-                        <button class="btn btn-sm btn-secondary" id="filter-reset"><i class="fas fa-undo"></i></button>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Date From</label>
+                        <input type="date" id="filter-from" class="filter-input" />
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Date To</label>
+                        <input type="date" id="filter-to" class="filter-input" />
+                    </div>
+                    <div class="filter-group filter-actions">
+                        <button type="button" class="filter-reset-btn" id="filter-reset">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
                     </div>
                 </div>
-            </div>
-            <div class="card-body">
-                <x-datatable id="surveysTable" :columns="['Address', 'Level', 'Status', 'Survey Date', 'Actions']">
-                    @forelse($assignedSurveys as $survey)
-                        <tr>
-                            <td>{{ Str::limit($survey->full_address, 60) }}</td>
-                            <td><span class="badge badge-info">{{ $survey->level ?? 'N/A' }}</span></td>
-                            <td><span class="badge {{ $survey->status_badge }}">{{ $survey->status_label }}</span></td>
-                            <td>{{ $survey->scheduled_date ? $survey->scheduled_date->format('Y-m-d') : '' }}</td>
-                            <td>
-                                <a href="{{ route('surveyor.surveys.show', $survey->id) }}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="text-center py-4">No surveys assigned to you yet.</td>
-                        </tr>
-                    @endforelse
-                </x-datatable>
-            </div>
-        </div>
+            @endslot
+
+            @forelse($assignedSurveys as $survey)
+                <tr class="clickable-row" data-href="{{ route('surveyor.surveys.show', $survey->id) }}">
+                    <td>{{ Str::limit($survey->full_address, 60) }}</td>
+                    <td>
+                        <span class="survey-level">{{ $survey->level ?? 'N/A' }}</span>
+                    </td>
+                    <td>
+                        @php
+                            $statusClass = match($survey->status_badge) {
+                                'badge-success' => 'status-completed',
+                                'badge-info' => 'status-assigned',
+                                'badge-warning' => 'status-in-progress',
+                                'badge-danger' => 'status-cancelled',
+                                'badge-secondary' => 'status-pending',
+                                default => 'status-pending'
+                            };
+                        @endphp
+                        <span class="survey-status {{ $statusClass }}">
+                            {{ $survey->status_label }}
+                        </span>
+                    </td>
+                    <td>{{ $survey->scheduled_date ? $survey->scheduled_date->format('Y-m-d') : '' }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="4" class="text-center py-5 no-data">No surveys assigned to you yet.</td>
+                </tr>
+            @endforelse
+        </x-datatable>
     </div>
 </div>
 @endsection
+
 @push('styles')
+<link rel="stylesheet" href="{{ asset('css/custom/datatable.css') }}">
 <style>
-    /* Keep styling minimal; rely on theme */
-    /* Show built-in search for this table */
-    .dataTables_wrapper .dataTables_filter { display: block; }
-    .badge.badge-info { background-color:#1A202C; color:#C1EC4A; }
-    .badge.badge-success { background-color:#C1EC4A; color:#1A202C; }
-    .badge.badge-warning { background-color:#F59E0B; }
-    .badge.badge-danger { background-color:#EF4444; }
-    .badge.badge-secondary { background:#6b7280; }
-    .page-header { margin-bottom: 10px; }
-    .card .h3 { font-weight:700; }
-    .card i { font-size:20px; }
-    @media (max-width: 768px) { .card .h3 { font-size: 20px; } }
-    
+    /* Typography - Original Sizes */
+    .surveys-page-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1A202C;
+        margin-bottom: 0.25rem;
+        letter-spacing: -0.02em;
+    }
+
+    .surveys-page-subtitle {
+        font-size: 1.125rem;
+        color: #6B7280;
+        margin-bottom: 0;
+    }
+
+    .surveys-table-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1A202C;
+        margin: 0;
+    }
+
+    /* KPI Cards - Clean Design */
+    .kpi-card {
+        background: #FFFFFF;
+        padding: 1.25rem;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: none;
+        border: none;
+        transition: transform 0.2s ease;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .kpi-label {
+        font-size: 0.9375rem;
+        color: #6B7280;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .kpi-value {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #1A202C;
+        line-height: 1;
+    }
+
+    .kpi-icon {
+        font-size: 2rem;
+        color: #9CA3AF;
+        opacity: 0.6;
+    }
+
+
+    /* Level - Text Colors with Theme Colors */
+    .survey-level {
+        display: inline-block;
+        font-size: 1.125rem;
+        font-weight: 700;
+        white-space: nowrap;
+        color: #1A202C;
+    }
+
+    /* Status - Text Colors with Theme Colors Only */
+    .survey-status {
+        display: inline-block;
+        font-size: 1.125rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .survey-status.status-completed {
+        color: #C1EC4A;
+    }
+
+    .survey-status.status-assigned {
+        color: #1A202C;
+    }
+
+    .survey-status.status-in-progress {
+        color: #1A202C;
+    }
+
+    .survey-status.status-cancelled {
+        color: #1A202C;
+    }
+
+    .survey-status.status-pending {
+        color: #1A202C;
+    }
+
+    /* No Data */
+    .no-data {
+        font-size: 1rem;
+        color: #6B7280;
+    }
+
+
+    /* Ensure full width for table section */
+    .surveys-table-section {
+        width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .surveys-page-title {
+            font-size: 2rem;
+        }
+
+        .surveys-table-title {
+            font-size: 1.5rem;
+        }
+
+        .kpi-value {
+            font-size: 1.75rem;
+        }
+
+    }
 </style>
 @endpush
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof $ === 'undefined' || !$.fn || !$.fn.dataTable) return;
-    const $table = $('#surveysTable');
+$(document).ready(function() {
+    // Wait for datatable initialization event
+    $(document).on('datatable:initialized', function(e, table, tableId) {
+        if (tableId !== 'surveysTable') return;
 
-    const statusSelect = document.getElementById('filter-status');
-    const levelSelect = document.getElementById('filter-level');
-    const fromInput = document.getElementById('filter-from');
-    const toInput = document.getElementById('filter-to');
-    const resetBtn = document.getElementById('filter-reset');
+        console.log('Surveys table initialized, attaching filters...');
 
-    function attachFilters(dt) {
-        if (!dt) return;
-        if (statusSelect) statusSelect.addEventListener('change', function(){
-            const val = this.value ? '^' + this.value.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '$' : '';
-            dt.column(2).search(val, true, false).draw();
+        // Filter functionality - wait for table to be ready
+        const statusSelect = document.getElementById('filter-status');
+        const levelSelect = document.getElementById('filter-level');
+        const fromInput = document.getElementById('filter-from');
+        const toInput = document.getElementById('filter-to');
+        const resetBtn = document.getElementById('filter-reset');
+        const searchInput = document.getElementById('table-search-input-surveysTable');
+        const searchClear = document.getElementById('search-clear-surveysTable');
+
+        console.log('Filter elements found:', {
+            statusSelect: !!statusSelect,
+            levelSelect: !!levelSelect,
+            fromInput: !!fromInput,
+            toInput: !!toInput,
+            resetBtn: !!resetBtn
         });
-        if (levelSelect) levelSelect.addEventListener('change', function(){
-            const val = this.value || '';
-            dt.column(1).search(val).draw();
-        });
 
+        // Status filter - column index 2 (Status)
+        // Match against the formatted status label in the table
+        if (statusSelect) {
+            if (!window.__surveysTableStatusFilter) {
+                $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                    const tableId = settings.sTableId || (settings.nTable ? settings.nTable.id : '');
+                    if (tableId !== 'surveysTable') {
+                        return true;
+                    }
+                    
+                    const statusSelectEl = document.getElementById('filter-status');
+                    if (!statusSelectEl || !statusSelectEl.value) {
+                        return true; // Show all if no filter selected
+                    }
+                    
+                    const statusFilterValue = statusSelectEl.value.toLowerCase();
+                    // Get the status cell content (formatted label like "In Progress", "Pending", etc.)
+                    const statusCell = (data[2] || '').toLowerCase().trim();
+                    
+                    // Map status values to their formatted labels
+                    const statusMap = {
+                        'pending': 'pending',
+                        'in_progress': 'in progress',
+                        'completed': 'completed',
+                        'late': 'late',
+                        'assigned': 'assigned',
+                        'cancelled': 'cancelled'
+                    };
+                    
+                    // Check if status cell contains the formatted status
+                    const expectedLabel = statusMap[statusFilterValue] || statusFilterValue;
+                    return statusCell.includes(expectedLabel);
+                });
+                window.__surveysTableStatusFilter = true;
+            }
+            
+            statusSelect.addEventListener('change', function() {
+                const val = this.value;
+                console.log('Status filter changed:', val);
+                table.draw(); // Redraw to apply the custom search filter
+            });
+        } else {
+            console.warn('Status select not found!');
+        }
+
+        // Level filter - column index 1 (Level)
+        if (levelSelect) {
+            levelSelect.addEventListener('change', function() {
+                const val = this.value;
+                console.log('Level filter changed:', val);
+                if (val) {
+                    table.column(1).search(val, false, false).draw();
+                } else {
+                    table.column(1).search('').draw();
+                }
+            });
+        } else {
+            console.warn('Level select not found!');
+        }
+
+        // Date filter using DataTables custom search
         if (!window.__surveysTableDateFilter) {
-            $.fn.dataTable.ext.search.push(function(settings, data) {
-                if (settings.nTable !== $table[0]) return true;
-                const from = fromInput.value ? new Date(fromInput.value) : null;
-                const to = toInput.value ? new Date(toInput.value) : null;
-                const dateStr = data[3];
-                if (!from && !to) return true;
-                if (!dateStr) return false;
-                const cellDate = new Date(dateStr);
-                if (from && cellDate < from) return false;
-                if (to && cellDate > to) return false;
-                return true;
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                const tableId = settings.sTableId || (settings.nTable ? settings.nTable.id : '');
+                if (tableId !== 'surveysTable') {
+                    return true;
+                }
+
+                const from = fromInput && fromInput.value ? new Date(fromInput.value + 'T00:00:00') : null;
+                const to = toInput && toInput.value ? new Date(toInput.value + 'T23:59:59') : null;
+                const dateStr = data[3]; // Survey Date column (index 3)
+
+                if (!from && !to) {
+                    return true;
+                }
+
+                if (!dateStr || dateStr.trim() === '') {
+                    return false;
+                }
+
+                try {
+                    const cellDate = new Date(dateStr + 'T12:00:00');
+                    if (from && cellDate < from) return false;
+                    if (to && cellDate > to) return false;
+                    return true;
+                } catch (e) {
+                    return false;
+                }
             });
             window.__surveysTableDateFilter = true;
         }
 
-        [fromInput, toInput].forEach(function(el){ if (el) el.addEventListener('change', function(){ dt.draw(); }); });
-        if (resetBtn) resetBtn.addEventListener('click', function(){
-            if (statusSelect) statusSelect.value = '';
-            if (levelSelect) levelSelect.value = '';
-            if (fromInput) fromInput.value = '';
-            if (toInput) toInput.value = '';
-            dt.columns().search('');
-            dt.search('');
-            dt.draw();
+        // Date inputs change handler
+        [fromInput, toInput].forEach(function(el) {
+            if (el) {
+                el.addEventListener('change', function() {
+                    console.log('Date filter changed');
+                    table.draw();
+                });
+            }
         });
-    }
 
-    if ($.fn.dataTable.isDataTable($table)) {
-        attachFilters($table.DataTable());
-    } else {
-        $table.on('init.dt', function(){ attachFilters($table.DataTable()); });
-    }
-});
+        // Reset filters
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Resetting all filters');
+                
+                if (statusSelect) statusSelect.value = '';
+                if (levelSelect) levelSelect.value = '';
+                if (fromInput) fromInput.value = '';
+                if (toInput) toInput.value = '';
+                if (searchInput) {
+                    searchInput.value = '';
+                    if (searchClear) searchClear.style.display = 'none';
+                }
+
+                table.columns().search('');
+                table.search('');
+                table.draw();
+            });
+        } else {
+            console.warn('Reset button not found!');
+        }
+    }); // Close datatable:initialized event listener
+}); // Close $(document).ready
 </script>
 @endpush
 
