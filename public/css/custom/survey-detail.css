@@ -385,7 +385,7 @@
     font-size: 1.1rem;
     font-weight: 650;
     color: #1A202C;
-    margin-bottom: 1.1rem;
+    /* margin-bottom: 1.1rem; */
     padding-bottom: 0.55rem;
     border-bottom: 1px solid #E5E7EB;
 }

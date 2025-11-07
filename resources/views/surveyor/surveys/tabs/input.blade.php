@@ -13,6 +13,7 @@
                         <h2 class="survey-section-title" id="main-section-title">Roofs</h2>
                         <span class="survey-section-subtitle" id="component-area-title">Select Area / Location</span>
                         <span class="component-new-badge" style="display: none;">New</span>
+                    </div>
                     <div class="survey-section-rating">
                         <div class="component-rating-control">
                             <button type="button" class="rating-display rating-ni" title="Select condition rating">
@@ -408,8 +409,9 @@
 
 .survey-section-header-left {
     display: flex;
-    align-items: center;
-    gap: 0.6rem;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.35rem;
     min-width: 0;
     flex: 1 1 auto;
 }
@@ -419,6 +421,9 @@
     font-weight: 700;
     color: #F8FAFC !important;
     margin: 0;
+    padding: 0;
+    border: none !important;
+    line-height: 1.15;
     white-space: nowrap;
     display: inline-flex;
     align-items: center;
@@ -428,17 +433,18 @@
     font-size: 0.95rem;
     font-weight: 600;
     color: rgba(226, 232, 240, 0.85);
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 0.35rem;
-    white-space: nowrap;
+    white-space: normal;
+    line-height: 1.35;
 }
 
 .survey-section-actions {
     display: flex;
-    gap: 0.65rem;
+    gap: 1rem;
     align-items: center;
-    margin-left: 0.65rem;
+    /* margin-left: 1rem; */
 }
 
 .survey-section-rating {
@@ -630,6 +636,8 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     box-shadow: 0 14px 32px -18px rgba(20, 184, 166, 0.6);
+    align-self: flex-start;
+    margin-top: 0.1rem;
 }
 
 .survey-section-footer {
@@ -1347,72 +1355,94 @@
 }
 
 /* Cost Controls */
+
 .survey-cost-controls {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.9rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.82), rgba(30, 41, 59, 0.9));
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 32px -26px rgba(15, 23, 42, 0.65);
 }
 
 .survey-cost-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    border: 1px solid #1A202C;
-    background: #FFFFFF;
-    color: #1A202C;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid rgba(193, 236, 74, 0.4);
+    background: linear-gradient(145deg, rgba(193, 236, 74, 0.18), rgba(193, 236, 74, 0.08));
+    color: #E7FF9F;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    font-size: 1rem;
+    font-size: 1.05rem;
     flex-shrink: 0;
+    box-shadow: 0 10px 20px -18px rgba(193, 236, 74, 0.65);
+    backdrop-filter: blur(6px);
+}
+
+.survey-cost-btn i {
+    pointer-events: none;
 }
 
 .survey-cost-btn:hover {
-    background: #C1EC4A;
-    border-color: #C1EC4A;
-    color: #1A202C;
+    background: rgba(193, 236, 74, 0.35);
+    border-color: rgba(193, 236, 74, 0.8);
+    color: #0F172A;
+    transform: translateY(-1px);
+    box-shadow: 0 14px 26px -18px rgba(193, 236, 74, 0.75);
 }
 
 .survey-cost-btn:active {
     transform: scale(0.95);
 }
 
+.survey-cost-btn:disabled,
+.survey-cost-btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 .survey-cost-input {
-    width: 92px;
-    padding: 0.75rem 0.6rem;
+    width: 110px;
+    padding: 0.65rem 0.75rem;
     font-size: 1.125rem;
     font-weight: 600;
-    border: 1px solid #CBD5F5;
-    border-radius: 10px;
-    color: #111827;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    border-radius: 12px;
+    color: #F8FAFC;
     text-align: right;
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(15, 23, 42, 0.65);
     display: inline-block;
     transition: all 0.2s ease;
-    margin: 0 0.5rem;
+    margin: 0;
 }
 
 .survey-cost-input:hover {
-    border-color: #94A3B8;
-    box-shadow: 0 8px 18px -14px rgba(30, 64, 175, 0.35);
+    border-color: rgba(193, 236, 74, 0.8);
+    box-shadow: 0 12px 24px -18px rgba(193, 236, 74, 0.55);
 }
 
 .survey-cost-display-value {
-    font-size: 1.05rem;
+    font-size: 1.125rem;
     font-weight: 600;
-    color: #475569;
-    min-width: 80px;
-    text-align: center;
-    display: inline-block;
-    margin-left: 0.5rem;
+    color: #E2E8F0;
+    min-width: 110px;
+    text-align: right;
+    display: inline-flex;
+    justify-content: flex-end;
+    font-variant-numeric: tabular-nums;
 }
 
 .survey-cost-input:focus {
     outline: none;
-    border-color: #C1EC4A;
-    box-shadow: 0 0 0 3px rgba(193, 236, 74, 0.1);
+    border-color: rgba(193, 236, 74, 0.9);
+    box-shadow: 0 0 0 3px rgba(193, 236, 74, 0.2);
 }
 
 .survey-image-upload-zone {
@@ -1882,12 +1912,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const sectionFooter = document.createElement('div');
         sectionFooter.className = 'survey-section-footer';
-        sectionFooter.innerHTML = `
-            <button type="button" class="survey-action-btn survey-action-danger survey-delete-assessment-btn" title="Delete Assessment Section">
-                <i class="fas fa-trash"></i>
-                <span class="survey-action-label">Delete Section</span>
-            </button>
-        `;
+        // sectionFooter.innerHTML = `
+        //     <button type="button" class="survey-action-btn survey-action-danger survey-delete-assessment-btn" title="Delete Assessment Section">
+        //         <i class="fas fa-trash"></i>
+        //         <span class="survey-action-label">Delete Section</span>
+        //     </button>
+        // `;
         contentWrapper.appendChild(sectionFooter);
 
         assessmentSection.appendChild(sectionHeader);
@@ -2356,8 +2386,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateCostDisplay(costInput, costDisplay) {
         if (!costInput || !costDisplay) return;
-        const value = parseFloat(costInput.value) || 0;
-        costDisplay.textContent = `£ ${(value / 100).toFixed(2)}`;
+        const value = Math.max(0, parseFloat(costInput.value) || 0);
+        costInput.value = value;
+        const formatted = new Intl.NumberFormat('en-GB', {
+            style: 'currency',
+            currency: 'GBP',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+        costDisplay.textContent = formatted;
     }
     
     function setupCollapsibleSection(component) {

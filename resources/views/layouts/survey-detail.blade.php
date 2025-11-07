@@ -35,12 +35,12 @@
                     <span class="survey-detail-brand-text">SurvAI™</span>
                 </div>
                 <div class="survey-detail-top-header-actions">
-                    <button type="button" class="survey-detail-action-btn" title="New Document">
+                    <!-- <button type="button" class="survey-detail-action-btn" title="New Document">
                         <i class="fas fa-file-plus"></i>
                     </button>
                     <button type="button" class="survey-detail-action-btn" title="Add">
                         <i class="fas fa-plus"></i>
-                    </button>
+                    </button> -->
                 </div>
             </div>
         </div>
