@@ -124,6 +124,8 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     // Surveys
     Route::get('/surveys', [\App\Http\Controllers\Surveyor\SurveyController::class, 'index'])->name('surveyor.surveys.index');
     Route::get('/surveys/{survey}', [\App\Http\Controllers\Surveyor\SurveyController::class, 'show'])->name('surveyor.surveys.show');
+    // Temporary route for new detail design
+    Route::get('/surveys/{survey}/detail', [\App\Http\Controllers\Surveyor\SurveyController::class, 'detail'])->name('surveyor.surveys.detail');
     Route::post('/surveys/{survey}/status', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateStatus'])->name('surveyor.surveys.updateStatus');
     Route::post('/surveys/{survey}/claim', [\App\Http\Controllers\Surveyor\SurveyController::class, 'claim'])->name('surveyor.surveys.claim');
     Route::post('/surveys/{survey}/start', [\App\Http\Controllers\Surveyor\SurveyController::class, 'start'])->name('surveyor.surveys.start');

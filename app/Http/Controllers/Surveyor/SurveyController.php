@@ -88,6 +88,21 @@ class SurveyController extends Controller
         return redirect()->route('surveyor.survey.categories', $survey);
     }
 
+    /**
+     * Temporary method to show new detail design
+     */
+    public function detail(Survey $survey)
+    {
+        // Surveyor can view:
+        // 1. Surveys assigned to them
+        // 2. Unassigned surveys (to claim them)
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
+        return view('surveyor.surveys.detail', compact('survey'));
+    }
+
 }
 
 
