@@ -148,8 +148,8 @@
     border-right: 1px solid #E5E7EB;
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 220px);
-    max-height: calc(100vh - 220px);
+    min-height: auto;
+    max-height: none;
     position: sticky;
     top: 210px;
     align-self: flex-start;
@@ -174,7 +174,7 @@
 
 .survey-sidebar-content {
     flex: 1;
-    overflow-y: auto;
+    overflow: visible;
     padding: 0.5rem 0;
 }
 
