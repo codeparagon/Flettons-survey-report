@@ -231,6 +231,25 @@ class SurveyController extends Controller
         return view('surveyor.surveys.desk_study_mock', compact('deskStudy'));
     }
 
+
+    public function createNewSurvey(Request $request){
+        Survey::create([
+            'surveyor_id' => auth()->id(),
+            'level' => $request->level,
+            'scheduled_date' => $request->scheduled_date,
+            'full_address' => $request->full_address,
+            'postcode' => $request->postcode,
+            'job_reference' => $request->job_reference,
+            'house_or_flat' => $request->house_or_flat,
+            'listed_building' => $request->listed_building,
+            'number_of_bedrooms' => $request->number_of_bedrooms,
+            'receptions' => $request->receptions,
+            'bathrooms' => $request->bathrooms,
+        ]); 
+        
+        return redirect()->back()->with('success', 'New Survey Created Successfully.');
+    }
+
 }
 
 

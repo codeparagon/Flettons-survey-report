@@ -130,6 +130,11 @@ return new class extends Migration
             $table->enum('payment_status', ['pending', 'paid', 'refunded'])->default('pending');
             $table->date('scheduled_date')->nullable();
             $table->text('admin_notes')->nullable();
+
+            // extra fields
+            $table->string('receptions')->nullable();
+            $table->string('bathrooms')->nullable();
+            $table->string('job_reference')->nullable();
             
             $table->timestamps();
         });

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Surveyor\DashboardController as SurveyorDashboard;
 use App\Http\Controllers\Client\DashboardController as ClientDashboard;
+use App\Http\Controllers\Surveyor\SurveyController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -131,6 +132,8 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     Route::post('/surveys/{survey}/status', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateStatus'])->name('surveyor.surveys.updateStatus');
     Route::post('/surveys/{survey}/claim', [\App\Http\Controllers\Surveyor\SurveyController::class, 'claim'])->name('surveyor.surveys.claim');
     Route::post('/surveys/{survey}/start', [\App\Http\Controllers\Surveyor\SurveyController::class, 'start'])->name('surveyor.surveys.start');
+
+    Route::post('new-survey/store', [SurveyController::class, 'createNewSurvey'])->name('surveyor.surveys.createNewSurvey');
     
     // Survey Sections
     Route::get('/survey/{survey}/categories', [\App\Http\Controllers\Surveyor\SurveySectionController::class, 'showCategories'])->name('surveyor.survey.categories');

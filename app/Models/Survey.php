@@ -87,6 +87,11 @@ class Survey extends Model
         'payment_status',
         'scheduled_date',
         'admin_notes',
+
+        // extra fields
+        'receptions',
+        'bathrooms',
+        'job_reference',
     ];
 
     protected $casts = [
