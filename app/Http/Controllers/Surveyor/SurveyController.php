@@ -106,40 +106,37 @@ class SurveyController extends Controller
     /**
      * Mock survey detail screen for UI build
      */
-    public function detailMock()
+    public function detailMock(Survey $survey)
     {
-        $survey = (object) [
-            'full_address' => '123, Sample Street, Kent DA9 9ZT',
-            'job_reference' => '12SE39DT-SH',
-            'client_name' => 'Anthony',
-            'client_email' => 'Anthony@hotmail.com',
-            'client_phone' => '07901333164',
-            'client_address' => '66 Home Road, Kent',
-            'property_type' => 'House',
-            'estate_holding' => 'Freehold',
-            'access_contact' => 'Anthony',
-            'access_role' => 'Vendor',
-            'postcode' => 'DA9 9XZ',
-            'beds' => 2,
-            'baths' => 2,
-            'receptions' => 1,
-            'garage' => 2,
-            'wc' => 0,
-            'utility' => 2,
-            'garden' => 'Y',
-        ];
+        // Surveyor can view:
+        // 1. Surveys assigned to them
+        // 2. Unassigned surveys (to claim them)
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
 
-        return view('surveyor.surveys.detail', compact('survey'));
+        // Load relationships if needed
+        $survey->load('surveyor');
+
+        return view('surveyor.surveys.mocks.detail', compact('survey'));
     }
 
     /**
      * Mock desk study screen for UI build
      */
-    public function deskStudyMock()
+    public function deskStudyMock(Survey $survey)
     {
+        // Surveyor can view:
+        // 1. Surveys assigned to them
+        // 2. Unassigned surveys (to claim them)
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        // Build desk study data from survey or use defaults
         $deskStudy = [
-            'address' => '123, Sample Street, Kent DA9 9ZT',
-            'job_reference' => '12SE39DT-SH',
+            'address' => $survey->full_address ?? '123, Sample Street, Kent DA9 9ZT',
+            'job_reference' => $survey->job_reference ?? '12SE39DT-SH',
             'map' => [
                 'image' => 'https://images.pexels.com/photos/439391/pexels-photo-439391.jpeg?auto=compress&cs=tinysrgb&w=800',
                 'longitude' => '-0.3112',
@@ -155,27 +152,52 @@ class SurveyController extends Controller
                 ['label' => 'Council Tax', 'value' => 'Band C'],
                 ['label' => 'EPC Rating', 'value' => 'D'],
                 ['label' => 'Soil Type', 'value' => 'Soilscope 7 (High Risk)'],
-                ['label' => 'Listed Building', 'value' => 'N/A'],
+                ['label' => 'Listed Building', 'value' => $survey->listed_building ?? 'N/A'],
                 ['label' => 'Conservation Area', 'value' => 'Yes'],
                 ['label' => 'Article 4', 'value' => 'No'],
             ],
         ];
 
-        return view('surveyor.surveys.desk_study', compact('deskStudy'));
+        return view('surveyor.surveys.mocks.desk_study', compact('survey', 'deskStudy'));
     }
 
-    public function dataMock()
+    public function dataMock(Survey $survey)
     {
-        return view('surveyor.surveys.data_mock');
+        // Surveyor can view:
+        // 1. Surveys assigned to them
+        // 2. Unassigned surveys (to claim them)
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        // Load section assessments if needed
+        $survey->load('sectionAssessments.section');
+
+        return view('surveyor.surveys.mocks.data', compact('survey'));
     }
 
-    public function mediaMock()
+    public function mediaMock(Survey $survey)
     {
-        return view('surveyor.surveys.media_mock');
+        // Surveyor can view:
+        // 1. Surveys assigned to them
+        // 2. Unassigned surveys (to claim them)
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        return view('surveyor.surveys.mocks.media', compact('survey'));
     }
 
-    public function transcriptMock()
+    public function transcriptMock(Survey $survey)
     {
+        // Surveyor can view:
+        // 1. Surveys assigned to them
+        // 2. Unassigned surveys (to claim them)
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        // For now, use mock transcript data. Later this can be fetched from database
         $transcript = [
             [
                 'time' => '00:00:12',
@@ -194,18 +216,26 @@ class SurveyController extends Controller
             ],
         ];
 
-        return view('surveyor.surveys.transcript_mock', compact('transcript'));
+        return view('surveyor.surveys.mocks.transcript', compact('survey', 'transcript'));
     }
 
-    public function documentsMock()
+    public function documentsMock(Survey $survey)
     {
+        // Surveyor can view:
+        // 1. Surveys assigned to them
+        // 2. Unassigned surveys (to claim them)
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        // For now, use mock documents data. Later this can be fetched from database
         $documents = [
             ['name' => 'Lease Agreement.pdf', 'uploaded_at' => '10 Oct 2025', 'size' => '1.2 MB'],
             ['name' => 'Planning Consent.pdf', 'uploaded_at' => '08 Oct 2025', 'size' => '850 KB'],
             ['name' => 'Previous Survey.jpg', 'uploaded_at' => '05 Oct 2025', 'size' => '2.4 MB'],
         ];
 
-        return view('surveyor.surveys.documents_mock', compact('documents'));
+        return view('surveyor.surveys.mocks.documents', compact('survey', 'documents'));
     }
 
 

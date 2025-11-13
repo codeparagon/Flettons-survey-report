@@ -1,4 +1,4 @@
-@extends('layouts.survey-detail')
+@extends('layouts.survey-mock')
 
 @section('title', 'Documents')
 

@@ -218,7 +218,7 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 .survey-search-icon {
     position: absolute;
     left: 1rem;
-    color: var(--survey-text-light);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 1rem;
     z-index: 1;
 }
@@ -230,12 +230,16 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     color: #FFFFFF;
-    font-size: 0.9375rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
     transition: all 0.2s ease;
 }
 
 .survey-search-input::placeholder {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 1rem;
+    letter-spacing: 0.01em;
 }
 
 .survey-search-input:focus {
@@ -386,12 +390,16 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 .survey-profile-name {
     font-weight: 600;
     color: var(--survey-text-dark);
-    font-size: 0.9375rem;
+    font-size: 1rem;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
     margin-bottom: 0.25rem;
 }
 
 .survey-profile-role {
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
     color: var(--survey-text-light);
 }
 
@@ -407,7 +415,9 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
     padding: 0.75rem 1rem;
     color: var(--survey-text-dark);
     text-decoration: none;
-    font-size: 0.9375rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
     transition: background 0.2s ease;
 }
 
@@ -496,13 +506,15 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.65rem 1rem;
+    padding: 0.7rem 1rem;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.25);
     background: rgba(255, 255, 255, 0.08);
     color: #FFFFFF;
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
     font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -559,10 +571,12 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 
 .survey-nav-item {
     padding: 0.875rem 1rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
     font-size: 1rem;
     font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
     border-radius: 6px;
     transition: all 0.2s ease;
     border-left: 3px solid transparent;
@@ -585,6 +599,9 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 .survey-nav-item .survey-nav-label {
     transition: opacity 0.2s ease;
     display: inline-block;
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
 }
 
 .survey-nav-item.survey-nav-disabled {
@@ -595,12 +612,13 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 }
 
 .survey-sidebar-title {
-    padding: 0 1.5rem 0.75rem;
-    font-size: 0.75rem;
+    padding: 0 1.5rem 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.6);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 1rem;
 }
@@ -615,10 +633,12 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 
 .survey-nav-item {
     padding: 0.875rem 1rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
     font-size: 1rem;
     font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
     border-radius: 6px;
     transition: all 0.2s ease;
     border-left: 3px solid transparent;

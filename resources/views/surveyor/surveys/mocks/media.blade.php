@@ -1,6 +1,6 @@
-@extends('layouts.survey-detail')
+@extends('layouts.survey-mock')
 
-@section('title', 'Survey Data')
+@section('title', 'Media Files')
 
 @section('content')
 <div class="survey-detail-screen">
@@ -8,17 +8,17 @@
         <div class="survey-detail-headline">
             <div class="survey-detail-location">
                 <i class="fas fa-chevron-left survey-detail-location-icon"></i>
-                <span>Survey Data Capture</span>
+                <span>Survey Media Library</span>
             </div>
             <div class="survey-detail-jobref">
-                <span class="survey-detail-jobref-label">Workspace</span>
-                <span class="survey-detail-jobref-value">Roofs Assessment</span>
+                <span class="survey-detail-jobref-label">Job Reference</span>
+                <span class="survey-detail-jobref-value">12SE39DT-SH</span>
             </div>
         </div>
     </section>
 
-    <section class="survey-detail-section survey-detail-section--split">
-        @include('surveyor.surveys.tabs.input')
+    <section class="survey-detail-section" id="media-upload">
+        @include('surveyor.surveys.tabs.media')
     </section>
 </div>
 @endsection

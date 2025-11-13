@@ -61,7 +61,7 @@
         <x-datatable id="surveysTable" :columns="['Address', 'Level', 'Status', 'Survey Date']" :search="false" :filter="false" :clickableRows="true"
             rowDataAttribute="data-href">
             @forelse($assignedSurveys as $survey)
-                <tr class="clickable-row" data-href="{{ route('surveyor.surveys.detail.mock') }}">
+                <tr class="clickable-row" data-href="{{ route('surveyor.surveys.detail.mock', $survey) }}">
                     <td>{{ Str::limit($survey->full_address, 60) }}</td>
                     <td>
                         <span class="survey-level">{{ $survey->level ?? 'N/A' }}</span>
