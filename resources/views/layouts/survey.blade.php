@@ -33,7 +33,7 @@
         @include('layouts.survey.partials.sidebar')
 
         <!-- Main Content -->
-        <div class="survey-main-content">
+        <div class="survey-main-content" id="survey-main-content">
             <div class="survey-content-wrapper">
                 @if(session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -56,6 +56,11 @@
                 @yield('content')
             </div>
         </div>
+
+        <!-- Sidebar Open Button -->
+        <button type="button" class="survey-sidebar-open-btn" id="survey-sidebar-open" aria-label="Show sidebar">
+            <i class="fa fa-chevron-right"></i>
+        </button>
     </div>
 
     <!-- jQuery -->

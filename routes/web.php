@@ -126,6 +126,10 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     Route::get('/surveys', [\App\Http\Controllers\Surveyor\SurveyController::class, 'index'])->name('surveyor.surveys.index');
     Route::get('/surveys/detail-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'detailMock'])->name('surveyor.surveys.detail.mock');
     Route::get('/surveys/desk-study-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'deskStudyMock'])->name('surveyor.surveys.desk-study.mock');
+    Route::get('/surveys/data-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'dataMock'])->name('surveyor.surveys.data.mock');
+    Route::get('/surveys/media-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'mediaMock'])->name('surveyor.surveys.media.mock');
+    Route::get('/surveys/transcript-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'transcriptMock'])->name('surveyor.surveys.transcript.mock');
+    Route::get('/surveys/documents-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'documentsMock'])->name('surveyor.surveys.documents.mock');
     Route::get('/surveys/{survey}', [\App\Http\Controllers\Surveyor\SurveyController::class, 'show'])->name('surveyor.surveys.show');
     // Temporary route for new detail design
     Route::get('/surveys/{survey}/detail', [\App\Http\Controllers\Surveyor\SurveyController::class, 'detail'])->name('surveyor.surveys.detail');

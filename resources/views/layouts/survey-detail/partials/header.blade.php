@@ -31,28 +31,6 @@
     </div>
     
     <!-- Tab Navigation -->
-    <div class="survey-detail-tabs">
-        <a href="{{ route('surveyor.surveys.detail', ['survey' => $survey->id, 'tab' => 'client-property']) }}" 
-           class="survey-detail-tab {{ $currentTab === 'client-property' ? 'active' : '' }}">
-            Client/Property
-        </a>
-        <a href="{{ route('surveyor.surveys.detail', ['survey' => $survey->id, 'tab' => 'media']) }}" 
-           class="survey-detail-tab {{ $currentTab === 'media' ? 'active' : '' }}">
-            Media
-        </a>
-        <a href="{{ route('surveyor.surveys.detail', ['survey' => $survey->id, 'tab' => 'input']) }}" 
-           class="survey-detail-tab {{ $currentTab === 'input' ? 'active' : '' }}">
-            Input
-        </a>
-        <a href="{{ route('surveyor.surveys.detail', ['survey' => $survey->id, 'tab' => 'output']) }}" 
-           class="survey-detail-tab {{ $currentTab === 'output' ? 'active' : '' }}">
-            Output
-        </a>
-        <a href="{{ route('surveyor.surveys.detail', ['survey' => $survey->id, 'tab' => 'configuration']) }}" 
-           class="survey-detail-tab {{ $currentTab === 'configuration' ? 'active' : '' }}">
-            Configuration
-        </a>
-    </div>
 </div>
 @endif
 

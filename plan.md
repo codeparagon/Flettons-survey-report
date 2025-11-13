@@ -1,16 +1,22 @@
-# Dual Area Component Flow
+<!-- a02fe0e4-959b-4dbe-b21c-2de64a430bd1 773ee352-c97a-4592-9de2-44f8f337cd14 -->
+# Sidebar Enhancement Plan
 
-## Overview
-Rework the survey input “+” flow so each new component gets its own distinct header and supports selecting both a primary and secondary area/location.
+## Goals
 
-## Tasks
+- Reinstate the custom survey sidebar and filters after the git pull overwrite.
+- Keep navigation labels and collapse/open controls matching the approved design.
+- Embed filters inside the sidebar with compact styling and themed scrollbar.
 
-1. Update the component template and default component to include separate Primary and Secondary area selectors (with matching hidden inputs).
-2. Change the add-component handler so every new component renders with a unique header label (e.g., Component 2) before areas are chosen.
-3. Adjust JS helpers (`setupSingleSelection`, `updateComponentHeaderTitle`, `saveComponent`, `copyComponentData`, `updateAssessmentIndices`) to manage the dual area values and keep headings/data in sync.
-4. Refresh the header styling to ensure area text stays bright white and visually distinct for every component.
+## Status
 
-## Files
-- `resources/views/surveyor/surveys/tabs/input.blade.php`
+- Previous customization was overwritten; sidebar currently shows original layout without collapsible filters or themed controls.
+- Need to recreate navigation copy, filter toggle, CSS styling, and JS behaviour.
+
+## Immediate Tasks
+
+1. Restore sidebar Blade markup with new navigation items, filter toggle, and footer collapse button.
+2. Reinstate survey theme CSS for sidebar layout, floating reopen button, collapsible filters, and scrollbar styling.
+3. Restore survey index JS to handle sidebar collapse, filter toggle, and reset logic.
+4. Verify filters render correctly and sidebar behaves as before.
 
 

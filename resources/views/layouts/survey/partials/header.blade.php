@@ -1,9 +1,8 @@
 <div class="survey-header">
     <div class="survey-header-content">
         <div class="survey-header-left">
-            <a href="{{ route('surveyor.dashboard') }}" class="survey-logo">
-                <span class="survey-logo-icon">★</span>
-                <span class="survey-logo-text">SURVAI™</span>
+            <a href="{{ route('surveyor.dashboard') }}" class="survey-logo" aria-label="SurvAI dashboard">
+                <img src="{{ asset('images/survai-logo.png') }}" alt="SurvAI" class="survey-logo-img">
             </a>
         </div>
         <div class="survey-header-right">

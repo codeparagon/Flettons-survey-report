@@ -39,11 +39,6 @@
         <label class="survey-filter-label">Date To</label>
         <input type="date" id="filter-to" class="survey-filter-input" />
     </div>
-    <div class="survey-filter-group">
-        <button type="button" class="survey-filter-reset" id="filter-reset">
-            <i class="fas fa-undo"></i> Reset
-        </button>
-    </div>
 @endsection
 
 @section('content')
@@ -52,21 +47,21 @@
             <i class="fas fa-plus"></i>
             <span>Create</span>
         </button>
-        <a href="{{ url('surveyor/surveys/detail-mock') }}" class="survey-index-secondary">
+        <!-- <a href="{{ url('surveyor/surveys/detail-mock') }}" class="survey-index-secondary">
             <i class="fas fa-external-link-alt"></i>
             <span>Detail Preview</span>
         </a>
         <a href="{{ url('surveyor/surveys/desk-study-mock') }}" class="survey-index-secondary">
             <i class="fas fa-map-marked-alt"></i>
             <span>Desk Study Preview</span>
-        </a>
+        </a> -->
     </div>
     <!-- Surveys Table Section -->
     <div class="survey-table-section">
         <x-datatable id="surveysTable" :columns="['Address', 'Level', 'Status', 'Survey Date']" :search="false" :filter="false" :clickableRows="true"
             rowDataAttribute="data-href">
             @forelse($assignedSurveys as $survey)
-                <tr class="clickable-row" data-href="{{ route('surveyor.surveys.detail', $survey->id) }}">
+                <tr class="clickable-row" data-href="{{ route('surveyor.surveys.detail.mock') }}">
                     <td>{{ Str::limit($survey->full_address, 60) }}</td>
                     <td>
                         <span class="survey-level">{{ $survey->level ?? 'N/A' }}</span>
@@ -97,17 +92,16 @@
     </div>
     <div class="survey-create-overlay" id="survey-create-overlay" aria-hidden="true">
         <div class="survey-create-dialog" role="dialog" aria-modal="true" aria-labelledby="survey-create-title">
-            <button type="button" class="survey-create-close" id="survey-create-close"
-                aria-label="Close create survey form">
+            <button type="button" class="survey-create-close" id="survey-create-close" aria-label="Close create survey form">
                 <i class="fas fa-times"></i>
             </button>
             <h2 class="survey-create-title" id="survey-create-title">Setup Survey Service</h2>
-            <form class="survey-create-form" id="survey-create-form" method="POST"
-                action="{{ route('surveyor.surveys.createNewSurvey') }}">
+            <form class="survey-create-form" id="survey-create-form" method="POST" action="{{ route('surveyor.surveys.createNewSurvey') }}">
                 @csrf
-                <div class="survey-create-grid full">
-                    <div class="survey-create-field">
-                        <label class="survey-create-label" for="create-survey-level">Survey Level</label>
+
+                <div class="survey-create-row">
+                    <label class="survey-create-label" for="create-survey-level">Survey Level</label>
+                    <div class="survey-create-control">
                         <select id="create-survey-level" name="level" class="survey-create-select">
                             <option value="Level 1">Level 1</option>
                             <option value="Level 2" selected>Level 2</option>
@@ -117,45 +111,39 @@
                     </div>
                 </div>
 
-                <div class="survey-create-grid full">
-                       <div class="survey-create-field">
-                        <label class="survey-create-label" for="create-survey-date">Survey Date</label>
-                        <div class="survey-create-date">
-                            <input type="date" id="create-survey-date" name="scheduled_date" class="survey-create-input"
-                                value="{{ now()->format('Y-m-d') }}">
-                            <i class="fas fa-calendar-alt survey-create-date-icon" aria-hidden="true"></i>
-                        </div>
+                <div class="survey-create-row">
+                    <label class="survey-create-label" for="create-survey-date">Survey Date</label>
+                    <div class="survey-create-control survey-create-date">
+                        <input type="date" id="create-survey-date" name="scheduled_date" class="survey-create-input" value="{{ now()->format('Y-m-d') }}">
+                        <i class="fas fa-calendar-alt survey-create-date-icon" aria-hidden="true"></i>
                     </div>
                 </div>
 
-                <div class="survey-create-grid full">
-                    <div class="survey-create-field">
-                        <label class="survey-create-label" for="create-full-address">Full Address</label>
-                        <input type="text" id="create-full-address" name="full_address" class="survey-create-input"
-                            placeholder="66 Sample Street, Kent" value="66 Sample Street, Kent">
+                <div class="survey-create-row">
+                    <label class="survey-create-label" for="create-full-address">Full Address</label>
+                    <div class="survey-create-control">
+                        <input type="text" id="create-full-address" name="full_address" class="survey-create-input" placeholder="66 Sample Street, Kent" value="66 Sample Street, Kent">
                     </div>
                 </div>
 
-                <div class="survey-create-grid full">
-                    <div class="survey-create-field">
-                        <label class="survey-create-label" for="create-postcode">Postcode</label>
-                        <input type="text" id="create-postcode" name="postcode" class="survey-create-input"
-                            placeholder="DA9 9XZ" value="DA9 9XZ">
-                        <p class="survey-create-helper">
-                            Automatically create reference based on the address (door number, postcode and surveyor
-                            initials)
-                        </p>
-                    </div>
-                    <div class="survey-create-field">
-                        <label class="survey-create-label" for="create-reference">Job Reference</label>
-                        <input type="text" id="create-reference" name="job_reference" class="survey-create-input"
-                            placeholder="66DA99XZ-SH" value="66DA99XZ-SH">
+                <div class="survey-create-row">
+                    <label class="survey-create-label" for="create-postcode">Postcode</label>
+                    <div class="survey-create-control">
+                        <input type="text" id="create-postcode" name="postcode" class="survey-create-input" placeholder="DA9 9XZ" value="DA9 9XZ">
+                        <!-- <p class="survey-create-helper">Automatically create reference based on the address (door number, postcode and surveyor initials)</p> -->
                     </div>
                 </div>
 
-                <div class="survey-create-grid full">
-                    <div class="survey-create-field">
-                        <label class="survey-create-label" for="create-property-type">Property Type</label>
+                <div class="survey-create-row">
+                    <label class="survey-create-label" for="create-reference">Job Reference</label>
+                    <div class="survey-create-control">
+                        <input type="text" id="create-reference" name="job_reference" class="survey-create-input" placeholder="66DA99XZ-SH" value="66DA99XZ-SH">
+                    </div>
+                </div>
+
+                <div class="survey-create-row">
+                    <label class="survey-create-label" for="create-property-type">Property Type</label>
+                    <div class="survey-create-control">
                         <select id="create-property-type" name="house_or_flat" class="survey-create-select">
                             <option value="House" selected>House</option>
                             <option value="Flat">Flat</option>
@@ -163,8 +151,11 @@
                             <option value="Cottage">Cottage</option>
                         </select>
                     </div>
-                    <div class="survey-create-field">
-                        <label class="survey-create-label" for="create-estate-holding">Estate Holding</label>
+                </div>
+
+                <div class="survey-create-row">
+                    <label class="survey-create-label" for="create-estate-holding">Estate Holding</label>
+                    <div class="survey-create-control">
                         <select id="create-estate-holding" name="listed_building" class="survey-create-select">
                             <option value="Freehold" selected>Freehold</option>
                             <option value="Leasehold">Leasehold</option>
@@ -174,36 +165,33 @@
                     </div>
                 </div>
 
-                <div class="survey-create-quick">
-                    <div class="survey-create-quick-field">
-                        <label class="survey-create-quick-label" for="create-bedrooms">Bedrooms</label>
-                        <select id="create-bedrooms" name="number_of_bedrooms"
-                            class="survey-create-select survey-create-select-compact">
-                            @for ($i = 0; $i <= 10; $i++)
-                                <option value="{{ $i }}" {{ $i === 2 ? 'selected' : '' }}>{{ $i }}
-                                </option>
-                            @endfor
-                        </select>
-                    </div>
-                    <div class="survey-create-quick-field">
-                        <label class="survey-create-quick-label" for="create-receptions">Receptions</label>
-                        <select id="create-receptions" name="receptions"
-                            class="survey-create-select survey-create-select-compact">
-                            @for ($i = 0; $i <= 10; $i++)
-                                <option value="{{ $i }}" {{ $i === 2 ? 'selected' : '' }}>{{ $i }}
-                                </option>
-                            @endfor
-                        </select>
-                    </div>
-                    <div class="survey-create-quick-field">
-                        <label class="survey-create-quick-label" for="create-baths">Baths/Showers</label>
-                        <select id="create-baths" name="bathrooms"
-                            class="survey-create-select survey-create-select-compact">
-                            @for ($i = 0; $i <= 10; $i++)
-                                <option value="{{ $i }}" {{ $i === 2 ? 'selected' : '' }}>{{ $i }}
-                                </option>
-                            @endfor
-                        </select>
+                <div class="survey-create-row">
+                    <label class="survey-create-label">Property Counts</label>
+                    <div class="survey-create-control survey-create-count-row">
+                        <div class="survey-create-count">
+                            <span class="survey-create-count-label">Bedrooms</span>
+                            <select id="create-bedrooms" name="number_of_bedrooms" class="survey-create-count-select">
+                                @for ($i = 0; $i <= 10; $i++)
+                                    <option value="{{ $i }}" {{ $i === 2 ? 'selected' : '' }}>{{ $i }}</option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="survey-create-count">
+                            <span class="survey-create-count-label">Receptions</span>
+                            <select id="create-receptions" name="receptions" class="survey-create-count-select">
+                                @for ($i = 0; $i <= 10; $i++)
+                                    <option value="{{ $i }}" {{ $i === 2 ? 'selected' : '' }}>{{ $i }}</option>
+                                @endfor
+                            </select>
+                        </div>
+                        <div class="survey-create-count">
+                            <span class="survey-create-count-label">Baths/Showers</span>
+                            <select id="create-baths" name="bathrooms" class="survey-create-count-select">
+                                @for ($i = 0; $i <= 10; $i++)
+                                    <option value="{{ $i }}" {{ $i === 2 ? 'selected' : '' }}>{{ $i }}</option>
+                                @endfor
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -215,14 +203,13 @@
                     </button>
                 </div>
             </form>
-
         </div>
     </div>
 @endsection
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/custom/datatable.css') }}">
-    <style>
+<style>
         .survey-index-actions {
             width: 100%;
             display: flex;
@@ -305,11 +292,11 @@
             font-size: 1rem;
             color: #6B7280;
         }
-    </style>
+</style>
 @endpush
 
 @push('scripts')
-    <script>
+<script>
         $(document).ready(function() {
             // Header search functionality
             const headerSearchInput = document.getElementById('survey-header-search');
@@ -346,11 +333,20 @@
                 }
             }
 
-            // Filter toggle button - Toggle sidebar with animation
+            // Sidebar collapse toggle
             const filterToggle = document.getElementById('survey-filter-toggle');
-            const sidebar = document.querySelector('.survey-sidebar');
-            const sidebarBackdrop = document.getElementById('survey-sidebar-backdrop');
-            const mainContent = document.querySelector('.survey-main-content');
+            const sidebar = document.getElementById('survey-sidebar');
+            const mainContent = document.getElementById('survey-main-content');
+            const sidebarCollapseBtn = document.getElementById('survey-sidebar-collapse');
+            const filtersToggle = document.getElementById('survey-filters-toggle');
+            const filtersContainer = document.getElementById('survey-filters-container');
+            const sidebarOpenBtn = document.getElementById('survey-sidebar-open');
+            const filterPanelResetBtn = document.getElementById('filter-reset');
+
+            if (sidebar && sidebar.classList.contains('collapsed') && sidebarOpenBtn) {
+                sidebarOpenBtn.classList.add('show');
+            }
+
             const createBtn = document.getElementById('survey-create-btn');
             const createOverlay = document.getElementById('survey-create-overlay');
             const createClose = document.getElementById('survey-create-close');
@@ -374,50 +370,94 @@
                 createOverlay.setAttribute('aria-hidden', 'true');
                 document.body.classList.remove('modal-open-lite');
             };
+            
+            const updateSidebarCollapseUI = (isCollapsed) => {
+                if (!sidebarCollapseBtn) return;
+                const icon = sidebarCollapseBtn.querySelector('i');
+                const label = sidebarCollapseBtn.querySelector('span');
+                if (isCollapsed) {
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-left');
+                        icon.classList.add('fa-chevron-right');
+                    }
+                    if (label) label.textContent = 'Show Sidebar';
+                } else {
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-right');
+                        icon.classList.add('fa-chevron-left');
+                    }
+                    if (label) label.textContent = 'Hide';
+                }
+            };
 
-            if (filterToggle && sidebar) {
+            const ensureSidebarOpen = () => {
+                if (!sidebar || !mainContent) return;
+                if (sidebar.classList.contains('collapsed')) {
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('sidebar-collapsed');
+                    sidebarOpenBtn?.classList.remove('show');
+                    updateSidebarCollapseUI(false);
+                }
+            };
+
+            const toggleFiltersVisibility = (forceOpen) => {
+                if (!filtersContainer) return;
+                const shouldOpen = forceOpen ?? !filtersContainer.classList.contains('open');
+                if (shouldOpen) {
+                    ensureSidebarOpen();
+                    filtersContainer.classList.add('open');
+                    filtersToggle?.setAttribute('aria-expanded', 'true');
+                    filterToggle?.classList.add('active');
+                } else {
+                    filtersContainer.classList.remove('open');
+                    filtersToggle?.setAttribute('aria-expanded', 'false');
+                    filterToggle?.classList.remove('active');
+                }
+            };
+
+            if (filterToggle) {
                 filterToggle.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    const isOpen = sidebar.classList.contains('show');
+                    toggleFiltersVisibility(true);
+                });
+            }
 
-                    if (isOpen) {
-                        // Close sidebar
-                        sidebar.classList.remove('show');
-                        if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
-                        if (mainContent) mainContent.classList.remove('sidebar-open');
-                        filterToggle.classList.remove('active');
-                    } else {
-                        // Open sidebar
-                        sidebar.classList.add('show');
-                        if (sidebarBackdrop) sidebarBackdrop.classList.add('show');
-                        if (mainContent) mainContent.classList.add('sidebar-open');
-                        filterToggle.classList.add('active');
+            if (filtersToggle) {
+                filtersToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const isOpen = filtersContainer && filtersContainer.classList.contains('open');
+                    toggleFiltersVisibility(!isOpen);
+                });
+            }
+
+            if (sidebarCollapseBtn && sidebar && mainContent) {
+                sidebarCollapseBtn.addEventListener('click', function() {
+                    const isCollapsed = sidebar.classList.toggle('collapsed');
+                    mainContent.classList.toggle('sidebar-collapsed', isCollapsed);
+                    if (sidebarOpenBtn) {
+                        sidebarOpenBtn.classList.toggle('show', isCollapsed);
+                    }
+                    updateSidebarCollapseUI(isCollapsed);
+
+                    if (isCollapsed) {
+                        filtersContainer?.classList.remove('open');
+                        filtersToggle?.setAttribute('aria-expanded', 'false');
+                        filterToggle?.classList.remove('active');
                     }
                 });
+            }
 
-                // Close sidebar when clicking backdrop
-                if (sidebarBackdrop) {
-                    sidebarBackdrop.addEventListener('click', function() {
-                        sidebar.classList.remove('show');
-                        sidebarBackdrop.classList.remove('show');
-                        if (mainContent) mainContent.classList.remove('sidebar-open');
-                        filterToggle.classList.remove('active');
-                    });
-                }
+            if (sidebarOpenBtn && sidebar && mainContent) {
+                sidebarOpenBtn.addEventListener('click', function() {
+                    ensureSidebarOpen();
+                });
+            }
 
-                // Close sidebar on escape key
-                document.addEventListener('keydown', function(e) {
-                    if (e.key !== 'Escape') return;
-
-                    if (sidebar.classList.contains('show')) {
-                        sidebar.classList.remove('show');
-                        if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
-                        if (mainContent) mainContent.classList.remove('sidebar-open');
-                        filterToggle.classList.remove('active');
-                    }
-
-                    if (createOverlay && createOverlay.classList.contains('show')) {
-                        closeCreateModal();
+            if (filterPanelResetBtn) {
+                filterPanelResetBtn.addEventListener('click', function() {
+                    const resetButton = document.getElementById('filter-reset');
+                    if (resetButton) {
+                        resetButton.click();
                     }
                 });
             }
@@ -430,13 +470,15 @@
             }
 
             if (createClose) {
-                createClose.addEventListener('click', function() {
+                createClose.addEventListener('click', function(e) {
+                    e.preventDefault();
                     closeCreateModal();
                 });
             }
 
             if (createCancel) {
-                createCancel.addEventListener('click', function() {
+                createCancel.addEventListener('click', function(e) {
+                    e.preventDefault();
                     closeCreateModal();
                 });
             }
@@ -449,7 +491,23 @@
                 });
             }
 
+            if (createForm) {
+                createForm.addEventListener('submit', function() {
+                    closeCreateModal();
+                });
+            }
 
+            document.addEventListener('keydown', function(e) {
+                if (e.key !== 'Escape') return;
+
+                if (filtersContainer && filtersContainer.classList.contains('open')) {
+                    toggleFiltersVisibility(false);
+                }
+
+                if (createOverlay && createOverlay.classList.contains('show')) {
+                    closeCreateModal();
+                }
+            });
 
             // Profile dropdown
             const profileBtn = document.getElementById('survey-profile-btn');
@@ -478,11 +536,11 @@
                 console.log('Surveys table initialized, attaching filters...');
 
                 // Filter functionality
-                const statusSelect = document.getElementById('filter-status');
-                const levelSelect = document.getElementById('filter-level');
-                const fromInput = document.getElementById('filter-from');
-                const toInput = document.getElementById('filter-to');
-                const resetBtn = document.getElementById('filter-reset');
+    const statusSelect = document.getElementById('filter-status');
+    const levelSelect = document.getElementById('filter-level');
+    const fromInput = document.getElementById('filter-from');
+    const toInput = document.getElementById('filter-to');
+    const resetBtn = document.getElementById('filter-reset');
 
                 // Status filter - column index 2 (Status)
                 if (statusSelect) {
@@ -535,7 +593,7 @@
                 }
 
                 // Date filter
-                if (!window.__surveysTableDateFilter) {
+        if (!window.__surveysTableDateFilter) {
                     $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
                         const tableId = settings.sTableId || (settings.nTable ? settings.nTable.id :
                             '');
@@ -547,7 +605,7 @@
                             'T00:00:00') : null;
                         const to = toInput && toInput.value ? new Date(toInput.value +
                             'T23:59:59') : null;
-                        const dateStr = data[3];
+                const dateStr = data[3];
 
                         if (!from && !to) {
                             return true;
@@ -559,15 +617,15 @@
 
                         try {
                             const cellDate = new Date(dateStr + 'T12:00:00');
-                            if (from && cellDate < from) return false;
-                            if (to && cellDate > to) return false;
-                            return true;
+                if (from && cellDate < from) return false;
+                if (to && cellDate > to) return false;
+                return true;
                         } catch (e) {
                             return false;
                         }
-                    });
-                    window.__surveysTableDateFilter = true;
-                }
+            });
+            window.__surveysTableDateFilter = true;
+        }
 
                 [fromInput, toInput].forEach(function(el) {
                     if (el) {
@@ -582,10 +640,10 @@
                     resetBtn.addEventListener('click', function(e) {
                         e.preventDefault();
 
-                        if (statusSelect) statusSelect.value = '';
-                        if (levelSelect) levelSelect.value = '';
-                        if (fromInput) fromInput.value = '';
-                        if (toInput) toInput.value = '';
+            if (statusSelect) statusSelect.value = '';
+            if (levelSelect) levelSelect.value = '';
+            if (fromInput) fromInput.value = '';
+            if (toInput) toInput.value = '';
                         if (headerSearchInput) {
                             headerSearchInput.value = '';
                             if (headerSearchClear) headerSearchClear.style.display = 'none';
@@ -597,6 +655,6 @@
                     });
                 }
             });
-        });
-    </script>
+});
+</script>
 @endpush

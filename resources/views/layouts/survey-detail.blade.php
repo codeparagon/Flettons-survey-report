@@ -30,10 +30,9 @@
         <!-- Main Top Header with Branding -->
         <div class="survey-detail-top-header">
             <div class="survey-detail-top-header-content">
-                <div class="survey-detail-brand">
-                    <span class="survey-detail-brand-icon">★</span>
-                    <span class="survey-detail-brand-text">SurvAI™</span>
-                </div>
+                <a href="{{ route('surveyor.dashboard') }}" class="survey-detail-brand" aria-label="SurvAI dashboard">
+                    <img src="{{ asset('images/survai-logo.svg') }}" alt="SurvAI" class="survey-detail-brand-img">
+                </a>
                 <div class="survey-detail-top-header-actions">
                     <!-- <button type="button" class="survey-detail-action-btn" title="New Document">
                         <i class="fas fa-file-plus"></i>
