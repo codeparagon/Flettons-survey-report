@@ -170,10 +170,14 @@ class SurveyController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Load section assessments if needed
-        $survey->load('sectionAssessments.section');
+        // Use SurveyDataService to get grouped data
+        $surveyDataService = app(\App\Services\SurveyDataService::class);
+        
+        // Use mock data for UI development (set to false to use real database data)
+        $useMockData = true;
+        $categories = $surveyDataService->getGroupedSurveyData($survey, $useMockData);
 
-        return view('surveyor.surveys.mocks.data', compact('survey'));
+        return view('surveyor.surveys.mocks.data', compact('survey', 'categories'));
     }
 
     public function mediaMock(Survey $survey)
@@ -255,6 +259,77 @@ class SurveyController extends Controller
         ]); 
         
         return redirect()->back()->with('success', 'New Survey Created Successfully.');
+    }
+
+    /**
+     * Clone a section item via AJAX - renders section-item.blade.php partial
+     * 
+     * @param Request $request
+     * @param Survey $survey
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function cloneSectionItem(Request $request, Survey $survey)
+    {
+        // Surveyor can only clone sections for their own surveys
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'source_section_id' => 'required|string',
+            'selected_section' => 'required|string',
+            'category_name' => 'required|string',
+            'sub_category_name' => 'required|string',
+            'form_data' => 'required|array',
+        ]);
+
+        $surveyDataService = app(\App\Services\SurveyDataService::class);
+        
+        // Extract base name from source section name
+        $sourceSectionName = $request->input('source_section_name', '');
+        $baseName = $surveyDataService->extractBaseName($sourceSectionName);
+        
+        // Build new section name: "Base Name [Selected Section]"
+        $newSectionName = $baseName . ' [' . $validated['selected_section'] . ']';
+        
+        // Generate new unique ID (using timestamp for mock data)
+        $newSectionId = 'clone_' . time() . '_' . mt_rand(1000, 9999);
+        
+        // Get form data from request
+        $formData = $validated['form_data'];
+        
+        // Build section data array matching transformAssessmentToViewFormat structure
+        $sectionData = [
+            'id' => $newSectionId,
+            'section_id' => $request->input('source_section_id'), // Keep original section_id
+            'name' => $newSectionName,
+            'completion' => 0, // New cloned section starts at 0
+            'total' => 10,
+            'condition_rating' => $formData['condition_rating'] ?? 'ni',
+            'selected_section' => $validated['selected_section'],
+            'location' => $formData['location'] ?? '',
+            'structure' => $formData['structure'] ?? '',
+            'material' => $formData['material'] ?? '',
+            'defects' => $formData['defects'] ?? [],
+            'remaining_life' => $formData['remaining_life'] ?? '',
+            'costs' => $formData['costs'] ?? [],
+            'notes' => $formData['notes'] ?? '',
+            'photos' => $formData['photos'] ?? [],
+        ];
+
+        // Render the section-item partial
+        $html = view('surveyor.surveys.mocks.partials.section-item', [
+            'section' => $sectionData,
+            'categoryName' => $validated['category_name'],
+            'subCategoryName' => $validated['sub_category_name'],
+        ])->render();
+
+        return response()->json([
+            'success' => true,
+            'html' => $html,
+            'section_id' => $newSectionId,
+            'section_name' => $newSectionName,
+        ]);
     }
 
 }
