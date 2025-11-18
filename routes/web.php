@@ -139,6 +139,10 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     Route::post('/surveys/{survey}/start', [\App\Http\Controllers\Surveyor\SurveyController::class, 'start'])->name('surveyor.surveys.start');
 
     Route::post('new-survey/store', [SurveyController::class, 'createNewSurvey'])->name('surveyor.surveys.createNewSurvey');
+
+    Route::get('survey/details/{id}', [SurveyController::class, 'surveyDetails'])->name('surveyor.surveys.surveyDetails');
+    Route::post('survey/update', [SurveyController::class, 'updateSurvey'])->name('surveyor.surveys.updateSurvey');
+    Route::post('survey/note/add', [SurveyController::class, 'addSurveyNote'])->name('surveyor.surveys.addSurveyNote');
     
     // Survey Sections
     Route::get('/survey/{survey}/categories', [\App\Http\Controllers\Surveyor\SurveySectionController::class, 'showCategories'])->name('surveyor.survey.categories');

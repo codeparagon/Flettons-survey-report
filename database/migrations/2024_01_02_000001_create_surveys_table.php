@@ -135,6 +135,9 @@ return new class extends Migration
             $table->string('receptions')->nullable();
             $table->string('bathrooms')->nullable();
             $table->string('job_reference')->nullable();
+            $table->string('access_contact')->nullable();
+            $table->string('access_role')->nullable();
+            $table->longText('client_concerns')->nullable();
             
             $table->timestamps();
         });

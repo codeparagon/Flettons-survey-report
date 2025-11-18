@@ -92,6 +92,9 @@ class Survey extends Model
         'receptions',
         'bathrooms',
         'job_reference',
+        'access_contact',
+        'access_role',
+        'client_concerns', 
     ];
 
     protected $casts = [
@@ -118,7 +121,11 @@ class Survey extends Model
     {
         return $this->belongsTo(User::class, 'surveyor_id');
     }
-
+    
+    public function notes()
+    {
+        return $this->hasMany(SurveyNote::class, 'survey_id');
+    }
     /**
      * Get all section assessments for this survey.
      */

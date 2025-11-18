@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Surveyor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Survey;
+use App\Models\SurveyNote;
 use Illuminate\Http\Request;
 
 class SurveyController extends Controller
@@ -14,14 +15,14 @@ class SurveyController extends Controller
         $assignedSurveys = Survey::where('surveyor_id', auth()->id())
             ->orderBy('created_at', 'desc')
             ->get();
-            
+
         // Get unassigned surveys that can be claimed
         $unassignedSurveys = Survey::whereNull('surveyor_id')
             ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
-            
+
         return view('surveyor.surveys.index', compact('assignedSurveys', 'unassignedSurveys'));
     }
 
@@ -33,7 +34,7 @@ class SurveyController extends Controller
         if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
             abort(403, 'Unauthorized');
         }
-        
+
         return view('surveyor.surveys.show', compact('survey'));
     }
 
@@ -67,7 +68,8 @@ class SurveyController extends Controller
             'status' => $survey->status === 'pending' ? 'assigned' : $survey->status,
         ]);
 
-        return redirect()->route('surveyor.surveys.show', $survey)
+        return redirect()
+            ->route('surveyor.surveys.show', $survey)
             ->with('success', 'Survey claimed successfully.');
     }
 
@@ -99,7 +101,7 @@ class SurveyController extends Controller
         if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
             abort(403, 'Unauthorized');
         }
-        
+
         return view('surveyor.surveys.detail', compact('survey'));
     }
 
@@ -119,6 +121,14 @@ class SurveyController extends Controller
         $survey->load('surveyor');
 
         return view('surveyor.surveys.mocks.detail', compact('survey'));
+    }
+
+    public function surveyDetails($id)
+    {
+        $data = [
+            'survey' => Survey::find($id),
+        ];
+        return view('surveyor.surveys.mocks.detail', $data);
     }
 
     /**
@@ -238,8 +248,8 @@ class SurveyController extends Controller
         return view('surveyor.surveys.mocks.documents', compact('survey', 'documents'));
     }
 
-
-    public function createNewSurvey(Request $request){
+    public function createNewSurvey(Request $request)
+    {
         Survey::create([
             'surveyor_id' => auth()->id(),
             'level' => $request->level,
@@ -252,12 +262,58 @@ class SurveyController extends Controller
             'number_of_bedrooms' => $request->number_of_bedrooms,
             'receptions' => $request->receptions,
             'bathrooms' => $request->bathrooms,
-        ]); 
-        
+        ]);
+
         return redirect()->back()->with('success', 'New Survey Created Successfully.');
     }
 
+    public function updateSurvey(Request $request)
+    {
+        try {
+            if ($request->field_type == 'notes') {
+                $notes = SurveyNote::find($request->note_id);
+                $notes->update([
+                    'note' => $request->notes,
+                ]);
+                return response()->json(['status' => 'success', 'message' => 'Survey note updated successfully.']);
+            }
+            $survey = Survey::find($request->survey_id);
+            if ($request->field == 'client_name') {
+                $parts = explode(' ', trim($request->value));
+                $first_name = $parts[0];
+                $last_name = implode(' ', array_slice($parts, 1));
+                $survey->update([
+                    'first_name'=> $first_name,
+                    'last_name' => $last_name ?? ' ',
+                ]);
+                return response()->json($survey);
+                return response()->json(['status' => 'success', 'message' => 'Survey updated successfully.']);
+            }
+
+            $survey->update([
+                $request->field => $request->value,
+            ]);
+            return response()->json($survey);
+            return response()->json(['status' => 'success', 'message' => 'Survey updated successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Failed to update survey.']);
+        }
+    }
+
+    public function addSurveyNote(Request $request)
+    {
+        $request->validate([
+            'survey_id' => 'required|exists:surveys,id',
+            'notes' => 'required|string',
+        ]);
+
+        SurveyNote::create([
+            'created_by' => auth()->id(),
+            'survey_id' => $request->survey_id,
+            'note' => $request->notes,
+            'dated_at' => $request->dated_at,
+        ]);
+
+        return response()->json(['status' => 'success', 'message' => 'Note added successfully.']);
+    }
 }
-
-
-
