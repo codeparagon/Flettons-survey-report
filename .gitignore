@@ -19,3 +19,5 @@ yarn-error.log
 *.log
 .DS_Store
 Thumbs.db
+
+/database/seeders/AwsSeeder.php

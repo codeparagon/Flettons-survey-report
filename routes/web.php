@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Surveyor\DashboardController as SurveyorDashboard;
 use App\Http\Controllers\Client\DashboardController as ClientDashboard;
+use App\Http\Controllers\Surveyor\AwsTranscriptionController;
 use App\Http\Controllers\Surveyor\SurveyController;
 use Illuminate\Support\Facades\Route;
 
@@ -159,6 +160,9 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     Route::post('/survey/{survey}/media/upload', [\App\Http\Controllers\Surveyor\MediaController::class, 'upload'])->name('surveyor.survey.media.upload');
     Route::delete('/survey/{survey}/media/delete', [\App\Http\Controllers\Surveyor\MediaController::class, 'delete'])->name('surveyor.survey.media.delete');
     Route::get('/survey/{survey}/media/list', [\App\Http\Controllers\Surveyor\MediaController::class, 'getMedia'])->name('surveyor.survey.media.list');
+
+    // aws
+    Route::post('/aws-transcription', [AwsTranscriptionController::class, 'uploadMedia'])->name('aws.transcription');  
 });
 
 // Client Routes

@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -9,14 +10,17 @@
     <!-- Google Fonts - Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="{{ asset('newdesign/assets/vendor/bootstrap/css/bootstrap.min.css') }}">
     <!-- FontAwesome CSS -->
     <link rel="stylesheet" href="{{ asset('newdesign/assets/vendor/fonts/fontawesome/css/fontawesome-all.css') }}">
     <!-- FontAwesome CDN Fallback -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Swiper CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <!-- DataTables CSS -->
@@ -28,8 +32,11 @@
     <!-- Survey Theme CSS -->
     <link rel="stylesheet" href="{{ asset('css/custom/survey-theme.css') }}">
 
+    <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet">
+
     @stack('styles')
 </head>
+
 <body class="survey-page">
     <div class="survey-layout">
         <!-- Survey Header -->
@@ -44,7 +51,7 @@
         <!-- Main Content -->
         <div class="survey-main-content" id="survey-main-content">
             <div class="survey-content-wrapper">
-                @if(session('success'))
+                @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         {{ session('success') }}
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -53,7 +60,7 @@
                     </div>
                 @endif
 
-                @if(session('error'))
+                @if (session('error'))
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         {{ session('error') }}
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -86,95 +93,97 @@
     <script src="{{ asset('newdesign/assets/libs/js/main-js.js') }}"></script>
     <!-- Swiper JS -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/toastr.min.js"></script>
 
     @stack('scripts')
-    
+
     <script>
-    $(document).ready(function() {
-        // Sidebar collapse toggle
-        const sidebarCollapseBtn = document.getElementById('survey-sidebar-collapse');
-        const sidebar = document.getElementById('survey-sidebar');
-        const mainContent = document.getElementById('survey-main-content');
-        const sidebarOpenBtn = document.getElementById('survey-sidebar-open');
+        $(document).ready(function() {
+            // Sidebar collapse toggle
+            const sidebarCollapseBtn = document.getElementById('survey-sidebar-collapse');
+            const sidebar = document.getElementById('survey-sidebar');
+            const mainContent = document.getElementById('survey-main-content');
+            const sidebarOpenBtn = document.getElementById('survey-sidebar-open');
 
-        if (sidebar && sidebar.classList.contains('collapsed') && sidebarOpenBtn) {
-            sidebarOpenBtn.classList.add('show');
-        }
-
-        const updateSidebarCollapseUI = (isCollapsed) => {
-            if (!sidebarCollapseBtn) return;
-            const icon = sidebarCollapseBtn.querySelector('i');
-            const label = sidebarCollapseBtn.querySelector('span');
-            if (isCollapsed) {
-                if (icon) {
-                    icon.classList.remove('fa-chevron-left');
-                    icon.classList.add('fa-chevron-right');
-                }
-                if (label) label.textContent = 'Show Sidebar';
-            } else {
-                if (icon) {
-                    icon.classList.remove('fa-chevron-right');
-                    icon.classList.add('fa-chevron-left');
-                }
-                if (label) label.textContent = 'Hide';
+            if (sidebar && sidebar.classList.contains('collapsed') && sidebarOpenBtn) {
+                sidebarOpenBtn.classList.add('show');
             }
-        };
 
-        if (sidebarCollapseBtn && sidebar && mainContent) {
-            sidebarCollapseBtn.addEventListener('click', function() {
-                const isCollapsed = sidebar.classList.toggle('collapsed');
-                mainContent.classList.toggle('sidebar-collapsed', isCollapsed);
-                if (sidebarOpenBtn) {
-                    sidebarOpenBtn.classList.toggle('show', isCollapsed);
+            const updateSidebarCollapseUI = (isCollapsed) => {
+                if (!sidebarCollapseBtn) return;
+                const icon = sidebarCollapseBtn.querySelector('i');
+                const label = sidebarCollapseBtn.querySelector('span');
+                if (isCollapsed) {
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-left');
+                        icon.classList.add('fa-chevron-right');
+                    }
+                    if (label) label.textContent = 'Show Sidebar';
+                } else {
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-right');
+                        icon.classList.add('fa-chevron-left');
+                    }
+                    if (label) label.textContent = 'Hide';
                 }
-                updateSidebarCollapseUI(isCollapsed);
-            });
-        }
+            };
 
-        if (sidebarOpenBtn && sidebar && mainContent) {
-            sidebarOpenBtn.addEventListener('click', function() {
-                if (sidebar.classList.contains('collapsed')) {
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('sidebar-collapsed');
-                    sidebarOpenBtn.classList.remove('show');
-                    updateSidebarCollapseUI(false);
-                }
-            });
-        }
+            if (sidebarCollapseBtn && sidebar && mainContent) {
+                sidebarCollapseBtn.addEventListener('click', function() {
+                    const isCollapsed = sidebar.classList.toggle('collapsed');
+                    mainContent.classList.toggle('sidebar-collapsed', isCollapsed);
+                    if (sidebarOpenBtn) {
+                        sidebarOpenBtn.classList.toggle('show', isCollapsed);
+                    }
+                    updateSidebarCollapseUI(isCollapsed);
+                });
+            }
 
-        // Profile dropdown
-        const profileBtn = document.getElementById('survey-profile-btn');
-        const profileMenu = document.getElementById('survey-profile-menu');
+            if (sidebarOpenBtn && sidebar && mainContent) {
+                sidebarOpenBtn.addEventListener('click', function() {
+                    if (sidebar.classList.contains('collapsed')) {
+                        sidebar.classList.remove('collapsed');
+                        mainContent.classList.remove('sidebar-collapsed');
+                        sidebarOpenBtn.classList.remove('show');
+                        updateSidebarCollapseUI(false);
+                    }
+                });
+            }
 
-        if (profileBtn && profileMenu) {
-            profileBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                profileMenu.classList.toggle('show');
-            });
+            // Profile dropdown
+            const profileBtn = document.getElementById('survey-profile-btn');
+            const profileMenu = document.getElementById('survey-profile-menu');
 
-            document.addEventListener('click', function(e) {
-                if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
-                    profileMenu.classList.remove('show');
-                }
-            });
-        }
+            if (profileBtn && profileMenu) {
+                profileBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    profileMenu.classList.toggle('show');
+                });
 
-        // Remove overlays
-        function removeAllOverlays() {
-            $('.modal-backdrop, .overlay, .backdrop, .dataTables_processing, div.dt-button-background').remove();
-            $('body').removeClass('modal-open');
-            $('body, .survey-layout, .survey-main-content, .survey-content-wrapper').css({
-                'pointer-events': 'auto',
-                'overflow': 'auto',
-                'padding-right': '0'
-            });
-        }
+                document.addEventListener('click', function(e) {
+                    if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+                        profileMenu.classList.remove('show');
+                    }
+                });
+            }
 
-        removeAllOverlays();
-        setTimeout(removeAllOverlays, 100);
-        setTimeout(removeAllOverlays, 500);
-    });
+            // Remove overlays
+            function removeAllOverlays() {
+                $('.modal-backdrop, .overlay, .backdrop, .dataTables_processing, div.dt-button-background')
+            .remove();
+                $('body').removeClass('modal-open');
+                $('body, .survey-layout, .survey-main-content, .survey-content-wrapper').css({
+                    'pointer-events': 'auto',
+                    'overflow': 'auto',
+                    'padding-right': '0'
+                });
+            }
+
+            removeAllOverlays();
+            setTimeout(removeAllOverlays, 100);
+            setTimeout(removeAllOverlays, 500);
+        });
     </script>
 </body>
-</html>
 
+</html>

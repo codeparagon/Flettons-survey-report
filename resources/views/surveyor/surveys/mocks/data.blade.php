@@ -33,7 +33,7 @@
                             
                             <div class="survey-data-mock-sub-category-sections">
                                 @foreach($sections as $section)
-                                    @include('surveyor.surveys.mocks.partials.section-item', ['section' => $section, 'categoryName' => $categoryName, 'subCategoryName' => $subCategoryName])
+                                    @include('surveyor.surveys.mocks.partials.section-item', ['section' => $section, 'categoryName' => $categoryName, 'subCategoryName' => $subCategoryName, 'optionsMapping' => $optionsMapping ?? []])
                                                     @endforeach
                                                 </div>
                                             </div>
@@ -43,6 +43,20 @@
                                                     @endforeach
                                                 </div>
                                             </div>
+
+        <!-- Accommodation Configuration Section -->
+        @if(isset($accommodationSections) && count($accommodationSections) > 0)
+            <section class="survey-data-mock-accommodation-section">
+                <h2 class="survey-data-mock-category-title">Configuration of Accommodation</h2>
+                <div class="survey-data-mock-accommodation-sections">
+                    @foreach($accommodationSections as $accommodation)
+                        @include('surveyor.surveys.mocks.partials.accommodation-section-item', ['accommodation' => $accommodation])
+                    @endforeach
+                </div>
+            </section>
+        @endif
+    </div>
+</div>
 
 <!-- Rating Modal -->
 <div id="survey-data-mock-rating-modal" class="survey-data-mock-rating-modal">
@@ -493,9 +507,8 @@
 
     .survey-data-mock-field-label {
         display: block;
-        font-size: 13px;
+        font-size: 16px;
         color: #64748B;
-        font-weight: 600;
         margin-bottom: 0.5rem;
         text-transform: uppercase;
         font-family: 'Poppins', sans-serif;
@@ -826,34 +839,77 @@
 
     /* Images Upload */
     .survey-data-mock-images-upload {
-        border: 2px dashed rgba(148, 163, 184, 0.4);
-        border-radius: 4px;
-        padding: 1.5rem 1rem;
+        border: 2px dashed rgba(148, 163, 184, 0.3);
+        border-radius: 8px;
+        padding: 2rem 1rem;
         text-align: center;
-        background: #FAFBFC;
+        background: #E0F2FE;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .survey-data-mock-images-upload::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(193, 236, 74, 0.05) 0%, rgba(168, 208, 67, 0.05) 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
     }
 
     .survey-data-mock-images-upload:hover {
         border-color: #C1EC4A;
-        background: #F8FAFC;
+        background: #DBEAFE;
+        box-shadow: 0 4px 12px rgba(193, 236, 74, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .survey-data-mock-images-upload:hover::before {
+        opacity: 1;
+    }
+
+    .survey-data-mock-images-upload.dragover {
+        border-color: #C1EC4A;
+        background: #BFDBFE;
+        border-width: 3px;
+        box-shadow: 0 6px 16px rgba(193, 236, 74, 0.2);
     }
 
     .survey-data-mock-upload-icon {
-        font-size: 36px;
-        color: #94A3B8;
-        margin-bottom: 0.5rem;
+        font-size: 40px;
+        color: #64748B;
+        margin-bottom: 0.75rem;
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
+        transition: all 0.3s ease;
+        position: relative;
+        z-index: 1;
+    }
+
+    .survey-data-mock-images-upload:hover .survey-data-mock-upload-icon {
+        color: #C1EC4A;
+        transform: scale(1.1);
     }
 
     .survey-data-mock-upload-text {
-        font-size: 14px;
-        color: #64748B;
-        font-weight: 600;
+        font-size: 15px;
+        color: #1A202C;
+        font-weight: 400;
         margin: 0;
+        position: relative;
+        z-index: 1;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.5;
+    }
+
+    .survey-data-mock-upload-text strong {
+        font-weight: 700;
     }
 
     /* Action Buttons */
@@ -903,6 +959,99 @@
 
     .survey-data-mock-action-save:hover {
         background: #0F172A;
+    }
+
+    /* Report Content Area */
+    .survey-data-mock-report-content {
+        background: #FFFFFF;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .survey-data-mock-report-content-wrapper {
+        padding: 1.5rem;
+    }
+
+    .survey-data-mock-report-textarea {
+        width: 100%;
+        padding: 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 400;
+        color: #1A202C;
+        background: #FFFFFF;
+        transition: border-color 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+        resize: vertical;
+        min-height: 300px;
+        line-height: 1.6;
+    }
+
+    .survey-data-mock-report-textarea:focus {
+        outline: none;
+        border-color: #C1EC4A;
+    }
+
+    .survey-data-mock-report-textarea:disabled {
+        background: #F8FAFC;
+        color: #64748B;
+        cursor: not-allowed;
+    }
+
+    /* Action Icons Bar */
+    .survey-data-mock-action-icons {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+        justify-content: flex-end;
+    }
+
+    .survey-data-mock-action-icon-btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
+        background: #FFFFFF;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 16px;
+    }
+
+    .survey-data-mock-action-icon-btn:hover {
+        background: #F1F5F9;
+        border-color: rgba(148, 163, 184, 0.6);
+        color: #1E293B;
+    }
+
+    .survey-data-mock-action-icon-btn.active {
+        background: #C1EC4A;
+        border-color: #C1EC4A;
+        color: #1A202C;
+    }
+
+    .survey-data-mock-action-icon-btn.locked {
+        background: #F8FAFC;
+        border-color: #CBD5E1;
+        color: #94A3B8;
+        cursor: not-allowed;
+    }
+
+    .survey-data-mock-action-icon-btn.locked:hover {
+        background: #F8FAFC;
+        border-color: #CBD5E1;
+        color: #94A3B8;
+    }
+
+    .survey-data-mock-action-icon-btn i {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     /* Clone Modal */
@@ -1323,25 +1472,426 @@
             padding-left: 0 !important;
         }
     }
+    /* Accommodation Configuration Section Styles */
+    .survey-data-mock-accommodation-section {
+        margin-top: 3rem;
+        padding-top: 3rem;
+        border-top: 2px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .survey-data-mock-accommodation-item {
+        background: #FFFFFF;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 4px;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .survey-data-mock-accommodation-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+        border-color: rgba(148, 163, 184, 0.25);
+        transform: translateY(-1px);
+    }
+
+    .survey-data-mock-accommodation-item.expanded {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .survey-data-mock-accommodation-header {
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        background: #1E293B;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        transition: all 0.2s ease;
+    }
+
+    .survey-data-mock-accommodation-header:hover {
+        background: #475569;
+    }
+
+    .survey-data-mock-accommodation-name {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 600;
+        font-size: 16px;
+        color: #FFFFFF;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-data-mock-accommodation-expand-icon {
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        color: #C1EC4A;
+        font-size: 14px;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .survey-data-mock-accommodation-item.expanded .survey-data-mock-accommodation-expand-icon {
+        transform: rotate(90deg);
+    }
+
+    .survey-data-mock-accommodation-status {
+        display: flex;
+        align-items: center;
+    }
+
+    .survey-data-mock-expand-icon {
+        color: #C1EC4A;
+        font-size: 14px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .survey-data-mock-accommodation-item.expanded .survey-data-mock-expand-icon {
+        transform: rotate(180deg);
+    }
+
+    .survey-data-mock-accommodation-details {
+        padding: 1rem 1.5rem;
+        background: #FFFFFF;
+    }
+
+    /* Component Tabs */
+    .survey-data-mock-component-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid rgba(148, 163, 184, 0.15);
+        padding-bottom: 0;
+        flex-wrap: wrap;
+        position: relative;
+    }
+
+    .survey-data-mock-component-tab {
+        padding: 0.75rem 1.25rem;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #64748B;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        bottom: -2px;
+        font-family: 'Poppins', sans-serif;
+        border-radius: 4px 4px 0 0;
+    }
+
+    .survey-data-mock-component-tab:hover {
+        color: #1A202C;
+        background: rgba(148, 163, 184, 0.05);
+    }
+
+    .survey-data-mock-component-tab.active {
+        color: #C1EC4A;
+        border-bottom-color: #C1EC4A;
+        background: rgba(193, 236, 74, 0.08);
+    }
+
+    /* Carousel Container - Only on Left Side */
+    .survey-data-mock-accommodation-form-column-left .survey-data-mock-carousel-wrapper {
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        /* background: #F8FAFC; */
+        border-radius: 8px;
+        padding: 1.5rem;
+        border: 1px solid rgba(148, 163, 184, 0.1);
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+    }
+
+    .survey-data-mock-carousel-wrapper {
+        cursor: grab;
+    }
+
+    .survey-data-mock-carousel-wrapper.dragging {
+        cursor: grabbing;
+    }
+
+    .survey-data-mock-carousel-wrapper button {
+        cursor: pointer;
+    }
+
+    .survey-data-mock-carousel-track {
+        position: relative;
+        width: 100%;
+        min-height: 250px;
+    }
+
+    .survey-data-mock-carousel-slide {
+        width: 100%;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        transform: translateX(20px);
+    }
+
+    .survey-data-mock-carousel-slide.active {
+        opacity: 1;
+        visibility: visible;
+        position: relative;
+        pointer-events: auto;
+        transform: translateX(0);
+    }
+
+    /* Carousel Indicator Dots */
+    .survey-data-mock-carousel-indicators {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .survey-data-mock-carousel-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(148, 163, 184, 0.3);
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        outline: none;
+    }
+
+    .survey-data-mock-carousel-indicator:hover {
+        background: rgba(148, 163, 184, 0.5);
+        transform: scale(1.2);
+    }
+
+    .survey-data-mock-carousel-indicator.active {
+        background: #C1EC4A;
+        width: 24px;
+        height: 10px;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(193, 236, 74, 0.3);
+    }
+
+    .survey-data-mock-carousel-indicator.active:hover {
+        transform: scale(1.1);
+    }
+
+    /* Accommodation Form Grid */
+    .survey-data-mock-accommodation-form-grid {
+        display: flex;
+        gap: 0;
+        padding: 0;
+        position: relative;
+    }
+
+    .survey-data-mock-accommodation-form-column-left {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        flex: 0 0 50%;
+        min-width: 0;
+        padding-right: 1rem;
+    }
+
+    .survey-data-mock-accommodation-form-column-right {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        flex: 0 0 50%;
+        min-width: 0;
+        padding-left: 1rem;
+    }
+
+
+    /* Accommodation Form Grid Divider */
+    .survey-data-mock-accommodation-form-grid-divider {
+        width: 4px;
+        background: rgba(148, 163, 184, 0.2);
+        cursor: col-resize;
+        position: relative;
+        flex-shrink: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 10;
+        margin: 0 0.5rem;
+        border-radius: 2px;
+    }
+
+    .survey-data-mock-accommodation-form-grid-divider:hover,
+    .survey-data-mock-accommodation-form-grid-divider.dragging {
+        background: #C1EC4A;
+        width: 5px;
+        box-shadow: 0 0 8px rgba(193, 236, 74, 0.4);
+    }
+
+    .survey-data-mock-accommodation-form-grid-divider::before {
+        content: '';
+        position: absolute;
+        left: -4px;
+        right: -4px;
+        top: 0;
+        bottom: 0;
+        cursor: col-resize;
+    }
+
+    .survey-data-mock-accommodation-form-grid-divider-handle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 24px;
+        height: 48px;
+        background: #C1EC4A;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .survey-data-mock-accommodation-form-grid-divider:hover .survey-data-mock-accommodation-form-grid-divider-handle,
+    .survey-data-mock-accommodation-form-grid-divider.dragging .survey-data-mock-accommodation-form-grid-divider-handle {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .survey-data-mock-accommodation-form-grid-divider-handle i {
+        color: #1A202C;
+        font-size: 14px;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .survey-data-mock-accommodation-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .survey-data-mock-component-tabs {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .survey-data-mock-component-tab {
+            white-space: nowrap;
+        }
+    }
 </style>
 @endpush
 
 @push('scripts')
 <script>
 $(document).ready(function() {
+    // Options mapping from SurveyDataService
+    const optionsMapping = @json($optionsMapping ?? []);
+
+    // Helper function to get options with fallback
+    function getOptions(categoryName, optionType, fallback = []) {
+        if (optionType === 'location' || optionType === 'remaining_life' || optionType === 'defects') {
+            return optionsMapping[optionType] || fallback;
+        }
+        
+        if (optionsMapping[categoryName] && optionsMapping[categoryName][optionType]) {
+            return optionsMapping[categoryName][optionType];
+        }
+        
+        return fallback;
+    }
+
+    // Mock GPT Content Generator
+    function generateMockReportContent(formData, sectionName, categoryName) {
+        const location = formData.location || 'the property';
+        const structure = formData.structure || 'standard';
+        const material = formData.material || 'standard materials';
+        const defects = formData.defects && formData.defects.length > 0 && !formData.defects.includes('None') 
+            ? formData.defects.join(', ') 
+            : 'no significant defects';
+        const remainingLife = formData.remainingLife || 'not specified';
+        const notes = formData.notes || '';
+        const costs = formData.costs || [];
+        
+        let report = `**${sectionName}**\n\n`;
+        report += `The ${sectionName.toLowerCase()} at ${location} has been inspected and assessed. `;
+        report += `The structure is of ${structure.toLowerCase()} construction with ${material.toLowerCase()} materials. `;
+        
+        if (defects !== 'no significant defects') {
+            report += `During the inspection, the following defects were identified: ${defects}. `;
+        } else {
+            report += `The inspection revealed no significant defects. `;
+        }
+        
+        if (remainingLife !== 'not specified') {
+            report += `The estimated remaining life is ${remainingLife} years. `;
+        }
+        
+        if (notes) {
+            report += `\n\n**Additional Notes:**\n${notes}\n`;
+        }
+        
+        if (costs.length > 0) {
+            report += `\n\n**Estimated Costs:**\n`;
+            costs.forEach(cost => {
+                report += `- ${cost.category}: ${cost.description} - Due ${cost.due} - £${cost.cost}\n`;
+            });
+        }
+        
+        report += `\n\n**Recommendations:**\n`;
+        if (defects !== 'no significant defects') {
+            report += `It is recommended that the identified defects be addressed in a timely manner to prevent further deterioration. `;
+            report += `Regular maintenance and monitoring of the ${sectionName.toLowerCase()} is advised. `;
+        } else {
+            report += `The ${sectionName.toLowerCase()} is in good condition. Regular maintenance is recommended to maintain its current state. `;
+        }
+        
+        report += `Any necessary repairs should be carried out by qualified professionals in accordance with current building regulations.`;
+        
+        return report;
+    }
+
     // Expand/Collapse Section Items
     $('.survey-data-mock-section-header[data-expandable="true"]').on('click', function() {
         const $sectionItem = $(this).closest('.survey-data-mock-section-item');
         const $details = $sectionItem.find('.survey-data-mock-section-details');
+        const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
         const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
+        const isSaved = $sectionItem.attr('data-saved') === 'true';
         
         $sectionItem.toggleClass('expanded');
         
         if ($sectionItem.hasClass('expanded')) {
-            $details.slideDown(300);
             $titleBar.slideDown(300);
+            if (isSaved) {
+                // Show report if saved, hide form
+                $details.hide();
+                $reportContent.slideDown(300);
+            } else {
+                // Show form if not saved, hide report
+                $details.slideDown(300);
+                $reportContent.hide();
+            }
         } else {
             $details.slideUp(300);
+            $reportContent.slideUp(300);
             $titleBar.slideUp(300);
         }
     });
@@ -1919,10 +2469,158 @@ $(document).ready(function() {
         // TODO: Implement save and clone
     });
 
-    $('.survey-data-mock-action-save').on('click', function(e) {
+    // Save Button Handler
+    $(document).on('click', '.survey-data-mock-action-save', function(e) {
         e.stopPropagation();
-        alert('Save functionality - to be implemented');
-        // TODO: Implement save
+        const $button = $(this);
+        const sectionId = $button.data('section-id');
+        const $sectionItem = $button.closest('.survey-data-mock-section-item');
+        const $details = $sectionItem.find('.survey-data-mock-section-details');
+        const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
+        const $categorySection = $sectionItem.closest('.survey-data-mock-category');
+        const categoryName = $categorySection.find('.survey-data-mock-category-title').text().trim();
+        const sectionName = $sectionItem.find('.survey-data-mock-section-name').text().trim();
+        
+        // Collect all form data
+        const formData = {
+            section: $details.find('[data-group="section"].active').data('value') || '',
+            location: $details.find('[data-group="location"].active').data('value') || '',
+            structure: $details.find('[data-group="structure"].active').data('value') || '',
+            material: $details.find('[data-group="material"].active').data('value') || '',
+            defects: $details.find('[data-group="defects"].active').map(function() {
+                return $(this).data('value');
+            }).get(),
+            remainingLife: $details.find('[data-group="remaining_life"].active').data('value') || '',
+            notes: $details.find('.survey-data-mock-notes-input').val() || '',
+            costs: []
+        };
+        
+        // Collect costs
+        $details.find('.survey-data-mock-costs-table tbody tr').each(function() {
+            const $row = $(this);
+            const category = $row.find('td:eq(0)').text().trim();
+            const description = $row.find('td:eq(1)').text().trim();
+            const due = $row.find('td:eq(2)').text().trim();
+            const cost = $row.find('td:eq(3)').text().trim();
+            
+            if (category && category !== 'No costs added') {
+                formData.costs.push({
+                    category: category,
+                    description: description,
+                    due: due,
+                    cost: cost
+                });
+            }
+        });
+        
+        // Generate mock report content
+        const reportContent = generateMockReportContent(formData, sectionName, categoryName);
+        
+        // Hide form, show report
+        $details.slideUp(300);
+        $reportContent.find('.survey-data-mock-report-textarea').val(reportContent);
+        $reportContent.slideDown(300);
+        
+        // Mark section as saved
+        $sectionItem.attr('data-saved', 'true');
+        $sectionItem.attr('data-locked', 'false');
+        
+        // Initialize lock state (unlocked by default)
+        updateLockState($sectionItem, false);
+    });
+
+    // Helper function to update lock state
+    function updateLockState($sectionItem, isLocked) {
+        const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
+        const $textarea = $reportContent.find('.survey-data-mock-report-textarea');
+        const $lockBtn = $reportContent.find('[data-action="lock"]');
+        
+        if (isLocked) {
+            $textarea.prop('disabled', true);
+            $lockBtn.addClass('locked active');
+            $lockBtn.find('i').removeClass('fa-lock').addClass('fa-lock-open');
+            $sectionItem.attr('data-locked', 'true');
+        } else {
+            $textarea.prop('disabled', false);
+            $lockBtn.removeClass('locked active');
+            $lockBtn.find('i').removeClass('fa-lock-open').addClass('fa-lock');
+            $sectionItem.attr('data-locked', 'false');
+        }
+    }
+
+    // Action Icons Handlers
+    $(document).on('click', '.survey-data-mock-action-icon-btn', function(e) {
+        e.stopPropagation();
+        const $button = $(this);
+        const action = $button.data('action');
+        const $sectionItem = $button.closest('.survey-data-mock-section-item');
+        const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
+        const $details = $sectionItem.find('.survey-data-mock-section-details');
+        const $categorySection = $sectionItem.closest('.survey-data-mock-category');
+        const categoryName = $categorySection.find('.survey-data-mock-category-title').text().trim();
+        const sectionName = $sectionItem.find('.survey-data-mock-section-name').text().trim();
+        
+        switch(action) {
+            case 'speaker':
+                // Text to Speech placeholder
+                alert('Text to Speech functionality - to be implemented');
+                break;
+                
+            case 'lock':
+                // Toggle lock state
+                const isCurrentlyLocked = $sectionItem.attr('data-locked') === 'true';
+                updateLockState($sectionItem, !isCurrentlyLocked);
+                break;
+                
+            case 'edit':
+                // Toggle back to form view
+                $reportContent.slideUp(300);
+                $details.slideDown(300);
+                break;
+                
+            case 'refresh':
+                // Regenerate content
+                const $detailsForRefresh = $sectionItem.find('.survey-data-mock-section-details');
+                const formData = {
+                    section: $detailsForRefresh.find('[data-group="section"].active').data('value') || '',
+                    location: $detailsForRefresh.find('[data-group="location"].active').data('value') || '',
+                    structure: $detailsForRefresh.find('[data-group="structure"].active').data('value') || '',
+                    material: $detailsForRefresh.find('[data-group="material"].active').data('value') || '',
+                    defects: $detailsForRefresh.find('[data-group="defects"].active').map(function() {
+                        return $(this).data('value');
+                    }).get(),
+                    remainingLife: $detailsForRefresh.find('[data-group="remaining_life"].active').data('value') || '',
+                    notes: $detailsForRefresh.find('.survey-data-mock-notes-input').val() || '',
+                    costs: []
+                };
+                
+                // Collect costs
+                $detailsForRefresh.find('.survey-data-mock-costs-table tbody tr').each(function() {
+                    const $row = $(this);
+                    const category = $row.find('td:eq(0)').text().trim();
+                    const description = $row.find('td:eq(1)').text().trim();
+                    const due = $row.find('td:eq(2)').text().trim();
+                    const cost = $row.find('td:eq(3)').text().trim();
+                    
+                    if (category && category !== 'No costs added') {
+                        formData.costs.push({
+                            category: category,
+                            description: description,
+                            due: due,
+                            cost: cost
+                        });
+                    }
+                });
+                
+                const newReportContent = generateMockReportContent(formData, sectionName, categoryName);
+                $reportContent.find('.survey-data-mock-report-textarea').val(newReportContent);
+                break;
+                
+            case 'eye':
+                // Preview placeholder
+                alert('Preview functionality - to be implemented');
+                break;
+        }
     });
 
     // Clone Modal
@@ -2011,22 +2709,24 @@ $(document).ready(function() {
         currentCloneCategory = categoryName;
         selectedCloneSection = null;
 
-        // Get available sections based on category - match section-item.blade.php logic
-        let allSections = [];
-        const currentSelectedSection = formData.section;
-        
-        if (categoryName === 'Exterior') {
-            // For Exterior, use hardcoded list (matches section-item.blade.php line 56)
-            allSections = ['Main Roof', 'Side Extension', 'Rear Extension', 'Dormer', 'Lean-to'];
-        } else {
-            // For other categories, get from button group (matches section-item.blade.php line 57)
-            $details.find('[data-group="section"]').each(function() {
-                const sectionValue = $(this).data('value');
-                if (sectionValue) {
-                    allSections.push(sectionValue);
-                }
-            });
-        }
+            // Get available sections based on category - use dynamic options mapping
+            let allSections = [];
+            const currentSelectedSection = formData.section;
+            
+            // Get section options from mapping
+            const sectionOptions = getOptions(categoryName, 'section', []);
+            
+            if (sectionOptions && sectionOptions.length > 0) {
+                allSections = sectionOptions;
+            } else {
+                // Fallback: get from button group
+                $details.find('[data-group="section"]').each(function() {
+                    const sectionValue = $(this).data('value');
+                    if (sectionValue) {
+                        allSections.push(sectionValue);
+                    }
+                });
+            }
         
         // Get all already selected sections in the same sub-category to disable them
         const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
@@ -2297,15 +2997,17 @@ $(document).ready(function() {
             currentCloneCategory = categoryName;
             selectedCloneSection = null;
 
-            // Get available sections based on category - match section-item.blade.php logic
+            // Get available sections based on category - use dynamic options mapping
             let allSections = [];
             const currentSelectedSection = formData.section;
             
-            if (categoryName === 'Exterior') {
-                // For Exterior, use hardcoded list (matches section-item.blade.php line 56)
-                allSections = ['Main Roof', 'Side Extension', 'Rear Extension', 'Dormer', 'Lean-to'];
+            // Get section options from mapping
+            const sectionOptions = getOptions(categoryName, 'section', []);
+            
+            if (sectionOptions && sectionOptions.length > 0) {
+                allSections = sectionOptions;
             } else {
-                // For other categories, get from button group (matches section-item.blade.php line 57)
+                // Fallback: get from button group
                 $details.find('[data-group="section"]').each(function() {
                     const sectionValue = $(this).data('value');
                     if (sectionValue) {
@@ -2374,23 +3076,17 @@ $(document).ready(function() {
         const isExterior = categoryName === 'Exterior';
         const completionColor = completion == total ? '#10B981' : (completion > 0 ? '#F59E0B' : '#EF4444');
         
-        // Build section options
-        let sectionOptions = [];
-        if (isExterior) {
-            sectionOptions = ['Main Roof', 'Side Extension', 'Rear Extension', 'Dormer', 'Lean-to'];
-        } else {
+        // Build section options using dynamic mapping
+        let sectionOptions = getOptions(categoryName, 'section', [sectionName]);
+        if (!sectionOptions || sectionOptions.length === 0) {
             sectionOptions = [sectionName];
         }
         
-        // Build structure options
-        const structureOptions = isExterior 
-            ? ['Pitched', 'Flat', 'Inverted pitched', 'Mono-Pitch', 'Curved']
-            : ['Standard', 'Flat', 'Pitched', 'Suspended', 'Solid'];
+        // Build structure options using dynamic mapping
+        const structureOptions = getOptions(categoryName, 'structure', ['Standard']);
         
-        // Build material options
-        const materialOptions = isExterior 
-            ? ['Double Glazed Aluminium', 'Polycarbonate', 'Slate', 'Asphalt', 'Concrete Interlocking', 'Fibre Slate', 'Felt']
-            : ['Plasterboard', 'Plaster', 'Timber', 'Concrete', 'Mixed'];
+        // Build material options using dynamic mapping
+        const materialOptions = getOptions(categoryName, 'material', ['Mixed']);
         
         // Build costs table rows
         let costsRows = '';
@@ -2471,11 +3167,9 @@ $(document).ready(function() {
                                 <div class="survey-data-mock-field-group">
                                     <label class="survey-data-mock-field-label">Location</label>
                                     <div class="survey-data-mock-button-group">
-                                        <button type="button" class="survey-data-mock-button" data-value="Whole Property" data-group="location">Whole Property</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Right" data-group="location">Right</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Left" data-group="location">Left</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Front" data-group="location">Front</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Rear" data-group="location">Rear</button>
+                                        ${getOptions(null, 'location', ['Whole Property', 'Right', 'Left', 'Front', 'Rear']).map(opt => `
+                                            <button type="button" class="survey-data-mock-button" data-value="${opt}" data-group="location">${opt}</button>
+                                        `).join('')}
                                     </div>
                                 </div>
 
@@ -2503,15 +3197,9 @@ $(document).ready(function() {
                                 <div class="survey-data-mock-field-group">
                                     <label class="survey-data-mock-field-label">Defects</label>
                                     <div class="survey-data-mock-button-group">
-                                        <button type="button" class="survey-data-mock-button" data-value="Holes" data-group="defects" data-multiple="true">Holes</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Perished" data-group="defects" data-multiple="true">Perished</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Thermal Sag" data-group="defects" data-multiple="true">Thermal Sag</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Deflection" data-group="defects" data-multiple="true">Deflection</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Rot" data-group="defects" data-multiple="true">Rot</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Moss" data-group="defects" data-multiple="true">Moss</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Lichen" data-group="defects" data-multiple="true">Lichen</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="Slipped Tiles" data-group="defects" data-multiple="true">Slipped Tiles</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="None" data-group="defects" data-multiple="true">None</button>
+                                        ${getOptions(null, 'defects', ['Holes', 'Perished', 'Thermal Sag', 'Deflection', 'Rot', 'Moss', 'Lichen', 'Slipped Tiles', 'None']).map(opt => `
+                                            <button type="button" class="survey-data-mock-button" data-value="${opt}" data-group="defects" data-multiple="true">${opt}</button>
+                                        `).join('')}
                                     </div>
                                 </div>
                             </div>
@@ -2529,10 +3217,9 @@ $(document).ready(function() {
                                 <div class="survey-data-mock-field-group">
                                     <label class="survey-data-mock-field-label">Remaining Life (Years)</label>
                                     <div class="survey-data-mock-button-group">
-                                        <button type="button" class="survey-data-mock-button" data-value="0" data-group="remaining_life">0</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="1-5" data-group="remaining_life">1-5</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="6-10" data-group="remaining_life">6-10</button>
-                                        <button type="button" class="survey-data-mock-button" data-value="10+" data-group="remaining_life">10+</button>
+                                        ${getOptions(null, 'remaining_life', ['0', '1-5', '6-10', '10+']).map(opt => `
+                                            <button type="button" class="survey-data-mock-button" data-value="${opt}" data-group="remaining_life">${opt}</button>
+                                        `).join('')}
                                     </div>
                                 </div>
 
@@ -2589,6 +3276,32 @@ $(document).ready(function() {
                         </div>
                     </div>
                 </div>
+
+                <!-- Report Content Area (shown after save) -->
+                <div class="survey-data-mock-report-content" style="display: none;" data-section-id="${sectionId}">
+                    <div class="survey-data-mock-report-content-wrapper">
+                        <textarea class="survey-data-mock-report-textarea" rows="12" placeholder="Report content will be generated after saving..."></textarea>
+                        
+                        <!-- Action Icons Bar -->
+                        <div class="survey-data-mock-action-icons">
+                            <button type="button" class="survey-data-mock-action-icon-btn" data-action="speaker" title="Text to Speech">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            <button type="button" class="survey-data-mock-action-icon-btn" data-action="lock" title="Lock/Unlock Editing">
+                                <i class="fas fa-lock"></i>
+                            </button>
+                            <button type="button" class="survey-data-mock-action-icon-btn" data-action="edit" title="Edit Form">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button type="button" class="survey-data-mock-action-icon-btn" data-action="refresh" title="Regenerate Content">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <button type="button" class="survey-data-mock-action-icon-btn" data-action="eye" title="Preview">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
         
@@ -2630,15 +3343,26 @@ $(document).ready(function() {
         $sectionItem.find('.survey-data-mock-section-header[data-expandable="true"]').off('click').on('click', function() {
             const $item = $(this).closest('.survey-data-mock-section-item');
             const $details = $item.find('.survey-data-mock-section-details');
+            const $reportContent = $item.find('.survey-data-mock-report-content');
             const $titleBar = $item.find('.survey-data-mock-section-title-bar');
+            const isSaved = $item.attr('data-saved') === 'true';
             
             $item.toggleClass('expanded');
             
             if ($item.hasClass('expanded')) {
-                $details.slideDown(300);
                 $titleBar.slideDown(300);
+                if (isSaved) {
+                    // Show report if saved, hide form
+                    $details.hide();
+                    $reportContent.slideDown(300);
+                } else {
+                    // Show form if not saved, hide report
+                    $details.slideDown(300);
+                    $reportContent.hide();
+                }
             } else {
                 $details.slideUp(300);
+                $reportContent.slideUp(300);
                 $titleBar.slideUp(300);
             }
         });
@@ -2654,10 +3378,64 @@ $(document).ready(function() {
             }
         });
         
-        // Save handler
+        // Save handler - use the same logic as the main save handler
         $sectionItem.find('.survey-data-mock-action-save').off('click').on('click', function(e) {
             e.stopPropagation();
-            alert('Save functionality - to be implemented');
+            const $button = $(this);
+            const sectionId = $button.data('section-id');
+            const $sectionItem = $button.closest('.survey-data-mock-section-item');
+            const $details = $sectionItem.find('.survey-data-mock-section-details');
+            const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
+            const $categorySection = $sectionItem.closest('.survey-data-mock-category');
+            const categoryName = $categorySection.find('.survey-data-mock-category-title').text().trim();
+            const sectionName = $sectionItem.find('.survey-data-mock-section-name').text().trim();
+            
+            // Collect all form data
+            const formData = {
+                section: $details.find('[data-group="section"].active').data('value') || '',
+                location: $details.find('[data-group="location"].active').data('value') || '',
+                structure: $details.find('[data-group="structure"].active').data('value') || '',
+                material: $details.find('[data-group="material"].active').data('value') || '',
+                defects: $details.find('[data-group="defects"].active').map(function() {
+                    return $(this).data('value');
+                }).get(),
+                remainingLife: $details.find('[data-group="remaining_life"].active').data('value') || '',
+                notes: $details.find('.survey-data-mock-notes-input').val() || '',
+                costs: []
+            };
+            
+            // Collect costs
+            $details.find('.survey-data-mock-costs-table tbody tr').each(function() {
+                const $row = $(this);
+                const category = $row.find('td:eq(0)').text().trim();
+                const description = $row.find('td:eq(1)').text().trim();
+                const due = $row.find('td:eq(2)').text().trim();
+                const cost = $row.find('td:eq(3)').text().trim();
+                
+                if (category && category !== 'No costs added') {
+                    formData.costs.push({
+                        category: category,
+                        description: description,
+                        due: due,
+                        cost: cost
+                    });
+                }
+            });
+            
+            // Generate mock report content
+            const reportContent = generateMockReportContent(formData, sectionName, categoryName);
+            
+            // Hide form, show report
+            $details.slideUp(300);
+            $reportContent.find('.survey-data-mock-report-textarea').val(reportContent);
+            $reportContent.slideDown(300);
+            
+            // Mark section as saved
+            $sectionItem.attr('data-saved', 'true');
+            $sectionItem.attr('data-locked', 'false');
+            
+            // Initialize lock state (unlocked by default)
+            updateLockState($sectionItem, false);
         });
         
         // Add Cost handler
@@ -2676,12 +3454,325 @@ $(document).ready(function() {
         $sectionItem.find('.survey-data-mock-images-upload').off('click').on('click', function() {
             alert('Image upload functionality - to be implemented');
         });
-        
-        // Initialize carousels for this section
-        setTimeout(function() {
-            initializeCarousels();
-        }, 100);
     }
+
+    // Accommodation Carousel Functionality
+    function initializeAccommodationCarousel($accommodationItem) {
+        const $carouselTrack = $accommodationItem.find('[data-carousel-track]');
+        const $slides = $accommodationItem.find('.survey-data-mock-carousel-slide');
+        const $tabs = $accommodationItem.find('.survey-data-mock-component-tab');
+        const $indicators = $accommodationItem.find('.survey-data-mock-carousel-indicator');
+        let currentSlide = 0;
+        const totalSlides = $slides.length;
+
+        // Function to go to specific slide
+        function goToSlide(index) {
+            if (index < 0 || index >= totalSlides) return;
+            
+            currentSlide = index;
+            
+            // Update slides - hide all, show active
+            $slides.removeClass('active');
+            $slides.eq(index).addClass('active');
+            
+            // Update tabs
+            $tabs.removeClass('active');
+            $tabs.eq(index).addClass('active');
+            
+            // Update indicator dots
+            $indicators.removeClass('active');
+            $indicators.eq(index).addClass('active');
+        }
+
+        // Tab click handler
+        $tabs.on('click', function() {
+            const index = $(this).data('component-index');
+            goToSlide(index);
+        });
+
+        // Indicator dot click handler
+        $indicators.on('click', function() {
+            const index = $(this).data('slide-index');
+            goToSlide(index);
+        });
+
+        // Touch and mouse swipe functionality - on the entire carousel wrapper
+        const $carouselWrapper = $accommodationItem.find('.survey-data-mock-carousel-wrapper');
+        let startX = 0;
+        let startY = 0;
+        let isDragging = false;
+        let hasMoved = false;
+
+        // Prevent default on touch to allow smooth scrolling
+        $carouselWrapper.on('touchstart', function(e) {
+            // Allow button clicks to work normally
+            if ($(e.target).closest('button').length) {
+                return;
+            }
+            
+            const touch = e.originalEvent.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+            isDragging = true;
+            hasMoved = false;
+        });
+
+        $carouselWrapper.on('touchmove', function(e) {
+            if (!isDragging) return;
+            
+            // Allow button clicks to work normally
+            if ($(e.target).closest('button').length) {
+                isDragging = false;
+                return;
+            }
+            
+            const touch = e.originalEvent.touches[0];
+            const diffX = touch.clientX - startX;
+            const diffY = touch.clientY - startY;
+            
+            // Only prevent default if horizontal movement is greater than vertical (swipe)
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+                e.preventDefault();
+                hasMoved = true;
+            }
+        });
+
+        $carouselWrapper.on('touchend', function(e) {
+            if (!isDragging) return;
+            
+            // Allow button clicks to work normally
+            if ($(e.target).closest('button').length) {
+                isDragging = false;
+                return;
+            }
+            
+            if (hasMoved) {
+                const touch = e.originalEvent.changedTouches[0];
+                const diffX = touch.clientX - startX;
+                const threshold = 50;
+                
+                if (Math.abs(diffX) > threshold) {
+                    if (diffX > 0 && currentSlide > 0) {
+                        // Swipe right - go to previous slide
+                        goToSlide(currentSlide - 1);
+                    } else if (diffX < 0 && currentSlide < totalSlides - 1) {
+                        // Swipe left - go to next slide
+                        goToSlide(currentSlide + 1);
+                    }
+                }
+            }
+            
+            isDragging = false;
+            hasMoved = false;
+        });
+
+        // Mouse drag functionality
+        $carouselWrapper.on('mousedown', function(e) {
+            // Don't prevent default on mousedown to allow button clicks
+            if ($(e.target).closest('button').length) {
+                return;
+            }
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            isDragging = true;
+            hasMoved = false;
+            $carouselWrapper.addClass('dragging');
+            
+            e.preventDefault();
+        });
+
+        $(document).on('mousemove.accommodationCarousel', function(e) {
+            if (!isDragging) return;
+            
+            const diffX = e.clientX - startX;
+            const diffY = e.clientY - startY;
+            
+            // Only consider it a swipe if horizontal movement is greater than vertical
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+                hasMoved = true;
+            }
+        });
+
+        $(document).on('mouseup.accommodationCarousel', function(e) {
+            if (!isDragging) return;
+            
+            // Don't interfere with button clicks
+            if ($(e.target).closest('button').length) {
+                isDragging = false;
+                hasMoved = false;
+                $carouselWrapper.removeClass('dragging');
+                return;
+            }
+            
+            $carouselWrapper.removeClass('dragging');
+            
+            if (hasMoved) {
+                const diffX = e.clientX - startX;
+                const threshold = 50;
+                
+                if (Math.abs(diffX) > threshold) {
+                    if (diffX > 0 && currentSlide > 0) {
+                        // Drag right - go to previous slide
+                        goToSlide(currentSlide - 1);
+                    } else if (diffX < 0 && currentSlide < totalSlides - 1) {
+                        // Drag left - go to next slide
+                        goToSlide(currentSlide + 1);
+                    }
+                }
+            }
+            
+            isDragging = false;
+            hasMoved = false;
+        });
+
+        // Clean up on accommodation item removal
+        $accommodationItem.on('remove', function() {
+            $(document).off('mousemove.accommodationCarousel mouseup.accommodationCarousel');
+        });
+
+        // Material and Defects button handlers - use event delegation to ensure clicks work
+        $accommodationItem.on('click', '[data-group="material"]', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const $button = $(this);
+            const componentKey = $button.data('component-key');
+            
+            // Remove active from other material buttons in same component
+            $accommodationItem.find('[data-group="material"][data-component-key="' + componentKey + '"]').removeClass('active');
+            $button.addClass('active');
+        });
+
+        $accommodationItem.on('click', '[data-group="defects"]', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const $button = $(this);
+            const componentKey = $button.data('component-key');
+            const value = $button.data('value');
+            
+            // Toggle active state
+            $button.toggleClass('active');
+            
+            // Only handle "No Defects" logic - allow all other defects to be selected freely
+            if (value === 'No Defects') {
+                // If "No Defects" is selected, deselect all other defects
+                if ($button.hasClass('active')) {
+                    $accommodationItem.find('[data-group="defects"][data-component-key="' + componentKey + '"]').not($button).removeClass('active');
+                }
+            } else {
+                // If any other defect is selected, deselect "No Defects" (but allow multiple other defects)
+                if ($button.hasClass('active')) {
+                    $accommodationItem.find('[data-group="defects"][data-component-key="' + componentKey + '"][data-value="No Defects"]').removeClass('active');
+                }
+            }
+        });
+
+    }
+
+    // Initialize accommodation carousels
+    $('.survey-data-mock-accommodation-item').each(function() {
+        initializeAccommodationCarousel($(this));
+    });
+
+    // Accommodation expand/collapse
+    $('.survey-data-mock-accommodation-header[data-expandable="true"]').on('click', function() {
+        const $accommodationItem = $(this).closest('.survey-data-mock-accommodation-item');
+        const $details = $accommodationItem.find('.survey-data-mock-accommodation-details');
+        
+        $accommodationItem.toggleClass('expanded');
+        
+        if ($accommodationItem.hasClass('expanded')) {
+            $details.slideDown(300);
+        } else {
+            $details.slideUp(300);
+        }
+    });
+
+    // Accommodation action buttons
+    $(document).on('click', '.survey-data-mock-accommodation-item .survey-data-mock-action-delete', function(e) {
+        e.stopPropagation();
+        const $item = $(this).closest('.survey-data-mock-accommodation-item');
+        if (confirm('Are you sure you want to delete this accommodation?')) {
+            $item.fadeOut(300, function() {
+                $(this).remove();
+            });
+        }
+    });
+
+    $(document).on('click', '.survey-data-mock-accommodation-item .survey-data-mock-action-save', function(e) {
+        e.stopPropagation();
+        const accommodationId = $(this).data('accommodation-id');
+        alert('Save accommodation functionality - to be implemented for ID: ' + accommodationId);
+    });
+
+    $(document).on('click', '.survey-data-mock-accommodation-item .survey-data-mock-action-clone', function(e) {
+        e.stopPropagation();
+        const accommodationId = $(this).data('accommodation-id');
+        const accommodationName = $(this).data('accommodation-name');
+        alert('Clone accommodation functionality - to be implemented for: ' + accommodationName);
+    });
+
+    // Accommodation Draggable Divider
+    $('.survey-data-mock-accommodation-form-grid-divider').each(function() {
+        const $divider = $(this);
+        const $grid = $divider.closest('.survey-data-mock-accommodation-form-grid');
+        const $leftColumn = $grid.find('[data-column="left"]');
+        const $rightColumn = $grid.find('[data-column="right"]');
+        
+        if ($leftColumn.length === 0 || $rightColumn.length === 0) {
+            return;
+        }
+        
+        let isDragging = false;
+        let startX = 0;
+        let startLeftWidth = 0;
+        let startRightWidth = 0;
+        
+        $divider.on('mousedown', function(e) {
+            isDragging = true;
+            $divider.addClass('dragging');
+            $('body').css('cursor', 'col-resize');
+            $('body').css('user-select', 'none');
+            
+            startX = e.clientX;
+            startLeftWidth = $leftColumn.outerWidth();
+            startRightWidth = $rightColumn.outerWidth();
+            
+            e.preventDefault();
+        });
+        
+        $(document).on('mousemove.accommodationDivider', function(e) {
+            if (!isDragging) return;
+            
+            const diff = e.clientX - startX;
+            const gridWidth = $grid.width();
+            const newLeftWidth = startLeftWidth + diff;
+            const newRightWidth = startRightWidth - diff;
+            
+            // Minimum widths
+            const minWidth = 200;
+            if (newLeftWidth < minWidth || newRightWidth < minWidth) {
+                return;
+            }
+            
+            // Calculate percentages
+            const leftPercent = (newLeftWidth / gridWidth) * 100;
+            const rightPercent = (newRightWidth / gridWidth) * 100;
+            
+            $leftColumn.css('flex', '0 0 ' + leftPercent + '%');
+            $rightColumn.css('flex', '0 0 ' + rightPercent + '%');
+        });
+        
+        $(document).on('mouseup.accommodationDivider', function() {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            $divider.removeClass('dragging');
+            $('body').css('cursor', '');
+            $('body').css('user-select', '');
+            
+        });
+    });
 });
 </script>
 @endpush

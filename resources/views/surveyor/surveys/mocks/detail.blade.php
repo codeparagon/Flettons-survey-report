@@ -192,12 +192,12 @@
                     <article class="survey-detail-mock-card">
                         <header class="survey-detail-mock-card-header">
                             <h3>Property Type</h3>
-                            <button type="button" class="survey-detail-mock-edit-btn" title="Edit"
+                            {{-- <button type="button" class="survey-detail-mock-edit-btn" title="Edit"
                                 id="property_type_edit"
                                 style="display: inline-flex !important; visibility: visible !important;">
                                 <i class="fas fa-pencil-alt"
                                     style="display: inline-block !important; visibility: visible !important;"></i>
-                            </button>
+                            </button> --}}
                         </header>
                         <div class="survey-detail-mock-card-body">
                             <div class="survey-detail-mock-field">
@@ -232,9 +232,9 @@
                                     <span class="survey-detail-mock-count-label">Baths</span>
                                     <span class="survey-detail-mock-count-value editable-count" data-field="bathrooms"
                                         data-original="{{ $survey->bathrooms ?? 2 }}">
-                                        <span class="count-display">{{ $survey->bathrooms ?? 2 }}</span>
+                                        <span class="count-display"  style="display: none;">{{ $survey->bathrooms ?? 2 }}</span>
                                         <input type="number" class="count-input" value="{{ $survey->bathrooms ?? 2 }}"
-                                            style="display: none;" min="0" max="20">
+                                            min="0" max="20">
                                         {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
                                             title="Edit"
                                             style="display: flex !important; visibility: visible !important;">
@@ -247,9 +247,9 @@
                                     <span class="survey-detail-mock-count-label">Receptions</span>
                                     <span class="survey-detail-mock-count-value editable-count" data-field="receptions"
                                         data-original="{{ $survey->receptions ?? 1 }}">
-                                        <span class="count-display">{{ $survey->receptions ?? 1 }}</span>
+                                        <span class="count-display" style="display: none;">{{ $survey->receptions ?? 1 }}</span>
                                         <input type="number" class="count-input" value="{{ $survey->receptions ?? 1 }}"
-                                            style="display: none;" min="0" max="20">
+                                             min="0" max="20">
                                         {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
                                             title="Edit"
                                             style="display: flex !important; visibility: visible !important;">
@@ -262,8 +262,8 @@
                                     <span class="survey-detail-mock-count-label">Garage</span>
                                     <span class="survey-detail-mock-count-value editable-count" data-field="garage"
                                         data-original="-">
-                                        <span class="count-display">-</span>
-                                        <input type="number" class="count-input" value="" style="display: none;"
+                                        <span class="count-display" style="display: none;">-</span>
+                                        <input type="number" class="count-input" value="" 
                                             min="0" max="20" placeholder="-">
                                         {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
                                             title="Edit"
@@ -277,8 +277,8 @@
                                     <span class="survey-detail-mock-count-label">WC</span>
                                     <span class="survey-detail-mock-count-value editable-count" data-field="wc"
                                         data-original="-">
-                                        <span class="count-display">-</span>
-                                        <input type="number" class="count-input" value="" style="display: none;"
+                                        <span class="count-display" style="display: none;">-</span>
+                                        <input type="number" class="count-input" value="" 
                                             min="0" max="20" placeholder="-">
                                         {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
                                             title="Edit"
@@ -292,8 +292,8 @@
                                     <span class="survey-detail-mock-count-label">Utility</span>
                                     <span class="survey-detail-mock-count-value editable-count" data-field="utility"
                                         data-original="-">
-                                        <span class="count-display">-</span>
-                                        <input type="number" class="count-input" value="" style="display: none;"
+                                        <span class="count-display" style="display: none;">-</span>
+                                        <input type="number" class="count-input" value="" 
                                             min="0" max="20" placeholder="-">
                                         {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
                                             title="Edit"
@@ -305,11 +305,11 @@
                                 </div>
                                 <div class="survey-detail-mock-count">
                                     <span class="survey-detail-mock-count-label">Garden</span>
-                                    <span class="survey-detail-mock-count-value editable-count" data-field="garden"
+                                    <span class="survey-detail-mock-count-value editable-count" data-field="utility"
                                         data-original="-">
-                                        <span class="count-display">-</span>
-                                        <input type="text" class="count-input" value="" style="display: none;"
-                                            maxlength="10" placeholder="-">
+                                        <span class="count-display" style="display: none;">-</span>
+                                        <input type="number" class="count-input" value="" 
+                                            min="0" max="20" placeholder="-">
                                         {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
                                             title="Edit"
                                             style="display: flex !important; visibility: visible !important;">
@@ -318,6 +318,7 @@
                                         </button> --}}
                                     </span>
                                 </div>
+                               
                             </div>
                         </div>
                     </article>
@@ -377,21 +378,21 @@
                 <article class="survey-detail-mock-card">
                     <header class="survey-detail-mock-card-header survey-detail-mock-card-header--inline">
                         <h3>Client Concerns</h3>
-                        <button type="button" class="survey-detail-mock-card-action" id="add-concern-btn">
+                        {{-- <button type="button" class="survey-detail-mock-card-action" id="add-concern-btn">
                             <i class="fas fa-plus"></i>
-                        </button>
+                        </button> --}}
                     </header>
                     <div class="survey-detail-mock-card-body">
                         <div class="survey-detail-mock-concerns-editable" data-field="client_concerns"
                             data-original="{{ $survey->client_concerns }}">
-                            <p class="survey-detail-mock-concerns-text">
+                            <p class="survey-detail-mock-concerns-text" style="display: none;">
                                 {{ $survey->client_concerns }}</p>
-                            <textarea class="survey-detail-mock-concerns-input" style="display: none;" rows="4">{{ $survey->client_concerns ?? '' }}</textarea>
-                            <button type="button" class="survey-detail-mock-edit-btn" title="Edit concerns"
+                            <textarea class="survey-detail-mock-concerns-input"  rows="4">{{ $survey->client_concerns ?? '' }}</textarea>
+                            {{-- <button type="button" class="survey-detail-mock-edit-btn" title="Edit concerns"
                                 style="display: inline-flex !important; visibility: visible !important;">
                                 <i class="fas fa-pencil-alt"
                                     style="display: inline-block !important; visibility: visible !important;"></i>
-                            </button>
+                            </button> --}}
                         </div>
                     </div>
                 </article>
@@ -696,7 +697,7 @@
             border: 1px solid rgba(148, 163, 184, 0.4);
             border-radius: 4px;
             font-size: 16px;
-            font-weight: 600;
+            
             color: #1A202C;
             background: #FFFFFF;
             transition: border-color 0.2s ease;
@@ -714,7 +715,6 @@
             border: 1px solid rgba(148, 163, 184, 0.4);
             border-radius: 4px;
             font-size: 16px;
-            font-weight: 600;
             color: #1A202C;
             background: #FFFFFF;
             cursor: pointer;
@@ -798,7 +798,6 @@
             background: transparent !important;
             text-align: center !important;
             font-size: inherit !important;
-            font-weight: inherit !important;
             padding: 0 !important;
             margin: 0 !important;
             box-sizing: border-box !important;
