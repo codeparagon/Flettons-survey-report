@@ -586,5 +586,328 @@ class SurveyDataService
         $baseName = preg_replace('/\s*\[[^\]]*\]\s*/', '', $baseName);
         return trim($baseName);
     }
+
+    /**
+     * Get accommodation configuration data with carousel structure.
+     * Uses separate JSON structure for accommodation sections.
+     * 
+     * @param Survey $survey
+     * @param bool $useMockData Whether to use mock data or real database data
+     * @return array
+     */
+    public function getAccommodationConfigurationData(Survey $survey, bool $useMockData = true): array
+    {
+        if ($useMockData) {
+            return $this->getMockAccommodationData($survey);
+        }
+        
+        return $this->getRealAccommodationData($survey);
+    }
+
+    /**
+     * Get mock accommodation data for UI development.
+     * 
+     * @param Survey $survey
+     * @return array
+     */
+    protected function getMockAccommodationData(Survey $survey): array
+    {
+        $components = $this->getAccommodationComponents();
+        
+        return [
+            [
+                'id' => 'accommodation_1',
+                'name' => 'Bedroom 1',
+                'notes' => '', // Shared notes for all components
+                'photos' => [], // Shared photos for all components
+                'components' => array_map(function($component) {
+                    return [
+                        'component_key' => $component['key'],
+                        'component_name' => $component['name'],
+                        'material' => $component['key'] === 'ceiling' ? 'Lath and Plaster' : '',
+                        'defects' => $component['key'] === 'ceiling' ? ['No Defects'] : [],
+                    ];
+                }, $components),
+            ],
+        ];
+    }
+
+    /**
+     * Get real accommodation data from database.
+     * 
+     * @param Survey $survey
+     * @return array
+     */
+    protected function getRealAccommodationData(Survey $survey): array
+    {
+        // TODO: Implement database retrieval for accommodation sections
+        // This would query for sections with name "Accommodation Configuration"
+        // and parse their additional_data JSON for accommodation structure
+        return [];
+    }
+
+    /**
+     * Get available accommodation component types.
+     * 
+     * @return array
+     */
+    public function getAccommodationComponents(): array
+    {
+        return [
+            ['key' => 'ceiling', 'name' => 'Ceiling'],
+            ['key' => 'walls', 'name' => 'Walls'],
+            ['key' => 'windows', 'name' => 'Windows'],
+            ['key' => 'internal_door', 'name' => 'Internal Door'],
+            ['key' => 'external_door', 'name' => 'External Door'],
+            ['key' => 'floors', 'name' => 'Floors'],
+            ['key' => 'services', 'name' => 'Services'],
+        ];
+    }
+
+    /**
+     * Get material options for a specific component type.
+     * 
+     * @param string $componentKey
+     * @return array
+     */
+    public function getComponentMaterials(string $componentKey): array
+    {
+        $materials = [
+            'ceiling' => ['Plasterboard', 'Concrete', 'LDFB', 'AIB', 'Lath and Plaster'],
+            'walls' => ['Plasterboard', 'Plaster', 'Concrete', 'Brick', 'Stone'],
+            'windows' => ['Double Glazed Aluminium', 'Single Glazed', 'Timber', 'UPVC'],
+            'internal_door' => ['Timber', 'MDF', 'Composite', 'Glass'],
+            'external_door' => ['Timber', 'UPVC', 'Aluminium', 'Composite'],
+            'floors' => ['Timber', 'Concrete', 'Tiles', 'Carpet', 'Vinyl'],
+            'services' => ['Standard', 'Modern', 'Mixed'],
+        ];
+
+        return $materials[$componentKey] ?? [];
+    }
+
+    /**
+     * Get defect options for accommodation components.
+     * 
+     * @return array
+     */
+    public function getComponentDefects(): array
+    {
+        return [
+            'No Defects',
+            'Cracks',
+            'TEX',
+            'AIB',
+            'BULGE',
+            'DRY STAIN',
+            'WET STAIN',
+            'POLYSTYRENE',
+            'CLADDING',
+            'BER REPLACE',
+        ];
+    }
+
+    /**
+     * Get all options mapping in a structured format.
+     * This can easily be stored in database as JSON in the future.
+     * 
+     * @return array
+     */
+    public function getOptionsMapping(): array
+    {
+        return [
+            // Location options (global)
+            'location' => $this->getLocationOptions(),
+            
+            // Remaining life options (global)
+            'remaining_life' => $this->getRemainingLifeOptions(),
+            
+            // Defect options (can be category-specific in future)
+            'defects' => $this->getDefectOptions(),
+            
+            // Category-based options
+            'Exterior' => [
+                'section' => $this->getSectionOptions('Exterior'),
+                'structure' => $this->getStructureOptions('Exterior'),
+                'material' => $this->getMaterialOptions('Exterior'),
+            ],
+            'Interior' => [
+                'section' => $this->getSectionOptions('Interior'),
+                'structure' => $this->getStructureOptions('Interior'),
+                'material' => $this->getMaterialOptions('Interior'),
+            ],
+            'Building Services' => [
+                'section' => $this->getSectionOptions('Building Services'),
+                'structure' => $this->getStructureOptions('Building Services'),
+                'material' => $this->getMaterialOptions('Building Services'),
+            ],
+            'Damp & Timber and Structural Defects' => [
+                'section' => $this->getSectionOptions('Damp & Timber and Structural Defects'),
+                'structure' => $this->getStructureOptions('Damp & Timber and Structural Defects'),
+                'material' => $this->getMaterialOptions('Damp & Timber and Structural Defects'),
+            ],
+        ];
+    }
+
+    /**
+     * Get section options based on category.
+     * 
+     * @param string $categoryName
+     * @param string|null $subCategoryKey
+     * @return array
+     */
+    public function getSectionOptions(string $categoryName, ?string $subCategoryKey = null): array
+    {
+        $mapping = [
+            'Exterior' => [
+                'roofing' => ['Main Roof', 'Side Extension', 'Rear Extension', 'Dormer', 'Lean-to'],
+            ],
+        ];
+
+        // For Exterior with roofing subcategory
+        if ($categoryName === 'Exterior' && ($subCategoryKey === 'roofing' || !$subCategoryKey)) {
+            return $mapping['Exterior']['roofing'] ?? [];
+        }
+
+        // For other categories or if no mapping exists, return empty array
+        // The section name itself will be used as the only option
+        return [];
+    }
+
+    /**
+     * Get location options (global for all categories).
+     * 
+     * @return array
+     */
+    public function getLocationOptions(): array
+    {
+        return [
+            'Whole Property',
+            'Right',
+            'Left',
+            'Front',
+            'Rear',
+        ];
+    }
+
+    /**
+     * Get structure options based on category.
+     * 
+     * @param string $categoryName
+     * @param string|null $subCategoryKey
+     * @return array
+     */
+    public function getStructureOptions(string $categoryName, ?string $subCategoryKey = null): array
+    {
+        $mapping = [
+            'Exterior' => [
+                'Pitched',
+                'Flat',
+                'Inverted pitched',
+                'Mono-Pitch',
+                'Curved',
+            ],
+            'Interior' => [
+                'Standard',
+                'Flat',
+                'Pitched',
+                'Suspended',
+                'Solid',
+            ],
+            'Building Services' => [
+                'Standard',
+                'Modern',
+                'Traditional',
+                'Mixed',
+            ],
+            'Damp & Timber and Structural Defects' => [
+                'Standard',
+                'Timber Frame',
+                'Concrete',
+                'Mixed',
+            ],
+        ];
+
+        return $mapping[$categoryName] ?? ['Standard'];
+    }
+
+    /**
+     * Get material options based on category.
+     * 
+     * @param string $categoryName
+     * @param string|null $subCategoryKey
+     * @return array
+     */
+    public function getMaterialOptions(string $categoryName, ?string $subCategoryKey = null): array
+    {
+        $mapping = [
+            'Exterior' => [
+                'Double Glazed Aluminium',
+                'Polycarbonate',
+                'Slate',
+                'Asphalt',
+                'Concrete Interlocking',
+                'Fibre Slate',
+                'Felt',
+            ],
+            'Interior' => [
+                'Plasterboard',
+                'Plaster',
+                'Timber',
+                'Concrete',
+                'Mixed',
+            ],
+            'Building Services' => [
+                'Copper',
+                'Plastic',
+                'Mixed',
+                'Aluminium',
+            ],
+            'Damp & Timber and Structural Defects' => [
+                'Timber',
+                'Mixed',
+                'Concrete',
+                'Brick',
+            ],
+        ];
+
+        return $mapping[$categoryName] ?? ['Mixed'];
+    }
+
+    /**
+     * Get defect options (can be category-specific in future).
+     * 
+     * @param string|null $categoryName
+     * @return array
+     */
+    public function getDefectOptions(?string $categoryName = null): array
+    {
+        // Global defect options - can be made category-specific in future
+        return [
+            'Holes',
+            'Perished',
+            'Thermal Sag',
+            'Deflection',
+            'Rot',
+            'Moss',
+            'Lichen',
+            'Slipped Tiles',
+            'None',
+        ];
+    }
+
+    /**
+     * Get remaining life options (global for all categories).
+     * 
+     * @return array
+     */
+    public function getRemainingLifeOptions(): array
+    {
+        return [
+            '0',
+            '1-5',
+            '6-10',
+            '10+',
+        ];
+    }
 }
 

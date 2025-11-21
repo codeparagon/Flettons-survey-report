@@ -186,8 +186,14 @@ class SurveyController extends Controller
         // Use mock data for UI development (set to false to use real database data)
         $useMockData = true;
         $categories = $surveyDataService->getGroupedSurveyData($survey, $useMockData);
+        
+        // Get accommodation configuration data (separate JSON structure)
+        $accommodationSections = $surveyDataService->getAccommodationConfigurationData($survey, $useMockData);
 
-        return view('surveyor.surveys.mocks.data', compact('survey', 'categories'));
+        // Get options mapping for dynamic options
+        $optionsMapping = $surveyDataService->getOptionsMapping();
+
+        return view('surveyor.surveys.mocks.data', compact('survey', 'categories', 'accommodationSections', 'optionsMapping'));
     }
 
     public function mediaMock(Survey $survey)
@@ -376,11 +382,15 @@ class SurveyController extends Controller
             'photos' => $formData['photos'] ?? [],
         ];
 
+        // Get options mapping for dynamic options
+        $optionsMapping = $surveyDataService->getOptionsMapping();
+
         // Render the section-item partial
         $html = view('surveyor.surveys.mocks.partials.section-item', [
             'section' => $sectionData,
             'categoryName' => $validated['category_name'],
             'subCategoryName' => $validated['sub_category_name'],
+            'optionsMapping' => $optionsMapping,
         ])->render();
 
         return response()->json([

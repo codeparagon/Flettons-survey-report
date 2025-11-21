@@ -51,10 +51,10 @@
                 <div class="survey-data-mock-form-column survey-data-mock-form-column-left" data-column="left">
                     <!-- Section Buttons - Dynamic based on category -->
                     @php
-                        $isExterior = $categoryName === 'Exterior';
-                        $sectionOptions = $isExterior 
-                            ? ['Main Roof', 'Side Extension', 'Rear Extension', 'Dormer', 'Lean-to']
-                            : [$section['name']];
+                        $sectionOptions = $optionsMapping[$categoryName]['section'] ?? [$section['name']];
+                        if (empty($sectionOptions)) {
+                            $sectionOptions = [$section['name']];
+                        }
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Section</label>
@@ -66,22 +66,21 @@
                     </div>
 
                     <!-- Location Buttons -->
+                    @php
+                        $locationOptions = $optionsMapping['location'] ?? ['Whole Property', 'Right', 'Left', 'Front', 'Rear'];
+                    @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Location</label>
                         <div class="survey-data-mock-button-group">
-                            <button type="button" class="survey-data-mock-button" data-value="Whole Property" data-group="location">Whole Property</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Right" data-group="location">Right</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Left" data-group="location">Left</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Front" data-group="location">Front</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Rear" data-group="location">Rear</button>
+                            @foreach($locationOptions as $option)
+                                <button type="button" class="survey-data-mock-button" data-value="{{ $option }}" data-group="location">{{ $option }}</button>
+                            @endforeach
                         </div>
                     </div>
 
                     <!-- Structure Buttons -->
                     @php
-                        $structureOptions = $isExterior 
-                            ? ['Pitched', 'Flat', 'Inverted pitched', 'Mono-Pitch', 'Curved']
-                            : ['Standard', 'Flat', 'Pitched', 'Suspended', 'Solid'];
+                        $structureOptions = $optionsMapping[$categoryName]['structure'] ?? ['Standard'];
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Structure</label>
@@ -94,9 +93,7 @@
 
                     <!-- Material Buttons -->
                     @php
-                        $materialOptions = $isExterior 
-                            ? ['Double Glazed Aluminium', 'Polycarbonate', 'Slate', 'Asphalt', 'Concrete Interlocking', 'Fibre Slate', 'Felt']
-                            : ['Plasterboard', 'Plaster', 'Timber', 'Concrete', 'Mixed'];
+                        $materialOptions = $optionsMapping[$categoryName]['material'] ?? ['Mixed'];
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Material</label>
@@ -108,18 +105,15 @@
                     </div>
 
                     <!-- Defects Buttons -->
+                    @php
+                        $defectOptions = $optionsMapping['defects'] ?? ['Holes', 'Perished', 'Thermal Sag', 'Deflection', 'Rot', 'Moss', 'Lichen', 'Slipped Tiles', 'None'];
+                    @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Defects</label>
                         <div class="survey-data-mock-button-group">
-                            <button type="button" class="survey-data-mock-button" data-value="Holes" data-group="defects" data-multiple="true">Holes</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Perished" data-group="defects" data-multiple="true">Perished</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Thermal Sag" data-group="defects" data-multiple="true">Thermal Sag</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Deflection" data-group="defects" data-multiple="true">Deflection</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Rot" data-group="defects" data-multiple="true">Rot</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Moss" data-group="defects" data-multiple="true">Moss</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Lichen" data-group="defects" data-multiple="true">Lichen</button>
-                            <button type="button" class="survey-data-mock-button" data-value="Slipped Tiles" data-group="defects" data-multiple="true">Slipped Tiles</button>
-                            <button type="button" class="survey-data-mock-button" data-value="None" data-group="defects" data-multiple="true">None</button>
+                            @foreach($defectOptions as $option)
+                                <button type="button" class="survey-data-mock-button" data-value="{{ $option }}" data-group="defects" data-multiple="true">{{ $option }}</button>
+                            @endforeach
                         </div>
                     </div>
                 </div>
@@ -134,13 +128,15 @@
                 <!-- Right Column -->
                 <div class="survey-data-mock-form-column survey-data-mock-form-column-right" data-column="right">
                     <!-- Remaining Life Buttons -->
+                    @php
+                        $remainingLifeOptions = $optionsMapping['remaining_life'] ?? ['0', '1-5', '6-10', '10+'];
+                    @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Remaining Life (Years)</label>
                         <div class="survey-data-mock-button-group">
-                            <button type="button" class="survey-data-mock-button" data-value="0" data-group="remaining_life">0</button>
-                            <button type="button" class="survey-data-mock-button" data-value="1-5" data-group="remaining_life">1-5</button>
-                            <button type="button" class="survey-data-mock-button" data-value="6-10" data-group="remaining_life">6-10</button>
-                            <button type="button" class="survey-data-mock-button" data-value="10+" data-group="remaining_life">10+</button>
+                            @foreach($remainingLifeOptions as $option)
+                                <button type="button" class="survey-data-mock-button" data-value="{{ $option }}" data-group="remaining_life">{{ $option }}</button>
+                            @endforeach
                         </div>
                     </div>
 
@@ -207,6 +203,32 @@
                 <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-delete" data-section-id="{{ $section['id'] }}">Delete</button>
                 <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-clone" data-section-id="{{ $section['id'] }}" data-section-name="{{ $section['name'] }}">Save & Clone</button>
                 <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-save" data-section-id="{{ $section['id'] }}">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Content Area (shown after save) -->
+    <div class="survey-data-mock-report-content" style="display: none;" data-section-id="{{ $section['id'] }}">
+        <div class="survey-data-mock-report-content-wrapper">
+            <textarea class="survey-data-mock-report-textarea" rows="12" placeholder="Report content will be generated after saving..."></textarea>
+            
+            <!-- Action Icons Bar -->
+            <div class="survey-data-mock-action-icons">
+                <button type="button" class="survey-data-mock-action-icon-btn" data-action="speaker" title="Text to Speech">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <button type="button" class="survey-data-mock-action-icon-btn" data-action="lock" title="Lock/Unlock Editing">
+                    <i class="fas fa-lock"></i>
+                </button>
+                <button type="button" class="survey-data-mock-action-icon-btn" data-action="edit" title="Edit Form">
+                    <i class="fas fa-pencil-alt"></i>
+                </button>
+                <button type="button" class="survey-data-mock-action-icon-btn" data-action="refresh" title="Regenerate Content">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button type="button" class="survey-data-mock-action-icon-btn" data-action="eye" title="Preview">
+                    <i class="fas fa-eye"></i>
+                </button>
             </div>
         </div>
     </div>
