@@ -24,25 +24,29 @@
     <div class="survey-data-mock-body">
         @foreach($categories as $categoryName => $subCategories)
             <section class="survey-data-mock-category">
-                <h2 class="survey-data-mock-category-title">{{ $categoryName }}</h2>
+                <div class="survey-data-mock-category-header" data-category-toggle>
+                    <h2 class="survey-data-mock-category-title">{{ $categoryName }}</h2>
+                    <i class="fas fa-chevron-down survey-data-mock-category-toggle-icon"></i>
+                </div>
                 
-                <div class="survey-data-mock-sections">
-                    @foreach($subCategories as $subCategoryName => $sections)
-                        <div class="survey-data-mock-sub-category" data-sub-category="{{ $subCategoryName }}">
-                            <h3 class="survey-data-mock-sub-category-title">{{ $subCategoryName }}</h3>
-                            
-                            <div class="survey-data-mock-sub-category-sections">
-                                @foreach($sections as $section)
-                                    @include('surveyor.surveys.mocks.partials.section-item', ['section' => $section, 'categoryName' => $categoryName, 'subCategoryName' => $subCategoryName, 'optionsMapping' => $optionsMapping ?? []])
-                                                    @endforeach
-                                                </div>
-                                            </div>
-                                                    @endforeach
-                                                </div>
+                <div class="survey-data-mock-category-content collapse show">
+                    <div class="survey-data-mock-sections">
+                        @foreach($subCategories as $subCategoryName => $sections)
+                            <div class="survey-data-mock-sub-category" data-sub-category="{{ $subCategoryName }}">
+                                <h3 class="survey-data-mock-sub-category-title">{{ $subCategoryName }}</h3>
+                                
+                                <div class="survey-data-mock-sub-category-sections">
+                                    @foreach($sections as $section)
+                                        @include('surveyor.surveys.mocks.partials.section-item', ['section' => $section, 'categoryName' => $categoryName, 'subCategoryName' => $subCategoryName, 'optionsMapping' => $optionsMapping ?? []])
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
             </section>
-                                                    @endforeach
-                                                </div>
-                                            </div>
+        @endforeach
+    </div>
 
         <!-- Accommodation Configuration Section -->
         @if(isset($accommodationSections) && count($accommodationSections) > 0)
@@ -65,15 +69,15 @@
             <h3 class="survey-data-mock-rating-modal-title">Update Condition Rating</h3>
             <button type="button" class="survey-data-mock-rating-modal-close" id="rating-modal-close">
                 <i class="fas fa-times"></i>
-                                                    </button>
-                                                </div>
+            </button>
+        </div>
         <div class="survey-data-mock-rating-modal-body">
             <div class="survey-data-mock-rating-options">
                 <div class="survey-data-mock-rating-option survey-data-mock-rating-option--1" data-rating="1">
                     <div class="survey-data-mock-rating-option-badge">1</div>
                     <div class="survey-data-mock-rating-option-label">Excellent</div>
                     <div class="survey-data-mock-rating-option-description">Good condition</div>
-                                            </div>
+                </div>
                 <div class="survey-data-mock-rating-option survey-data-mock-rating-option--2" data-rating="2">
                     <div class="survey-data-mock-rating-option-badge">2</div>
                     <div class="survey-data-mock-rating-option-label">Good</div>
@@ -105,6 +109,10 @@
     /* Poppins Font Family Throughout - Exclude Font Awesome icons */
     .survey-data-mock-content {
         font-family: 'Poppins', sans-serif;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
     }
 
     /* Ensure Font Awesome icons use correct font */
@@ -125,7 +133,6 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     .survey-data-mock-header-left {
@@ -183,38 +190,99 @@
 
     /* Main Body */
     .survey-data-mock-body {
-        padding: 2rem 1.5rem;
-        background: #F1F5F9;
+        padding: 2rem 0;
         min-height: calc(100vh - 120px);
+        height: auto;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
     }
 
     /* Category Section */
     .survey-data-mock-category {
-        margin-bottom: 3rem;
+        margin-bottom: 2rem;
+        background: transparent;
+        overflow: visible;
+        width: 100%;
     }
 
     .survey-data-mock-category:last-child {
         margin-bottom: 0;
     }
 
+    /* Category Header - Collapsible */
+    .survey-data-mock-category-header {
+        background: #1E293B;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .survey-data-mock-category-header:hover {
+        background: #334155;
+    }
+
     .survey-data-mock-category-title {
         font-size: 28px;
-        font-weight: 800;
-        color: #1A202C;
-        margin: 0 0 1.5rem 0;
+        font-weight: 300;
+        color: #FFFFFF!important;
+        margin: 0;
         font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-data-mock-category-toggle-icon {
+        font-size: 18px;
+        color: #C1EC4A;
+        transition: transform 0.3s ease;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .survey-data-mock-category.collapsed .survey-data-mock-category-toggle-icon {
+        transform: rotate(-90deg);
+    }
+
+    /* Category Content - Collapsible Container */
+    .survey-data-mock-category-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease, opacity 0.2s ease 0.1s;
+        opacity: 0;
+        background: transparent;
+        width: 100%;
+    }
+
+    .survey-data-mock-category-content.show {
+        opacity: 1;
+        transition: max-height 0.3s ease, opacity 0.2s ease;
+        background: transparent;
+        overflow: visible;
+        width: 100%;
     }
 
     /* Sub-Categories */
     .survey-data-mock-sub-category {
         margin-bottom: 1.5rem;
+        background: transparent;
+        padding: 0;
+        width: 100%;
+    }
+
+    .survey-data-mock-sub-category:last-child {
+        margin-bottom: 0;
     }
 
     .survey-data-mock-sub-category-title {
         font-size: 20px;
         font-weight: 600;
-        color: #334155;
-        margin: 1rem 0 0.75rem 0;
+        color: #FFFFFF;
+        margin: 0 0 1rem 0;
+        padding: 0;
         font-family: 'Poppins', sans-serif;
     }
 
@@ -228,14 +296,20 @@
     .survey-data-mock-sections {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 1rem;
+        padding-top: 1rem;
+        flex: 1;
+        min-height: 0;
+        background: transparent;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .survey-data-mock-section-item {
-        background: #FFFFFF;
-        border-radius: 4px;
-        overflow: hidden;
-        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: transparent;
+        border-radius: 0;
+        overflow: visible;
+        border: none;
     }
 
     /* Cloned Section Styling - Same as main sections, no special styling */
@@ -245,7 +319,7 @@
     }
 
     .survey-data-mock-section-header {
-        background: #1E293B;
+        background: #FFFFFF;
         padding: 1rem 1.5rem;
         display: flex;
         justify-content: space-between;
@@ -253,16 +327,17 @@
         cursor: pointer;
         transition: background 0.2s ease;
         position: relative;
+        border: 1px solid #1e293b1c;
     }
 
     .survey-data-mock-section-header:hover {
-        background: #475569;
+        background: #F8FAFC;
     }
 
     .survey-data-mock-section-name {
         font-size: 16px;
         font-weight: 600;
-        color: #FFFFFF;
+        color: #1A202C;
     }
 
     .survey-data-mock-section-status {
@@ -276,18 +351,18 @@
         align-items: center;
         gap: 0.375rem;
         font-size: 11px;
-        color: #94A3B8;
+        color: #64748B;
         font-weight: 400;
     }
 
     .survey-data-mock-status-icon {
         font-size: 14px;
-        color: #94A3B8;
+        color: #64748B;
     }
 
     .survey-data-mock-status-text {
         font-size: 15px;
-        color: #94A3B8;
+        color: #64748B;
         font-weight: 400;
     }
 
@@ -300,6 +375,7 @@
     .survey-data-mock-completion {
         font-size: 14px;
         font-weight: 600;
+        color: #1A202C;
     }
 
     .survey-data-mock-condition-badge {
@@ -309,9 +385,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
+        font-size: 0;
+        line-height: 0;
         font-weight: 700;
-        color: #FFFFFF;
+        color: transparent;
         border: 2px solid #FFFFFF;
         cursor: pointer;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -319,6 +396,17 @@
         pointer-events: auto;
         position: relative;
         z-index: 100;
+        overflow: hidden;
+        text-indent: -9999px;
+    }
+    
+    .survey-data-mock-condition-badge::before,
+    .survey-data-mock-condition-badge::after {
+        display: none;
+    }
+    
+    .survey-data-mock-condition-badge * {
+        display: none !important;
     }
 
     .survey-data-mock-condition-badge:hover {
@@ -373,17 +461,18 @@
     /* Expanded Details */
     .survey-data-mock-section-details {
         background: #FFFFFF;
-        border-top: 1px solid rgba(148, 163, 184, 0.2);
+        border: 1px solid #1e293b1c;
     }
 
     .survey-data-mock-section-title-bar {
-        background: #1E293B;
+        background: #FFFFFF;
         padding: 1rem 1.5rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-top: 1px solid rgba(148, 163, 184, 0.2);
         position: relative;
+        border: 1px solid #1e293b1c;
+        border-bottom: none;
     }
 
     .survey-data-mock-section-item.expanded .survey-data-mock-section-title-bar {
@@ -393,7 +482,7 @@
     .survey-data-mock-section-title-text {
         font-size: 20px;
         font-weight: 700;
-        color: #FFFFFF!important;
+        color: #1A202C!important;
         margin: 0;
         font-family: 'Poppins', sans-serif;
     }
@@ -414,8 +503,10 @@
 
     .survey-data-mock-section-details-content {
         padding: 1rem 1.5rem;
-        max-height: calc(120vh - 200px);
-        overflow-y: auto;
+        overflow: visible;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     /* Two Column Grid Layout with Draggable Divider */
@@ -424,11 +515,15 @@
         gap: 0;
         margin-bottom: 1rem;
         position: relative;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
     }
 
     .survey-data-mock-form-grid-divider {
         width: 4px;
-        background: #E2E8F0;
+        background: #475569;
         cursor: col-resize;
         position: relative;
         flex-shrink: 0;
@@ -482,18 +577,26 @@
         display: flex;
         flex-direction: column;
         min-width: 0; /* Allow flex items to shrink below content size */
+        box-sizing: border-box;
+        overflow-x: auto;
+        overflow-y: auto;
     }
 
     .survey-data-mock-form-column-left {
         flex: 0 0 50%;
         gap: 1rem;
         padding-right: 0.75rem;
+        min-width: 0;
+        box-sizing: border-box;
     }
 
     .survey-data-mock-form-column-right {
         flex: 0 0 50%;
         gap: 1rem;
         padding-left: 0.75rem;
+        padding-right: 1rem;
+        min-width: 300px;
+        box-sizing: border-box;
     }
 
     /* Field Groups */
@@ -718,6 +821,8 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .survey-data-mock-add-cost-btn {
@@ -750,10 +855,12 @@
 
     .survey-data-mock-costs-table {
         width: 100%;
+        max-width: 100%;
         border-collapse: collapse;
         border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 4px;
         overflow: hidden;
+        box-sizing: border-box;
     }
 
     .survey-data-mock-costs-table thead {
@@ -1558,6 +1665,10 @@
     .survey-data-mock-accommodation-details {
         padding: 1rem 1.5rem;
         background: #FFFFFF;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
     }
 
     /* Component Tabs */
@@ -1698,6 +1809,10 @@
         gap: 0;
         padding: 0;
         position: relative;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
     }
 
     .survey-data-mock-accommodation-form-column-left {
@@ -1707,6 +1822,8 @@
         flex: 0 0 50%;
         min-width: 0;
         padding-right: 1rem;
+        box-sizing: border-box;
+        overflow: hidden;
     }
 
     .survey-data-mock-accommodation-form-column-right {
@@ -1716,6 +1833,8 @@
         flex: 0 0 50%;
         min-width: 0;
         padding-left: 1rem;
+        box-sizing: border-box;
+        overflow: hidden;
     }
 
 
@@ -1802,6 +1921,62 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+    // Category Collapse/Expand Functionality
+    $('[data-category-toggle]').on('click', function() {
+        const $header = $(this);
+        const $category = $header.closest('.survey-data-mock-category');
+        const $content = $category.find('.survey-data-mock-category-content');
+        
+        // Toggle collapsed class
+        const isCollapsed = $category.hasClass('collapsed');
+        
+        if (isCollapsed) {
+            // Expanding
+            $category.removeClass('collapsed');
+            // First set a large max-height for transition, then remove constraint
+            const scrollHeight = $content[0].scrollHeight || 10000;
+            $content.css('max-height', scrollHeight + 'px');
+            $content.addClass('show');
+            // After transition, remove max-height constraint for full expansion
+            setTimeout(function() {
+                if (!$category.hasClass('collapsed')) {
+                    $content.css('max-height', 'none');
+                }
+            }, 350);
+        } else {
+            // Collapsing
+            $category.addClass('collapsed');
+            // Get current height and set it for smooth transition
+            const currentHeight = $content[0].scrollHeight || 0;
+            $content.css('max-height', currentHeight + 'px');
+            // Force reflow
+            $content[0].offsetHeight;
+            // Remove show class and set to 0
+            $content.removeClass('show');
+            setTimeout(function() {
+                if ($category.hasClass('collapsed')) {
+                    $content.css('max-height', '0');
+                }
+            }, 10);
+        }
+    });
+
+    // Initialize expanded categories on page load
+    $('.survey-data-mock-category-content.show').each(function() {
+        const $content = $(this);
+        const $category = $content.closest('.survey-data-mock-category');
+        if (!$category.hasClass('collapsed')) {
+            const scrollHeight = $content[0].scrollHeight || 10000;
+            $content.css('max-height', scrollHeight + 'px');
+            // After a brief delay, remove constraint for full expansion
+            setTimeout(function() {
+                if (!$category.hasClass('collapsed')) {
+                    $content.css('max-height', 'none');
+                }
+            }, 350);
+        }
+    });
+
     // Options mapping from SurveyDataService
     const optionsMapping = @json($optionsMapping ?? []);
 
@@ -1875,17 +2050,18 @@ $(document).ready(function() {
         const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
         const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
         const isSaved = $sectionItem.attr('data-saved') === 'true';
+        const isAccommodation = $sectionItem.attr('data-accommodation-id') !== undefined;
         
         $sectionItem.toggleClass('expanded');
         
         if ($sectionItem.hasClass('expanded')) {
             $titleBar.slideDown(300);
-            if (isSaved) {
-                // Show report if saved, hide form
+            if (isSaved && !isAccommodation) {
+                // Show report if saved, hide form (only for regular sections)
                 $details.hide();
                 $reportContent.slideDown(300);
             } else {
-                // Show form if not saved, hide report
+                // Show form/details if not saved or if accommodation
                 $details.slideDown(300);
                 $reportContent.hide();
             }
@@ -1982,8 +2158,7 @@ $(document).ready(function() {
             // Add new rating class
             $badge.addClass(ratingClass);
             
-            // Update badge text and data
-            $badge.text(ratingText);
+            // Update badge data (no text - badge shows only color)
             $badge.data('current-rating', selectedRating);
         });
         
@@ -2240,6 +2415,10 @@ $(document).ready(function() {
                 $('body').css('cursor', 'col-resize');
                 $('body').css('user-select', 'none');
                 
+                // Remove max-width constraints to allow proper resizing
+                $leftColumn.css('max-width', 'none');
+                $rightColumn.css('max-width', 'none');
+                
                 startX = e.pageX;
                 startLeftWidth = $leftColumn[0].offsetWidth;
                 startRightWidth = $rightColumn[0].offsetWidth;
@@ -2255,15 +2434,19 @@ $(document).ready(function() {
                 const dividerWidth = $divider[0].offsetWidth;
                 const availableWidth = gridWidth - dividerWidth;
                 
-                // Calculate new widths (min 20%, max 80% for each column)
+                // Calculate new widths (min 20%, max 80% for each column, but right column min 300px)
                 const minWidth = availableWidth * 0.2;
                 const maxWidth = availableWidth * 0.8;
+                const minRightWidth = 300; // Minimum width for right column to prevent content clipping
                 
                 let newLeftWidth = startLeftWidth + diffX;
                 let newRightWidth = startRightWidth - diffX;
                 
-                // Constrain to min/max
-                if (newLeftWidth < minWidth) {
+                // Constrain to min/max - ensure right column doesn't go below 300px
+                if (newRightWidth < minRightWidth) {
+                    newRightWidth = minRightWidth;
+                    newLeftWidth = availableWidth - minRightWidth;
+                } else if (newLeftWidth < minWidth) {
                     newLeftWidth = minWidth;
                     newRightWidth = availableWidth - minWidth;
                 } else if (newLeftWidth > maxWidth) {
@@ -3112,7 +3295,7 @@ $(document).ready(function() {
                     </div>
                     <div class="survey-data-mock-section-status">
                         <span class="survey-data-mock-status-info">
-                            <i class="fas fa-camera survey-data-mock-status-icon"></i>
+                            <i class="fas fa-circle-notch survey-data-mock-status-icon"></i>
                             <span class="survey-data-mock-status-text">${formData.photos ? formData.photos.length : 0}</span>
                             <span class="survey-data-mock-status-separator">|</span>
                             <i class="fas fa-sticky-note survey-data-mock-status-icon"></i>
@@ -3121,7 +3304,6 @@ $(document).ready(function() {
                         <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--${conditionRating || 'ni'}" 
                               data-section-id="${sectionId}"
                               data-current-rating="${conditionRating || 'ni'}">
-                            ${conditionRating || 'NI'}
                         </span>
                         <i class="fas fa-chevron-down survey-data-mock-expand-icon"></i>
                     </div>
@@ -3134,7 +3316,6 @@ $(document).ready(function() {
                         <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--${conditionRating || 'ni'}" 
                               data-section-id="${sectionId}"
                               data-current-rating="${conditionRating || 'ni'}">
-                            ${conditionRating || 'NI'}
                         </span>
                         <i class="fas fa-chevron-up survey-data-mock-section-title-collapse"></i>
                     </div>
@@ -3669,24 +3850,13 @@ $(document).ready(function() {
 
     }
 
-    // Initialize accommodation carousels
-    $('.survey-data-mock-accommodation-item').each(function() {
+    // Initialize accommodation carousels (now using section-item class)
+    $('.survey-data-mock-section-item[data-accommodation-id]').each(function() {
         initializeAccommodationCarousel($(this));
     });
 
-    // Accommodation expand/collapse
-    $('.survey-data-mock-accommodation-header[data-expandable="true"]').on('click', function() {
-        const $accommodationItem = $(this).closest('.survey-data-mock-accommodation-item');
-        const $details = $accommodationItem.find('.survey-data-mock-accommodation-details');
-        
-        $accommodationItem.toggleClass('expanded');
-        
-        if ($accommodationItem.hasClass('expanded')) {
-            $details.slideDown(300);
-        } else {
-            $details.slideUp(300);
-        }
-    });
+    // Accommodation sections now use the same handler as regular sections
+    // No separate handler needed - they use .survey-data-mock-section-item class
 
     // Accommodation action buttons
     $(document).on('click', '.survey-data-mock-accommodation-item .survey-data-mock-action-delete', function(e) {
@@ -3733,6 +3903,10 @@ $(document).ready(function() {
             $divider.addClass('dragging');
             $('body').css('cursor', 'col-resize');
             $('body').css('user-select', 'none');
+            
+            // Remove max-width constraints to allow proper resizing
+            $leftColumn.css('max-width', 'none');
+            $rightColumn.css('max-width', 'none');
             
             startX = e.clientX;
             startLeftWidth = $leftColumn.outerWidth();

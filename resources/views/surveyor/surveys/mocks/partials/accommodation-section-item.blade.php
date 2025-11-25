@@ -1,16 +1,43 @@
-<div class="survey-data-mock-accommodation-item" data-accommodation-id="{{ $accommodation['id'] }}">
-    <div class="survey-data-mock-accommodation-header" data-expandable="true">
-        <div class="survey-data-mock-accommodation-name">
-            <i class="fas fa-chevron-right survey-data-mock-accommodation-expand-icon"></i>
+<div class="survey-data-mock-section-item" data-section-id="{{ $accommodation['id'] }}" data-accommodation-id="{{ $accommodation['id'] }}">
+    <div class="survey-data-mock-section-header" data-expandable="true">
+        <div class="survey-data-mock-section-name">
             {{ $accommodation['name'] }}
         </div>
-        <div class="survey-data-mock-accommodation-status">
+        <div class="survey-data-mock-section-status">
+            @php
+                $photoCount = count($accommodation['photos'] ?? []);
+            @endphp
+            <span class="survey-data-mock-status-info">
+                <i class="fas fa-camera survey-data-mock-status-icon"></i>
+                <span class="survey-data-mock-status-text">{{ $photoCount }}</span>
+                <span class="survey-data-mock-status-separator">|</span>
+                <i class="fas fa-sticky-note survey-data-mock-status-icon"></i>
+                <span class="survey-data-mock-status-text">0/10</span>
+            </span>
+            <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--ni" 
+                  data-accommodation-id="{{ $accommodation['id'] }}"
+                  data-current-rating="ni">
+                NI
+            </span>
             <i class="fas fa-chevron-down survey-data-mock-expand-icon"></i>
         </div>
     </div>
     
+    <!-- Section Title Header (visible when expanded) -->
+    <div class="survey-data-mock-section-title-bar" style="display: none;">
+        <h3 class="survey-data-mock-section-title-text">{{ $accommodation['name'] }}</h3>
+        <div class="d-flex align-items-center" style="gap: 10px;">
+        <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--ni" 
+              data-accommodation-id="{{ $accommodation['id'] }}"
+              data-current-rating="ni">
+            NI
+        </span> 
+        <i class="fas fa-chevron-up survey-data-mock-section-title-collapse"></i>
+        </div>
+    </div>
+    
     <!-- Expanded Carousel Content -->
-    <div class="survey-data-mock-accommodation-details" style="display: none;">
+    <div class="survey-data-mock-section-details" style="display: none;">
         <div class="survey-data-mock-accommodation-carousel-container">
             <!-- Component Tabs Navigation -->
             <div class="survey-data-mock-component-tabs">
