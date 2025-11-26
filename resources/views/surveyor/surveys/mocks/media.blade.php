@@ -123,7 +123,6 @@
 
         .survey-media-mock-address {
             font-size: 16px;
-            font-weight: 600;
             color: #1A202C;
         }
 
@@ -144,13 +143,11 @@
             font-size: 12px;
             color: #94A3B8;
             text-transform: uppercase;
-            font-weight: 600;
         }
 
         .survey-media-mock-jobref-value {
             font-size: 16px;
             color: #1A202C;
-            font-weight: 700;
         }
 
         .survey-media-mock-header-icons {
@@ -232,7 +229,6 @@
         /* Main Title */
         .survey-media-mock-title {
             font-size: 36px;
-            font-weight: 400;
             color: #1A202C;
             margin: 0 0 3rem 0;
             text-align: center;
@@ -284,7 +280,6 @@
 
         .survey-media-mock-upload-text {
             font-size: 16px;
-            font-weight: 400;
             color: #1A202C;
             line-height: 1.8;
             margin: 0;
@@ -292,7 +287,6 @@
         }
 
         .survey-media-mock-upload-text strong {
-            font-weight: 700;
             color: #1A202C;
             font-size: 16px;
         }
@@ -313,7 +307,6 @@
 
         .survey-media-mock-file-queue-title {
             font-size: 18px;
-            font-weight: 700;
             color: #1A202C;
             margin: 0;
             font-family: 'Poppins', sans-serif;
@@ -326,7 +319,6 @@
             border: 1px solid #EF4444;
             border-radius: 4px;
             font-size: 14px;
-            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             font-family: 'Poppins', sans-serif;
@@ -381,7 +373,6 @@
 
         .survey-media-mock-file-queue-item-name {
             font-size: 15px;
-            font-weight: 600;
             color: #1A202C;
             margin: 0 0 0.25rem 0;
             white-space: nowrap;
@@ -392,7 +383,6 @@
 
         .survey-media-mock-file-queue-item-size {
             font-size: 13px;
-            font-weight: 400;
             color: #64748B;
             margin: 0;
             font-family: 'Poppins', sans-serif;
@@ -437,7 +427,6 @@
             border: none;
             border-radius: 4px;
             font-size: 16px;
-            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             font-family: 'Poppins', sans-serif;
@@ -455,7 +444,6 @@
 
         .survey-media-mock-progress-title {
             font-size: 28px;
-            font-weight: 400;
             color: #1A202C;
             margin: 0 0 2rem 0;
             text-align: center;
@@ -544,7 +532,6 @@
 
         .survey-media-mock-progress-item-name {
             font-size: 15px;
-            font-weight: 700;
             color: #1A202C;
             margin: 0 0 0.25rem 0;
             white-space: nowrap;
@@ -555,7 +542,6 @@
 
         .survey-media-mock-progress-item-status {
             font-size: 13px;
-            font-weight: 400;
             color: #64748B;
             margin: 0;
             font-family: 'Poppins', sans-serif;
@@ -622,7 +608,6 @@
             right: 0.75rem;
             transform: translateY(-50%);
             font-size: 13px;
-            font-weight: 700;
             color: #475569;
             font-family: 'Poppins', sans-serif;
             background: rgba(255, 255, 255, 0.9);

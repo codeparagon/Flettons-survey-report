@@ -473,7 +473,6 @@
             color: #C1EC4A;
             text-decoration: none;
             font-size: 16px;
-            font-weight: 600;
         }
 
         .survey-detail-mock-back:hover {
@@ -503,13 +502,11 @@
         .survey-detail-mock-jobref-label {
             font-size: 13px;
             color: #64748B;
-            font-weight: 500;
         }
 
         .survey-detail-mock-jobref-value {
             font-size: 17px;
             color: #1A202C;
-            font-weight: 700;
         }
 
         .survey-detail-mock-body {
@@ -559,7 +556,6 @@
         .survey-detail-mock-card-header h3 {
             margin: 0;
             font-size: 19px;
-            font-weight: 700;
             color: #1A202C;
         }
 
@@ -611,7 +607,6 @@
         .survey-detail-mock-datalist dt {
             font-size: 13px;
             color: #64748B;
-            font-weight: 600;
             text-transform: uppercase;
         }
 
@@ -638,7 +633,6 @@
         .survey-detail-mock-value {
             font-size: 16px;
             color: #1A202C;
-            font-weight: 600;
             flex: 1;
             min-height: 20px;
         }
@@ -734,7 +728,6 @@
             display: block;
             font-size: 13px;
             color: #64748B;
-            font-weight: 600;
             margin-bottom: 0.5rem;
             text-transform: uppercase;
         }
@@ -756,13 +749,11 @@
         .survey-detail-mock-count-label {
             font-size: 13px;
             color: #64748B;
-            font-weight: 600;
             text-transform: uppercase;
         }
 
         .survey-detail-mock-count-value {
             font-size: 20px;
-            font-weight: 700;
             color: #1A202C;
             padding: 0.625rem 1rem;
             background: rgba(193, 236, 74, 0.12);
@@ -903,7 +894,6 @@
             font-size: 16px;
             color: #1A202C;
             line-height: 1.6;
-            font-weight: 400;
         }
 
         .survey-detail-mock-note-input {
@@ -912,7 +902,6 @@
             border: 1px solid rgba(148, 163, 184, 0.4);
             border-radius: 4px;
             font-size: 16px;
-            font-weight: 400;
             color: #1A202C;
             background: #FFFFFF;
             transition: border-color 0.2s ease;
@@ -952,7 +941,6 @@
             display: block;
             font-size: 13px;
             color: #64748B;
-            font-weight: 600;
             margin-bottom: 0.5rem;
             text-transform: uppercase;
         }
@@ -970,7 +958,6 @@
             background: #FFFFFF;
             color: #1A202C;
             font-size: 14px;
-            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -994,7 +981,6 @@
         .survey-detail-mock-timeline-date {
             font-size: 13px;
             color: #64748B;
-            font-weight: 600;
         }
 
         .survey-detail-mock-timeline p {
@@ -1002,7 +988,6 @@
             font-size: 16px;
             color: #1A202C;
             line-height: 1.6;
-            font-weight: 400;
         }
 
         .survey-detail-mock-concerns-editable {
@@ -1017,7 +1002,6 @@
             font-size: 16px;
             color: #1A202C;
             line-height: 1.6;
-            font-weight: 400;
         }
 
         .survey-detail-mock-concerns-input {
@@ -1026,7 +1010,6 @@
             border: 1px solid rgba(148, 163, 184, 0.4);
             border-radius: 4px;
             font-size: 16px;
-            font-weight: 400;
             color: #1A202C;
             background: #FFFFFF;
             transition: border-color 0.2s ease;
@@ -1061,7 +1044,6 @@
             font-size: 16px;
             color: #1A202C;
             line-height: 1.6;
-            font-weight: 400;
         }
 
         @media (max-width: 1024px) {

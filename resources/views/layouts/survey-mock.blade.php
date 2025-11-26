@@ -99,56 +99,47 @@
 
     <script>
         $(document).ready(function() {
-            // Sidebar collapse toggle
-            const sidebarCollapseBtn = document.getElementById('survey-sidebar-collapse');
-            const sidebar = document.getElementById('survey-sidebar');
-            const mainContent = document.getElementById('survey-main-content');
-            const sidebarOpenBtn = document.getElementById('survey-sidebar-open');
+            // Sidebar collapse toggle - using jQuery for consistency
+            var $sidebar = $('#survey-sidebar');
+            var $mainContent = $('#survey-main-content');
+            var $sidebarOpenBtn = $('#survey-sidebar-open');
 
-            if (sidebar && sidebar.classList.contains('collapsed') && sidebarOpenBtn) {
-                sidebarOpenBtn.classList.add('show');
+            if ($sidebar.hasClass('collapsed') && $sidebarOpenBtn.length) {
+                $sidebarOpenBtn.addClass('show');
             }
 
-            const updateSidebarCollapseUI = (isCollapsed) => {
-                if (!sidebarCollapseBtn) return;
-                const icon = sidebarCollapseBtn.querySelector('i');
-                const label = sidebarCollapseBtn.querySelector('span');
+            var updateSidebarCollapseUI = function(isCollapsed) {
+                var $btn = $('#survey-sidebar-collapse');
+                var $icon = $btn.find('i');
                 if (isCollapsed) {
-                    if (icon) {
-                        icon.classList.remove('fa-chevron-left');
-                        icon.classList.add('fa-chevron-right');
-                    }
-                    if (label) label.textContent = 'Show Sidebar';
+                    $icon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
                 } else {
-                    if (icon) {
-                        icon.classList.remove('fa-chevron-right');
-                        icon.classList.add('fa-chevron-left');
-                    }
-                    if (label) label.textContent = 'Hide';
+                    $icon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
                 }
             };
 
-            if (sidebarCollapseBtn && sidebar && mainContent) {
-                sidebarCollapseBtn.addEventListener('click', function() {
-                    const isCollapsed = sidebar.classList.toggle('collapsed');
-                    mainContent.classList.toggle('sidebar-collapsed', isCollapsed);
-                    if (sidebarOpenBtn) {
-                        sidebarOpenBtn.classList.toggle('show', isCollapsed);
-                    }
-                    updateSidebarCollapseUI(isCollapsed);
-                });
-            }
+            // Use jQuery delegated event for sidebar collapse button
+            $(document).on('click', '#survey-sidebar-collapse', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                var isCollapsed = $sidebar.toggleClass('collapsed').hasClass('collapsed');
+                $mainContent.toggleClass('sidebar-collapsed', isCollapsed);
+                $sidebarOpenBtn.toggleClass('show', isCollapsed);
+                updateSidebarCollapseUI(isCollapsed);
+                return false;
+            });
 
-            if (sidebarOpenBtn && sidebar && mainContent) {
-                sidebarOpenBtn.addEventListener('click', function() {
-                    if (sidebar.classList.contains('collapsed')) {
-                        sidebar.classList.remove('collapsed');
-                        mainContent.classList.remove('sidebar-collapsed');
-                        sidebarOpenBtn.classList.remove('show');
-                        updateSidebarCollapseUI(false);
-                    }
-                });
-            }
+            // Sidebar open button
+            $(document).on('click', '#survey-sidebar-open', function(e) {
+                e.stopPropagation();
+                if ($sidebar.hasClass('collapsed')) {
+                    $sidebar.removeClass('collapsed');
+                    $mainContent.removeClass('sidebar-collapsed');
+                    $sidebarOpenBtn.removeClass('show');
+                    updateSidebarCollapseUI(false);
+                }
+            });
 
             // Profile dropdown
             const profileBtn = document.getElementById('survey-profile-btn');

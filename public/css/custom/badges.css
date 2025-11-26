@@ -3,7 +3,6 @@
 span.badge-info {
     background-color: #C1EC4A !important;
     color: #1A202C !important;
-    font-weight: 600 !important;
     padding: 6px 12px !important;
     border-radius: 4px !important;
 }
@@ -12,7 +11,6 @@ span.badge-info {
 span.badge-success {
     background-color: #C1EC4A !important;
     color: #1A202C !important;
-    font-weight: 600 !important;
     padding: 6px 12px !important;
     border-radius: 4px !important;
 }
@@ -21,7 +19,6 @@ span.badge-success {
 span.badge-warning {
     background-color: #1A202C !important;
     color: #C1EC4A !important;
-    font-weight: 600 !important;
     padding: 6px 12px !important;
     border-radius: 4px !important;
 }
@@ -30,7 +27,6 @@ span.badge-warning {
 span.badge-danger {
     background-color: #1A202C !important;
     color: #C1EC4A !important;
-    font-weight: 600 !important;
     padding: 6px 12px !important;
     border-radius: 4px !important;
 }
@@ -39,7 +35,6 @@ span.badge-danger {
 span.badge-secondary {
     background-color: #1A202C !important;
     color: #C1EC4A !important;
-    font-weight: 600 !important;
     padding: 6px 12px !important;
     border-radius: 4px !important;
 }

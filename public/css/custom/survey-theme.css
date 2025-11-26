@@ -284,7 +284,6 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
     background: linear-gradient(145deg, rgba(17, 24, 39, 0.95), rgba(30, 41, 59, 0.95));
     color: #F8FAFC;
     font-size: 0.95rem;
-    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 14px 30px -22px rgba(193, 236, 74, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
@@ -388,7 +387,6 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 }
 
 .survey-profile-name {
-    font-weight: 600;
     color: var(--survey-text-dark);
     font-size: 1rem;
     line-height: 1.4;
@@ -441,7 +439,7 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
     height: calc(100vh - var(--survey-header-height));
     max-height: calc(100vh - var(--survey-header-height));
     background: var(--survey-dark);
-    overflow: hidden;
+    overflow: visible;
     z-index: 999;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -463,7 +461,8 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 
 .survey-sidebar-content {
     padding: 1rem 0;
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
@@ -498,29 +497,46 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 .survey-sidebar-footer {
     padding: 1rem 1.25rem 1.25rem;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 1000;
+    flex-shrink: 0;
+    margin-top: auto;
 }
 
 .survey-sidebar-collapse {
-    width: 100%;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.7rem 1rem;
-    border-radius: 10px;
+    padding: 0;
+    border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.25);
     background: rgba(255, 255, 255, 0.08);
     color: #FFFFFF;
-    font-size: 0.9375rem;
-    font-weight: 600;
-    line-height: 1.4;
-    letter-spacing: 0.01em;
-    cursor: pointer;
+    font-size: 1rem;
+    cursor: pointer !important;
     transition: all 0.2s ease;
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 1001;
+}
+
+.survey-sidebar-collapse span {
+    display: none;
 }
 
 .survey-sidebar-collapse i {
     transition: transform 0.2s ease;
+    pointer-events: none;
+}
+
+/* Ensure sidebar footer and button are always clickable */
+.survey-sidebar .survey-sidebar-footer,
+.survey-sidebar .survey-sidebar-collapse {
+    pointer-events: auto !important;
+    cursor: pointer !important;
 }
 
 .survey-sidebar-collapse:hover {
@@ -574,7 +590,6 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
     color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
     font-size: 1rem;
-    font-weight: 500;
     line-height: 1.5;
     letter-spacing: 0.01em;
     border-radius: 6px;
@@ -592,7 +607,6 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 .survey-nav-item.active {
     background: var(--survey-green);
     color: var(--survey-dark);
-    font-weight: 600;
     border-left-color: var(--survey-dark);
 }
 
@@ -612,15 +626,7 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 }
 
 .survey-sidebar-title {
-    padding: 0 1.5rem 0.875rem;
-    font-size: 0.8125rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.6);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    line-height: 1.4;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 1rem;
+    display: none !important;
 }
 
 /* Navigation */
@@ -636,26 +642,25 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
     color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
     font-size: 1rem;
-    font-weight: 500;
     line-height: 1.5;
     letter-spacing: 0.01em;
     border-radius: 6px;
-    transition: all 0.2s ease;
-    border-left: 3px solid transparent;
+    transition: color 0.2s ease;
+    border-left: none;
+    background: transparent;
 }
 
 .survey-nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #FFFFFF;
+    background: transparent;
+    color: var(--survey-green);
     text-decoration: none;
-    border-left-color: var(--survey-green);
+    border-left: none;
 }
 
 .survey-nav-item.active {
-    background: var(--survey-green);
-    color: var(--survey-dark);
-    font-weight: 600;
-    border-left-color: var(--survey-dark);
+    background: transparent;
+    color: var(--survey-green);
+    border-left: none;
 }
 
 body.modal-open-lite {
@@ -735,7 +740,6 @@ body.modal-open-lite {
 
 .survey-create-title {
     font-size: 1.75rem;
-    font-weight: 700;
     color: #0F172A;
     text-align: left;
     margin-bottom: 1.5rem;
@@ -770,7 +774,6 @@ body.modal-open-lite {
 .survey-create-label {
     flex: 0 0 150px;
     font-size: 0.95rem;
-    font-weight: 600;
     color: #1F2937;
     padding-top: 0.6rem;
 }
@@ -810,7 +813,6 @@ body.modal-open-lite {
 
 .survey-create-count-label {
     font-size: 0.9rem;
-    font-weight: 600;
     color: #1F2937;
 }
 
@@ -822,7 +824,6 @@ body.modal-open-lite {
     border: 1px solid rgba(148, 163, 184, 0.45);
     background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
     color: #1F2937;
-    font-weight: 600;
     font-size: 0.95rem;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%231F2937' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -854,7 +855,6 @@ body.modal-open-lite {
 .survey-create-quick-label {
     display: block;
     font-size: 0.9rem;
-    font-weight: 600;
     color: #1F2937;
     margin-bottom: 0.35rem;
 }
@@ -875,7 +875,6 @@ body.modal-open-lite {
     background: rgba(248, 250, 252, 0.9);
     color: #0F172A;
     font-size: 0.9rem;
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -911,7 +910,6 @@ body.modal-open-lite {
     padding: 0.65rem 1.4rem;
     border-radius: 12px;
     font-size: 0.95rem;
-    font-weight: 600;
     transition: all 0.2s ease;
     border: 1px solid transparent;
     cursor: pointer;
@@ -1022,7 +1020,6 @@ body.modal-open-lite {
 
 .survey-filter-label {
     font-size: 0.72rem;
-    font-weight: 600;
     color: rgba(255, 255, 255, 0.75);
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -1086,7 +1083,6 @@ body.modal-open-lite {
     background: linear-gradient(145deg, rgba(25, 33, 52, 0.95), rgba(33, 44, 66, 0.95));
     color: #FFFFFF;
     font-size: 0.85rem;
-    font-weight: 600;
     letter-spacing: 0.03em;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -1136,7 +1132,6 @@ body.modal-open-lite {
     border-radius: 8px;
     color: #FFFFFF;
     font-size: 0.82rem;
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -1190,7 +1185,6 @@ body.modal-open-lite {
 
 .survey-welcome-title {
     font-size: 1.75rem;
-    font-weight: 700;
     color: var(--survey-text-dark);
     margin-bottom: 0.5rem;
 }

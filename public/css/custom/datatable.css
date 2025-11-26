@@ -83,7 +83,6 @@ table.dataTable {
 .dataTables_wrapper .dataTables_length label {
     font-size: 0.9375rem !important;
     color: #374151 !important;
-    font-weight: 500 !important;
     display: flex !important;
     align-items: center !important;
     gap: 0.75rem !important;
@@ -156,7 +155,6 @@ table.dataTable {
     color: #c1ec4a !important;
     border-radius: 10px !important;
     padding: 20px 40px !important;
-    font-weight: 600 !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
@@ -182,7 +180,6 @@ body.survey-page div.dt-button-background {
 table.dataTable thead th {
     background: transparent !important;
     color: #374151 !important;
-    font-weight: 600 !important;
     font-size: 1.125rem !important;
     letter-spacing: 0.05em !important;
     text-transform: uppercase !important;
@@ -257,7 +254,6 @@ table.dataTable tbody td:nth-child(3) {
 /* Large font for address column (first column) */
 table.dataTable tbody td:first-child {
     font-size: 1.25rem !important;
-    font-weight: 500 !important;
     min-width: 200px !important;
 }
 

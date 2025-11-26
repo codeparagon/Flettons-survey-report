@@ -72,7 +72,6 @@ body.survey-detail-page {
 
 .survey-detail-brand-text {
     font-size: 1.25rem;
-    font-weight: 700;
     color: #FFFFFF;
     letter-spacing: 0.02em;
 }
@@ -176,7 +175,6 @@ body.survey-detail-page {
 
 .survey-detail-address {
     font-size: 1.25rem;
-    font-weight: 600;
     color: #1A202C;
     white-space: nowrap;
     overflow: hidden;
@@ -191,13 +189,11 @@ body.survey-detail-page {
 
 .survey-detail-status-label {
     font-size: 0.95rem;
-    font-weight: 600;
     color: #6B7280;
 }
 
 .survey-detail-status-badge {
     font-size: 1.05rem;
-    font-weight: 700;
     color: #1A202C;
 }
 
@@ -276,7 +272,6 @@ body.survey-detail-page {
 .survey-detail-tab {
     padding: 0 1.4rem;
     font-size: 0.9375rem;
-    font-weight: 500;
     color: #6B7280;
     text-decoration: none;
     border-bottom: 3px solid transparent;
@@ -306,7 +301,6 @@ body.survey-detail-page {
 
 .survey-detail-tab.active {
     color: #1A202C;
-    font-weight: 600;
     border-bottom: 3px solid #C1EC4A !important;
     background: transparent;
     position: relative;
@@ -395,11 +389,11 @@ body.survey-detail-page {
 }
 
 .survey-detail-sidebar-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #FFFFFF;
-    text-transform: none;
-    letter-spacing: 0;
+    display: none !important;
+}
+
+.survey-detail-sidebar-section-title {
+    display: none !important;
 }
 
 .survey-detail-sidebar-close {
@@ -454,7 +448,6 @@ body.survey-detail-page {
     color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
     font-size: 0.95rem;
-    font-weight: 500;
     letter-spacing: 0.01em;
     transition: all 0.2s ease;
 }
@@ -483,7 +476,6 @@ body.survey-detail-page {
     gap: 0.6rem;
     color: rgba(255, 255, 255, 0.85);
     text-decoration: none;
-    font-weight: 600;
     font-size: 0.9rem;
     transition: color 0.2s ease;
 }
@@ -495,16 +487,6 @@ body.survey-detail-page {
 .survey-detail-sidebar-section {
     margin-bottom: 1.1rem;
     padding: 0 0.75rem;
-}
-
-.survey-detail-sidebar-section-title {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.5);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.55rem;
-    padding: 0 0.4rem;
 }
 
 .survey-detail-sidebar-nav {
@@ -521,31 +503,30 @@ body.survey-detail-page {
     color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
     font-size: 0.95rem;
-    font-weight: 500;
     border-radius: 6px;
-    transition: all 0.2s ease;
-    border-left: 3px solid transparent;
+    transition: color 0.2s ease;
+    border-left: none;
+    background: transparent;
 }
 
 .survey-detail-sidebar-item i {
     width: 20px;
     text-align: center;
     font-size: 1rem;
-    display: none; /* Hide icons to match design */
+    display: none;
 }
 
 .survey-detail-sidebar-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #FFFFFF;
+    background: transparent;
+    color: var(--survey-detail-green);
     text-decoration: none;
-    border-left-color: var(--survey-detail-green);
+    border-left: none;
 }
 
 .survey-detail-sidebar-item.active {
-    background: rgba(255, 255, 255, 0.1);
-    color: #FFFFFF;
-    font-weight: 600;
-    border-left-color: var(--survey-detail-green);
+    background: transparent;
+    color: var(--survey-detail-green);
+    border-left: none;
 }
 
 .survey-detail-sidebar-item i.completed {
@@ -562,7 +543,6 @@ body.survey-detail-page {
 
 .survey-detail-sidebar-subsection-title {
     font-size: 0.8125rem;
-    font-weight: 600;
     color: rgba(255, 255, 255, 0.6);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -803,7 +783,6 @@ body.survey-detail-page .dataTables_processing {
     align-items: center;
     gap: 0.7rem;
     font-size: 1.125rem;
-    font-weight: 600;
     color: #162036;
 }
 
@@ -830,7 +809,6 @@ body.survey-detail-page .dataTables_processing {
 
 .survey-detail-jobref-value {
     color: #FFFFFF;
-    font-weight: 600;
     font-size: 0.95rem;
 }
 
@@ -870,14 +848,12 @@ body.survey-detail-page .dataTables_processing {
 
 .survey-detail-card-header h3 {
     font-size: 1.1rem;
-    font-weight: 700;
     color: #141E33;
     margin: 0;
 }
 
 .survey-detail-card-subtitle {
     font-size: 0.85rem;
-    font-weight: 500;
     color: #64748B;
     margin-top: 0.15rem;
 }
@@ -911,7 +887,6 @@ body.survey-detail-page .dataTables_processing {
 .survey-detail-datalist dd {
     margin: 0;
     font-size: 0.95rem;
-    font-weight: 600;
     color: #141E33;
 }
 
@@ -934,7 +909,6 @@ body.survey-detail-page .dataTables_processing {
     background: rgba(226, 232, 240, 0.4);
     border-radius: 12px;
     padding: 0.65rem 1rem;
-    font-weight: 600;
     color: #141E33;
 }
 
@@ -965,7 +939,6 @@ body.survey-detail-page .dataTables_processing {
     min-width: 48px;
     padding: 0.55rem 0.85rem;
     border-radius: 999px;
-    font-weight: 700;
     font-size: 0.95rem;
     color: #162036;
     background: rgba(193, 236, 74, 0.22);
@@ -1003,7 +976,6 @@ body.survey-detail-page .dataTables_processing {
 
 .survey-detail-timeline-date {
     font-size: 0.85rem;
-    font-weight: 700;
     color: #0F172A;
 }
 
@@ -1038,7 +1010,6 @@ body.survey-detail-page .dataTables_processing {
     border: 1px dashed rgba(148, 163, 184, 0.6);
     background: rgba(248, 250, 252, 0.9);
     color: #1F2937;
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -1085,7 +1056,6 @@ body.survey-detail-page .dataTables_processing {
 }
 
 .survey-detail-document-name {
-    font-weight: 600;
     color: #162036;
 }
 

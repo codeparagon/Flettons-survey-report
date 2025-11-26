@@ -46,16 +46,21 @@
                 </div>
             </section>
         @endforeach
-    </div>
 
         <!-- Accommodation Configuration Section -->
         @if(isset($accommodationSections) && count($accommodationSections) > 0)
-            <section class="survey-data-mock-accommodation-section">
-                <h2 class="survey-data-mock-category-title">Configuration of Accommodation</h2>
-                <div class="survey-data-mock-accommodation-sections">
-                    @foreach($accommodationSections as $accommodation)
-                        @include('surveyor.surveys.mocks.partials.accommodation-section-item', ['accommodation' => $accommodation])
-                    @endforeach
+            <section class="survey-data-mock-category">
+                <div class="survey-data-mock-category-header" data-category-toggle>
+                    <h2 class="survey-data-mock-category-title">Configuration of Accommodation</h2>
+                    <i class="fas fa-chevron-down survey-data-mock-category-toggle-icon"></i>
+                </div>
+                
+                <div class="survey-data-mock-category-content collapse show">
+                    <div class="survey-data-mock-sections">
+                        @foreach($accommodationSections as $accommodation)
+                            @include('surveyor.surveys.mocks.partials.accommodation-section-item', ['accommodation' => $accommodation])
+                        @endforeach
+                    </div>
                 </div>
             </section>
         @endif
@@ -147,7 +152,6 @@
         color: #C1EC4A;
         text-decoration: none;
         font-size: 16px;
-        font-weight: 600;
         transition: color 0.2s ease;
     }
 
@@ -179,13 +183,11 @@
         font-size: 12px;
         color: #94A3B8;
         text-transform: uppercase;
-        font-weight: 600;
     }
 
     .survey-data-mock-jobref-value {
         font-size: 16px;
         color: #FFFFFF;
-        font-weight: 700;
     }
 
     /* Main Body */
@@ -227,8 +229,7 @@
     }
 
     .survey-data-mock-category-title {
-        font-size: 28px;
-        font-weight: 300;
+        font-size: 30px;
         color: #FFFFFF!important;
         margin: 0;
         font-family: 'Poppins', sans-serif;
@@ -279,7 +280,6 @@
 
     .survey-data-mock-sub-category-title {
         font-size: 20px;
-        font-weight: 600;
         color: #FFFFFF;
         margin: 0 0 1rem 0;
         padding: 0;
@@ -336,7 +336,6 @@
 
     .survey-data-mock-section-name {
         font-size: 16px;
-        font-weight: 600;
         color: #1A202C;
     }
 
@@ -352,18 +351,16 @@
         gap: 0.375rem;
         font-size: 11px;
         color: #64748B;
-        font-weight: 400;
     }
 
     .survey-data-mock-status-icon {
-        font-size: 14px;
+        font-size: 16px;
         color: #64748B;
     }
 
     .survey-data-mock-status-text {
         font-size: 15px;
         color: #64748B;
-        font-weight: 400;
     }
 
     .survey-data-mock-status-separator {
@@ -374,7 +371,6 @@
 
     .survey-data-mock-completion {
         font-size: 14px;
-        font-weight: 600;
         color: #1A202C;
     }
 
@@ -387,7 +383,6 @@
         justify-content: center;
         font-size: 0;
         line-height: 0;
-        font-weight: 700;
         color: transparent;
         border: 2px solid #FFFFFF;
         cursor: pointer;
@@ -481,7 +476,6 @@
 
     .survey-data-mock-section-title-text {
         font-size: 20px;
-        font-weight: 700;
         color: #1A202C!important;
         margin: 0;
         font-family: 'Poppins', sans-serif;
@@ -698,7 +692,6 @@
     .survey-data-mock-button-group .swiper-button-prev:after {
         font-size: 12px !important;
         color: #64748B !important;
-        font-weight: 600 !important;
     }
 
     .survey-data-mock-button-group .swiper-button-next:hover,
@@ -792,7 +785,6 @@
         background: #FFFFFF;
         color: #1A202C;
         font-size: 14px;
-        font-weight: 400;
         cursor: pointer;
         transition: all 0.2s ease;
         font-family: 'Poppins', sans-serif;
@@ -832,7 +824,6 @@
         background: #FFFFFF;
         color: #1A202C;
         font-size: 13px;
-        font-weight: 600;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -871,7 +862,6 @@
         padding: 0.5rem;
         text-align: left;
         font-size: 12px;
-        font-weight: 600;
         color: #64748B;
         text-transform: uppercase;
         border-bottom: 1px solid rgba(148, 163, 184, 0.2);
@@ -905,7 +895,6 @@
         border: 1px solid rgba(148, 163, 184, 0.4);
         border-radius: 4px;
         font-size: 13px;
-        font-weight: 400;
         color: #1A202C;
         background: #FFFFFF;
         transition: border-color 0.2s ease;
@@ -1007,7 +996,6 @@
     .survey-data-mock-upload-text {
         font-size: 15px;
         color: #1A202C;
-        font-weight: 400;
         margin: 0;
         position: relative;
         z-index: 1;
@@ -1016,7 +1004,6 @@
     }
 
     .survey-data-mock-upload-text strong {
-        font-weight: 700;
     }
 
     /* Action Buttons */
@@ -1033,7 +1020,6 @@
         border: none;
         border-radius: 4px;
         font-size: 14px;
-        font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
         font-family: 'Poppins', sans-serif;
@@ -1084,7 +1070,6 @@
         border: 1px solid rgba(148, 163, 184, 0.4);
         border-radius: 4px;
         font-size: 14px;
-        font-weight: 400;
         color: #1A202C;
         background: #FFFFFF;
         transition: border-color 0.2s ease;
@@ -1198,7 +1183,6 @@
 
     .survey-data-mock-clone-modal-title {
         font-size: 20px;
-        font-weight: 700;
         color: #1A202C;
         margin: 0;
     }
@@ -1240,7 +1224,6 @@
         display: block;
         font-size: 13px;
         color: #64748B;
-        font-weight: 600;
         margin-bottom: 0.75rem;
         text-transform: uppercase;
     }
@@ -1259,7 +1242,6 @@
         background: #FFFFFF;
         color: #1A202C;
         font-size: 14px;
-        font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
         font-family: 'Poppins', sans-serif;
@@ -1296,7 +1278,6 @@
         border: 1px solid rgba(148, 163, 184, 0.4);
         border-radius: 4px;
         font-size: 14px;
-        font-weight: 400;
         color: #1A202C;
         background: #FFFFFF;
         transition: border-color 0.2s ease;
@@ -1337,7 +1318,6 @@
         border: none;
         border-radius: 4px;
         font-size: 14px;
-        font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
         font-family: 'Poppins', sans-serif;
@@ -1399,7 +1379,6 @@
 
     .survey-data-mock-rating-modal-title {
         font-size: 20px;
-        font-weight: 700;
         color: #1A202C;
         margin: 0;
     }
@@ -1463,7 +1442,6 @@
         align-items: center;
         justify-content: center;
         font-size: 18px;
-        font-weight: 700;
         color: #FFFFFF;
         border: 2px solid #FFFFFF;
         margin-bottom: 0.75rem;
@@ -1471,7 +1449,6 @@
 
     .survey-data-mock-rating-option-label {
         font-size: 14px;
-        font-weight: 600;
         color: #1A202C;
     }
 
@@ -1509,7 +1486,6 @@
         border: none;
         border-radius: 4px;
         font-size: 14px;
-        font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
         font-family: 'Poppins', sans-serif;
@@ -1625,7 +1601,6 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        font-weight: 600;
         font-size: 16px;
         color: #FFFFFF;
         font-family: 'Poppins', sans-serif;
@@ -1688,7 +1663,6 @@
         border: none;
         border-bottom: 3px solid transparent;
         color: #64748B;
-        font-weight: 600;
         font-size: 14px;
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1818,23 +1792,25 @@
     .survey-data-mock-accommodation-form-column-left {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1rem;
         flex: 0 0 50%;
         min-width: 0;
-        padding-right: 1rem;
+        padding-right: 0.75rem;
         box-sizing: border-box;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: auto;
     }
 
     .survey-data-mock-accommodation-form-column-right {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1rem;
         flex: 0 0 50%;
-        min-width: 0;
-        padding-left: 1rem;
+        min-width: 300px;
+        padding-left: 0.75rem;
+        padding-right: 1rem;
         box-sizing: border-box;
-        overflow: hidden;
+        overflow: visible;
     }
 
 

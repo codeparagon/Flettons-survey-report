@@ -58,13 +58,16 @@
     </div>
     <!-- Surveys Table Section -->
     <div class="survey-table-section">
-        <x-datatable id="surveysTable" :columns="['Address', 'Level', 'Status', 'Survey Date']" :search="false" :filter="false" :clickableRows="true"
+        <x-datatable id="surveysTable" :columns="['Address', 'Level', 'Mode', 'Status', 'Survey Date', 'Due Date', 'Surveyor', 'Job Reference']" :search="false" :filter="false" :clickableRows="true"
             rowDataAttribute="data-href">
             @forelse($assignedSurveys as $survey)
                 <tr class="clickable-row" data-href="{{ route('surveyor.surveys.surveyDetails', $survey->id) }}">
                     <td>{{ Str::limit($survey->full_address, 60) }}</td>
                     <td>
                         <span class="survey-level">{{ $survey->level ?? 'N/A' }}</span>
+                    </td>
+                    <td>
+                        <span class="survey-mode">{{ $survey->mode === 'automatic' ? 'A' : 'M' }}</span>
                     </td>
                     <td>
                         @php
@@ -81,11 +84,14 @@
                             {{ $survey->status_label }}
                         </span>
                     </td>
-                    <td>{{ $survey->scheduled_date ? $survey->scheduled_date->format('Y-m-d') : '' }}</td>
+                    <td>{{ $survey->scheduled_date ? $survey->scheduled_date->format('d/m/Y') : '' }}</td>
+                    <td>{{ $survey->due_date ? $survey->due_date->format('d/m/Y') : '' }}</td>
+                    <td>{{ $survey->surveyor->name ?? '' }}</td>
+                    <td>{{ $survey->job_reference ?? '' }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="4" class="text-center py-5 no-data">No surveys assigned to you yet.</td>
+                    <td colspan="8" class="text-center py-5 no-data">No surveys assigned to you yet.</td>
                 </tr>
             @endforelse
         </x-datatable>
@@ -252,6 +258,15 @@
 
         /* Level - Text Colors with Theme Colors */
         .survey-level {
+            display: inline-block;
+            font-size: 1.125rem;
+            font-weight: 700;
+            white-space: nowrap;
+            color: #1A202C;
+        }
+
+        /* Mode */
+        .survey-mode {
             display: inline-block;
             font-size: 1.125rem;
             font-weight: 700;
@@ -558,7 +573,7 @@
                             }
 
                             const statusFilterValue = statusSelectEl.value.toLowerCase();
-                            const statusCell = (data[2] || '').toLowerCase().trim();
+                            const statusCell = (data[3] || '').toLowerCase().trim();
 
                             const statusMap = {
                                 'pending': 'pending',
@@ -605,7 +620,7 @@
                             'T00:00:00') : null;
                         const to = toInput && toInput.value ? new Date(toInput.value +
                             'T23:59:59') : null;
-                const dateStr = data[3];
+                const dateStr = data[4];
 
                         if (!from && !to) {
                             return true;

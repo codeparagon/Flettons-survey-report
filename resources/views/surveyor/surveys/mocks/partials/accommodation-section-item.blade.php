@@ -38,7 +38,7 @@
     
     <!-- Expanded Carousel Content -->
     <div class="survey-data-mock-section-details" style="display: none;">
-        <div class="survey-data-mock-accommodation-carousel-container">
+        <div class="survey-data-mock-section-details-content">
             <!-- Component Tabs Navigation -->
             <div class="survey-data-mock-component-tabs">
                 @foreach($accommodation['components'] as $index => $component)
@@ -52,9 +52,9 @@
             </div>
 
             <!-- Form Grid: Left Carousel, Right Shared Content -->
-            <div class="survey-data-mock-accommodation-form-grid">
+            <div class="survey-data-mock-form-grid">
                 <!-- Left Column: Carousel with Material and Defects -->
-                <div class="survey-data-mock-accommodation-form-column survey-data-mock-accommodation-form-column-left" data-column="left">
+                <div class="survey-data-mock-form-column survey-data-mock-form-column-left" data-column="left">
                     <div class="survey-data-mock-carousel-wrapper">
                         <div class="survey-data-mock-carousel-track" data-carousel-track>
                             @foreach($accommodation['components'] as $index => $component)
@@ -118,14 +118,14 @@
                 </div>
 
                 <!-- Draggable Divider -->
-                <div class="survey-data-mock-accommodation-form-grid-divider" data-divider>
-                    <div class="survey-data-mock-accommodation-form-grid-divider-handle">
+                <div class="survey-data-mock-form-grid-divider" data-divider>
+                    <div class="survey-data-mock-form-grid-divider-handle">
                         <i class="fas fa-grip-vertical"></i>
                     </div>
                 </div>
 
                 <!-- Right Column: Shared Additional Notes and Images -->
-                <div class="survey-data-mock-accommodation-form-column survey-data-mock-accommodation-form-column-right" data-column="right">
+                <div class="survey-data-mock-form-column survey-data-mock-form-column-right" data-column="right">
                     <!-- Additional Notes -->
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Additional Notes</label>
@@ -154,26 +154,26 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Action Buttons -->
-        <div class="survey-data-mock-actions">
-            <button type="button" 
-                    class="survey-data-mock-action-btn survey-data-mock-action-delete" 
-                    data-accommodation-id="{{ $accommodation['id'] }}">
-                Delete
-            </button>
-            <button type="button" 
-                    class="survey-data-mock-action-btn survey-data-mock-action-clone" 
-                    data-accommodation-id="{{ $accommodation['id'] }}"
-                    data-accommodation-name="{{ $accommodation['name'] }}">
-                Save & Clone
-            </button>
-            <button type="button" 
-                    class="survey-data-mock-action-btn survey-data-mock-action-save" 
-                    data-accommodation-id="{{ $accommodation['id'] }}">
-                Save
-            </button>
+            <!-- Action Buttons -->
+            <div class="survey-data-mock-actions">
+                <button type="button" 
+                        class="survey-data-mock-action-btn survey-data-mock-action-delete" 
+                        data-accommodation-id="{{ $accommodation['id'] }}">
+                    Delete
+                </button>
+                <button type="button" 
+                        class="survey-data-mock-action-btn survey-data-mock-action-clone" 
+                        data-accommodation-id="{{ $accommodation['id'] }}"
+                        data-accommodation-name="{{ $accommodation['name'] }}">
+                    Save & Clone
+                </button>
+                <button type="button" 
+                        class="survey-data-mock-action-btn survey-data-mock-action-save" 
+                        data-accommodation-id="{{ $accommodation['id'] }}">
+                    Save
+                </button>
+            </div>
         </div>
     </div>
 </div>

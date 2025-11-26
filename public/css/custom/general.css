@@ -1,3 +1,50 @@
+/* Poppins Font Import */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400&display=swap');
+
+/* Typography Variables */
+:root {
+    --font-family-base: 'Poppins', sans-serif;
+    --font-light: 300;
+    --font-regular: 400;
+}
+
+/* Global Typography */
+html, body {
+    font-family: var(--font-family-base);
+}
+
+/* Headings - Light weight */
+h1 {
+    font-family: var(--font-family-base);
+    font-size: 30px;
+    font-weight: 400 !important;
+}
+
+h2 {
+    font-family: var(--font-family-base);
+    font-size: 20px;
+    font-weight: 300 !important;
+}
+
+h3, h4, h5, h6 {
+    font-family: var(--font-family-base);
+    font-weight: 300 !important;
+}
+
+/* Body text - Light weight */
+p, span, div, a, li, td, th, label, input, select, textarea, button {
+    font-family: var(--font-family-base);
+    font-size: 14px;
+    font-weight: 300 !important;
+}
+
+/* Menu/Navigation - Regular weight */
+nav, .nav, .nav-item, .nav-link, .menu, .sidebar-menu, .survey-nav-item {
+    font-family: var(--font-family-base);
+    font-size: 16px;
+    font-weight: 400 !important;
+}
+
 /* General Layout Styles */
 .dashboard-main-wrapper {
     min-height: 100vh;
