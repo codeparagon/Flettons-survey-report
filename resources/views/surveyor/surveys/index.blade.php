@@ -62,7 +62,7 @@
             rowDataAttribute="data-href">
             @forelse($assignedSurveys as $survey)
                 <tr class="clickable-row" data-href="{{ route('surveyor.surveys.surveyDetails', $survey->id) }}">
-                    <td>{{ Str::limit($survey->full_address, 60) }}</td>
+                    <td>{{ Str::limit($survey->full_address, 60) }}{{ $survey->postcode ? ', ' . $survey->postcode : '' }}</td>
                     <td>
                         <span class="survey-level">{{ $survey->level ?? 'N/A' }}</span>
                     </td>
@@ -259,8 +259,8 @@
         /* Level - Text Colors with Theme Colors */
         .survey-level {
             display: inline-block;
-            font-size: 1.125rem;
-            font-weight: 700;
+            font-size: inherit;
+            font-weight: 500;
             white-space: nowrap;
             color: #1A202C;
         }
@@ -268,8 +268,8 @@
         /* Mode */
         .survey-mode {
             display: inline-block;
-            font-size: 1.125rem;
-            font-weight: 700;
+            font-size: inherit;
+            font-weight: 500;
             white-space: nowrap;
             color: #1A202C;
         }
@@ -277,8 +277,8 @@
         /* Status - Text Colors with Theme Colors Only */
         .survey-status {
             display: inline-block;
-            font-size: 1.125rem;
-            font-weight: 700;
+            font-size: inherit;
+            font-weight: 500;
             white-space: nowrap;
         }
 

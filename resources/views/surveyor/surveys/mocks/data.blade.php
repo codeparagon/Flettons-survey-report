@@ -779,12 +779,13 @@
     }
 
     .survey-data-mock-button {
-        padding: 0.4rem 0.875rem;
-        border: 1px solid rgba(148, 163, 184, 0.4);
-        border-radius: 4px;
-        background: #FFFFFF;
-        color: #1A202C;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 8px;
+        background: #F3F4F6;
+        color: #1a202c7a;
         font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
         transition: all 0.2s ease;
         font-family: 'Poppins', sans-serif;
@@ -793,14 +794,13 @@
     }
 
     .survey-data-mock-button:hover {
-        background: #F1F5F9;
-        border-color: rgba(148, 163, 184, 0.6);
+        background: #E5E7EB;
     }
 
     .survey-data-mock-button.active {
         background: #C1EC4A;
-        border-color: #C1EC4A;
         color: #1A202C;
+        font-weight: 600;
     }
 
     /* Costs Table */
@@ -1269,6 +1269,29 @@
     .survey-data-mock-clone-section-btn.disabled:hover {
         background: #F1F5F9;
         border-color: #E2E8F0;
+    }
+
+    .survey-data-mock-clone-location-btn {
+        padding: 0.625rem 1.25rem;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
+        background: #FFFFFF;
+        color: #1A202C;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-data-mock-clone-location-btn:hover {
+        background: #F1F5F9;
+        border-color: rgba(148, 163, 184, 0.6);
+    }
+
+    .survey-data-mock-clone-location-btn.active {
+        background: #C1EC4A;
+        border-color: #C1EC4A;
+        color: #1A202C;
     }
 
     .survey-data-mock-clone-modal-input,
@@ -2525,7 +2548,68 @@ $(document).ready(function() {
         const isMultiple = $button.data('multiple') === true;
         const $group = $button.closest('.survey-data-mock-field-group').find(`[data-group="${group}"]`);
         const $sectionItem = $button.closest('.survey-data-mock-section-item');
+        const $details = $sectionItem.find('.survey-data-mock-section-details');
         const buttonValue = $button.data('value');
+        
+        // Validate location selection - check for duplicate section + location combination
+        if (group === 'location') {
+            const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
+            const currentSection = $details.find('[data-group="section"].active').data('value') || '';
+            const currentSectionId = $sectionItem.data('section-id');
+            
+            // Check if this section + location combination already exists in another item
+            let isDuplicate = false;
+            $subCategory.find('.survey-data-mock-section-item').each(function() {
+                const $item = $(this);
+                if ($item.data('section-id') === currentSectionId) return true; // skip self
+                
+                const $itemDetails = $item.find('.survey-data-mock-section-details');
+                const existingSection = $itemDetails.data('selected-section') || 
+                                      $itemDetails.find('[data-group="section"].active').data('value') || '';
+                const existingLocation = $itemDetails.find('[data-group="location"].active').data('value') || '';
+                
+                if (existingSection === currentSection && existingLocation === buttonValue) {
+                    isDuplicate = true;
+                    return false; // break loop
+                }
+            });
+            
+            if (isDuplicate) {
+                alert(`"${currentSection}" with location "${buttonValue}" already exists in this sub-category. Please select a different location.`);
+                return;
+            }
+        }
+        
+        // Validate section selection - check for duplicate section + location combination
+        if (group === 'section') {
+            const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
+            const currentLocation = $details.find('[data-group="location"].active').data('value') || '';
+            const currentSectionId = $sectionItem.data('section-id');
+            
+            // Only validate if a location is already selected
+            if (currentLocation) {
+                let isDuplicate = false;
+                $subCategory.find('.survey-data-mock-section-item').each(function() {
+                    const $item = $(this);
+                    if ($item.data('section-id') === currentSectionId) return true; // skip self
+                    
+                    const $itemDetails = $item.find('.survey-data-mock-section-details');
+                    const existingSection = $itemDetails.data('selected-section') || 
+                                          $itemDetails.find('[data-group="section"].active').data('value') || '';
+                    const existingLocation = $itemDetails.find('[data-group="location"].active').data('value') || '';
+                    
+                    if (existingSection === buttonValue && existingLocation === currentLocation) {
+                        isDuplicate = true;
+                        return false; // break loop
+                    }
+                });
+                
+                if (isDuplicate) {
+                    alert(`"${buttonValue}" with location "${currentLocation}" already exists in this sub-category. Please select a different section or change the location.`);
+                    return;
+                }
+            }
+        }
         
         if (isMultiple) {
             // Special handling for defects group
@@ -2549,10 +2633,41 @@ $(document).ready(function() {
             $button.addClass('active');
         }
         
+        // Update header with section name and location
+        if (group === 'section' || group === 'location') {
+            updateSectionHeader($sectionItem);
+            // Also update data attributes for validation
+            if (group === 'section') {
+                $details.data('selected-section', buttonValue);
+            }
+            if (group === 'location') {
+                $details.data('selected-location', buttonValue);
+            }
+        }
+        
         // Store selection
         const sectionId = $sectionItem.data('section-id');
         console.log('Section', sectionId, 'Group', group, 'Value', buttonValue);
     });
+    
+    // Function to update section header with section name and location
+    function updateSectionHeader($sectionItem) {
+        const $details = $sectionItem.find('.survey-data-mock-section-details');
+        const $headerName = $sectionItem.find('.survey-data-mock-section-name');
+        const $titleText = $sectionItem.find('.survey-data-mock-section-title-text');
+        
+        const selectedSection = $details.find('[data-group="section"].active').data('value') || '';
+        const selectedLocation = $details.find('[data-group="location"].active').data('value') || '';
+        
+        // Build display name: "Section [Location]"
+        let displayName = selectedSection || 'Select Section';
+        if (selectedLocation) {
+            displayName = `${selectedSection} [${selectedLocation}]`;
+        }
+        
+        $headerName.text(displayName);
+        $titleText.text(displayName);
+    }
 
     // Initialize button states from mock data
     $('.survey-data-mock-section-item').each(function() {
@@ -2591,6 +2706,9 @@ $(document).ready(function() {
                 $details.find(`[data-group="defects"][data-value="${defect}"]`).addClass('active');
             });
         }
+        
+        // Update header with section name and location
+        updateSectionHeader($sectionItem);
     });
 
     // Add Cost Button
@@ -2799,6 +2917,13 @@ $(document).ready(function() {
                             <!-- Buttons will be dynamically generated -->
                         </div>
                     </div>
+                    <div class="survey-data-mock-clone-modal-field">
+                        <label class="survey-data-mock-clone-modal-label">Select Location</label>
+                        <div class="survey-data-mock-clone-section-buttons" id="clone-location-buttons">
+                            <!-- Location buttons will be dynamically generated -->
+                        </div>
+                        <p class="survey-data-mock-clone-modal-help" id="clone-location-error" style="color: #EF4444; display: none;"></p>
+                    </div>
                 </div>
                 <div class="survey-data-mock-clone-modal-footer">
                     <button type="button" class="survey-data-mock-clone-modal-btn survey-data-mock-clone-modal-btn-cancel" id="clone-modal-cancel">Cancel</button>
@@ -2814,6 +2939,8 @@ $(document).ready(function() {
     let currentCloneData = null;
     let currentCloneCategory = null;
     let selectedCloneSection = null;
+    let selectedCloneLocation = null;
+    let currentCloneSubCategory = null;
 
     // Open Clone Modal
     $('.survey-data-mock-action-clone').on('click', function(e) {
@@ -2867,70 +2994,58 @@ $(document).ready(function() {
         currentCloneData = formData;
         currentCloneCategory = categoryName;
         selectedCloneSection = null;
-
-            // Get available sections based on category - use dynamic options mapping
-            let allSections = [];
-            const currentSelectedSection = formData.section;
-            
-            // Get section options from mapping
-            const sectionOptions = getOptions(categoryName, 'section', []);
-            
-            if (sectionOptions && sectionOptions.length > 0) {
-                allSections = sectionOptions;
-            } else {
-                // Fallback: get from button group
-                $details.find('[data-group="section"]').each(function() {
-                    const sectionValue = $(this).data('value');
-                    if (sectionValue) {
-                        allSections.push(sectionValue);
-                    }
-                });
-            }
+        selectedCloneLocation = null;
         
-        // Get all already selected sections in the same sub-category to disable them
         const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
-        const alreadySelectedSections = [];
-        
-        $subCategory.find('.survey-data-mock-section-item').each(function() {
-            const $item = $(this);
-            const $itemDetails = $item.find('.survey-data-mock-section-details');
-            if ($itemDetails.length > 0) {
-                const selectedSection = $itemDetails.data('selected-section') || 
-                                      $itemDetails.find('[data-group="section"].active').data('value') || '';
-                if (selectedSection && !alreadySelectedSections.includes(selectedSection)) {
-                    alreadySelectedSections.push(selectedSection);
-                }
-            }
-        });
+        currentCloneSubCategory = $subCategory;
 
-        // Generate section buttons in modal
+        // Get available sections based on category - use dynamic options mapping
+        let allSections = [];
+        
+        // Get section options from mapping
+        const sectionOptions = getOptions(categoryName, 'section', []);
+        
+        if (sectionOptions && sectionOptions.length > 0) {
+            allSections = sectionOptions;
+        } else {
+            // Fallback: get from button group
+            $details.find('[data-group="section"]').each(function() {
+                const sectionValue = $(this).data('value');
+                if (sectionValue) {
+                    allSections.push(sectionValue);
+                }
+            });
+        }
+
+        // Generate section buttons in modal - NO RESTRICTION on sections
         const $cloneButtons = $('#clone-section-buttons');
         $cloneButtons.empty();
         
-        // Filter out already selected sections
-        const availableSections = allSections.filter(section => !alreadySelectedSections.includes(section));
+        allSections.forEach(function(section) {
+            const $btn = $('<button>')
+                .addClass('survey-data-mock-clone-section-btn')
+                .attr('type', 'button')
+                .data('section', section)
+                .text(section);
+            
+            $cloneButtons.append($btn);
+        });
         
-        if (availableSections.length === 0) {
-            $cloneButtons.html('<p class="survey-data-mock-clone-modal-help" style="color: #94A3B8;">All sections in this sub-category have been used</p>');
-            $('#clone-modal-confirm').prop('disabled', true);
-        } else {
-            allSections.forEach(function(section) {
-                const isDisabled = alreadySelectedSections.includes(section);
-                const $btn = $('<button>')
-                    .addClass('survey-data-mock-clone-section-btn')
-                    .attr('type', 'button')
-                    .data('section', section)
-                    .text(section);
-                
-                if (isDisabled) {
-                    $btn.addClass('disabled')
-                        .prop('disabled', true)
-                        .attr('title', 'This section is already used in this sub-category');
-                }
-                
-                $cloneButtons.append($btn);
-            });
-        }
+        // Generate location buttons
+        const $locationButtons = $('#clone-location-buttons');
+        $locationButtons.empty();
+        $('#clone-location-error').hide();
+        
+        const locationOptions = optionsMapping['location'] || ['Whole Property', 'Right', 'Left', 'Front', 'Rear'];
+        locationOptions.forEach(function(location) {
+            const $btn = $('<button>')
+                .addClass('survey-data-mock-clone-location-btn')
+                .attr('type', 'button')
+                .data('location', location)
+                .text(location);
+            
+            $locationButtons.append($btn);
+        });
         
         // Show modal
         $('#survey-data-mock-clone-modal').addClass('show');
@@ -2940,25 +3055,68 @@ $(document).ready(function() {
     });
 
     // Handle section selection in clone modal
+    // Handle section selection in clone modal
     $(document).on('click', '.survey-data-mock-clone-section-btn', function() {
         const $btn = $(this);
-        // Don't allow selection of disabled buttons
-        if ($btn.hasClass('disabled') || $btn.prop('disabled')) {
-            return;
-        }
         
         $('.survey-data-mock-clone-section-btn').removeClass('active');
         $btn.addClass('active');
         selectedCloneSection = $btn.data('section');
+        
+        // Validate location when section changes
+        validateCloneSelection();
         updateCloneButtonState();
     });
+    
+    // Handle location selection in clone modal
+    $(document).on('click', '.survey-data-mock-clone-location-btn', function() {
+        const $btn = $(this);
+        
+        $('.survey-data-mock-clone-location-btn').removeClass('active');
+        $btn.addClass('active');
+        selectedCloneLocation = $btn.data('location');
+        
+        // Validate the combination
+        validateCloneSelection();
+        updateCloneButtonState();
+    });
+    
+    // Validate that section + location combination doesn't already exist
+    function validateCloneSelection() {
+        if (!selectedCloneSection || !selectedCloneLocation || !currentCloneSubCategory) {
+            $('#clone-location-error').hide();
+            return true;
+        }
+        
+        // Check if this section + location combination already exists
+        let isDuplicate = false;
+        currentCloneSubCategory.find('.survey-data-mock-section-item').each(function() {
+            const $item = $(this);
+            const $itemDetails = $item.find('.survey-data-mock-section-details');
+            if ($itemDetails.length > 0) {
+                const existingSection = $itemDetails.data('selected-section') || 
+                                      $itemDetails.find('[data-group="section"].active').data('value') || '';
+                const existingLocation = $itemDetails.find('[data-group="location"].active').data('value') || '';
+                
+                if (existingSection === selectedCloneSection && existingLocation === selectedCloneLocation) {
+                    isDuplicate = true;
+                    return false; // break loop
+                }
+            }
+        });
+        
+        if (isDuplicate) {
+            $('#clone-location-error').text(`"${selectedCloneSection}" with location "${selectedCloneLocation}" already exists. Please select a different location.`).show();
+            return false;
+        } else {
+            $('#clone-location-error').hide();
+            return true;
+        }
+    }
 
     function updateCloneButtonState() {
-        if (selectedCloneSection) {
-            $('#clone-modal-confirm').prop('disabled', false);
-        } else {
-            $('#clone-modal-confirm').prop('disabled', true);
-        }
+        const isValid = selectedCloneSection && selectedCloneLocation && validateCloneSelection();
+        $('#clone-modal-confirm').prop('disabled', !isValid);
     }
 
     // Close Clone Modal
@@ -2967,8 +3125,12 @@ $(document).ready(function() {
         currentCloneSectionId = null;
         currentCloneData = null;
         currentCloneCategory = null;
+        currentCloneSubCategory = null;
         selectedCloneSection = null;
+        selectedCloneLocation = null;
         $('.survey-data-mock-clone-section-btn').removeClass('active');
+        $('.survey-data-mock-clone-location-btn').removeClass('active');
+        $('#clone-location-error').hide();
         $('#clone-modal-confirm').prop('disabled', true);
     });
 
@@ -2979,8 +3141,12 @@ $(document).ready(function() {
             currentCloneSectionId = null;
             currentCloneData = null;
             currentCloneCategory = null;
+            currentCloneSubCategory = null;
             selectedCloneSection = null;
+            selectedCloneLocation = null;
             $('.survey-data-mock-clone-section-btn').removeClass('active');
+            $('.survey-data-mock-clone-location-btn').removeClass('active');
+            $('#clone-location-error').hide();
             $('#clone-modal-confirm').prop('disabled', true);
         }
     });
@@ -2989,6 +3155,15 @@ $(document).ready(function() {
     $('#clone-modal-confirm').on('click', function() {
         if (!selectedCloneSection) {
             alert('Please select a target section');
+            return;
+        }
+        
+        if (!selectedCloneLocation) {
+            alert('Please select a location');
+            return;
+        }
+        
+        if (!validateCloneSelection()) {
             return;
         }
 
@@ -3021,14 +3196,16 @@ $(document).ready(function() {
             conditionRating = '1';
         }
         
-        // Prepare form data for AJAX request (convert camelCase to snake_case)
+        // Prepare form data for AJAX request
+        // Use the selected section and location from the modal
         const formData = {
-            section: currentCloneData.section || '',
-            location: currentCloneData.location || '',
+            section: selectedCloneSection || '',
+            location: selectedCloneLocation || '',
             structure: currentCloneData.structure || '',
             material: currentCloneData.material || '',
             defects: currentCloneData.defects || [],
-            remaining_life: currentCloneData.remainingLife || '',
+            remainingLife: currentCloneData.remainingLife || '',
+            remaining_life: currentCloneData.remainingLife || '', // for AJAX request
             costs: currentCloneData.costs || [],
             notes: currentCloneData.notes || '',
             photos: currentCloneData.photos || [],
@@ -3076,13 +3253,20 @@ $(document).ready(function() {
                     // Re-attach clone handler (since it's dynamically created)
                     attachCloneHandler($newSectionItem);
                     
+                    // Update the header with section name and location
+                    updateSectionHeader($newSectionItem);
+                    
                     // Close modal
                     $('#survey-data-mock-clone-modal').removeClass('show');
                     currentCloneSectionId = null;
                     currentCloneData = null;
                     currentCloneCategory = null;
+                    currentCloneSubCategory = null;
                     selectedCloneSection = null;
+                    selectedCloneLocation = null;
                     $('.survey-data-mock-clone-section-btn').removeClass('active');
+                    $('.survey-data-mock-clone-location-btn').removeClass('active');
+                    $('#clone-location-error').hide();
                     $confirmBtn.prop('disabled', false).text(originalBtnText);
                     
                     // Scroll to new section
@@ -3472,9 +3656,13 @@ $(document).ready(function() {
         // Set active buttons (single selection groups)
         if (formData.section) {
             $details.find(`[data-group="section"][data-value="${formData.section}"]`).addClass('active');
+            // Update data attribute for validation
+            $details.data('selected-section', formData.section);
         }
         if (formData.location) {
             $details.find(`[data-group="location"][data-value="${formData.location}"]`).addClass('active');
+            // Update data attribute for validation
+            $details.data('selected-location', formData.location);
         }
         if (formData.structure) {
             $details.find(`[data-group="structure"][data-value="${formData.structure}"]`).addClass('active');

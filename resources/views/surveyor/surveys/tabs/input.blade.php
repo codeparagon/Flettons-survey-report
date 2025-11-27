@@ -1830,14 +1830,20 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateComponentHeaderTitle(component) {
         const assessmentSection = component.closest('.survey-assessment-section');
         if (!assessmentSection) return;
+        const title = assessmentSection.querySelector('.survey-section-title');
         const subtitle = assessmentSection.querySelector('.survey-section-subtitle');
         if (!subtitle) return;
         const componentId = component.dataset.componentId || '';
         const primaryArea = component.dataset.areaPrimary || '';
+        const sectionName = assessmentSection.dataset.assessmentName || '';
+        
         if (!primaryArea) {
+            if (title) title.textContent = sectionName;
             subtitle.textContent = 'Select Area / Location';
             return;
         }
+        // Display section name with location in brackets
+        if (title) title.textContent = `${sectionName} [${primaryArea}]`;
         subtitle.textContent = primaryArea;
     }
     
@@ -2098,19 +2104,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function copyComponentData(source, target) {
-        // Copy area locations
-        const sourcePrimary = source.querySelector('.area_primary_input');
+        // DO NOT copy area/location - cloned components must have a different location
+        // Clear the location so user must select a new one
         const targetPrimary = target.querySelector('.area_primary_input');
-        if (sourcePrimary && targetPrimary) {
-            targetPrimary.value = sourcePrimary.value;
-            const activePrimaryBtn = source.querySelector('.area-location-btn[data-group="primary"].active');
-            if (activePrimaryBtn) {
-                const targetBtn = target.querySelector(`.area-location-btn[data-group="primary"][data-value="${activePrimaryBtn.dataset.value}"]`);
-                if (targetBtn) targetBtn.classList.add('active');
-            }
+        if (targetPrimary) {
+            targetPrimary.value = '';
         }
-
-        target.dataset.areaPrimary = source.dataset.areaPrimary || '';
+        // Remove any active state from location buttons
+        target.querySelectorAll('.area-location-btn[data-group="primary"]').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        target.dataset.areaPrimary = '';
         
         // Copy defects
         const sourceDefects = source.querySelector('.defects_input');
@@ -2559,10 +2563,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (isAreaGroup && requireUnique && !allowDuplicate && component) {
                     const assessmentSection = component.closest('.survey-assessment-section');
                     if (assessmentSection) {
+                        // Check for duplicate: same location cannot be used twice in the same section
                         const duplicate = Array.from(assessmentSection.querySelectorAll('.component-form'))
                             .some(comp => comp !== component && (comp.dataset.areaPrimary || '').toLowerCase() === selectedValue.toLowerCase());
                         if (duplicate) {
-                            alert(`Area/Location "${selectedValue}" is already used as a primary area in this section. Please select a different area.`);
+                            alert(`Location "${selectedValue}" is already used in this section. You can clone the same section multiple times but each must have a different location.`);
                             return;
                         }
                     }
