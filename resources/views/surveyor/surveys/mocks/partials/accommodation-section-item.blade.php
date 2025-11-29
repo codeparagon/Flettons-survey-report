@@ -1,7 +1,7 @@
-<div class="survey-data-mock-section-item" data-section-id="{{ $accommodation['id'] }}" data-accommodation-id="{{ $accommodation['id'] }}">
+<div class="survey-data-mock-section-item" data-section-id="{{ $accommodation['id'] }}" data-accommodation-id="{{ $accommodation['id'] }}" data-accommodation-type-id="{{ !empty($accommodation['accommodation_type_id']) ? $accommodation['accommodation_type_id'] : '' }}">
     <div class="survey-data-mock-section-header" data-expandable="true">
         <div class="survey-data-mock-section-name">
-            {{ $accommodation['name'] }}
+            {{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}
         </div>
         <div class="survey-data-mock-section-status">
             @php
@@ -14,10 +14,11 @@
                 <i class="fas fa-sticky-note survey-data-mock-status-icon"></i>
                 <span class="survey-data-mock-status-text">0/10</span>
             </span>
-            <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--ni" 
+            <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--{{ $accommodation['condition_rating'] ?? 'ni' }}" 
+                  data-section-id="{{ $accommodation['id'] }}"
                   data-accommodation-id="{{ $accommodation['id'] }}"
-                  data-current-rating="ni">
-                NI
+                  data-current-rating="{{ $accommodation['condition_rating'] ?? 'ni' }}">
+                {{ $accommodation['condition_rating'] ?? 'NI' }}
             </span>
             <i class="fas fa-chevron-down survey-data-mock-expand-icon"></i>
         </div>
@@ -25,12 +26,13 @@
     
     <!-- Section Title Header (visible when expanded) -->
     <div class="survey-data-mock-section-title-bar" style="display: none;">
-        <h3 class="survey-data-mock-section-title-text">{{ $accommodation['name'] }}</h3>
+        <h3 class="survey-data-mock-section-title-text">{{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}</h3>
         <div class="d-flex align-items-center" style="gap: 10px;">
-        <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--ni" 
+        <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--{{ $accommodation['condition_rating'] ?? 'ni' }}" 
+              data-section-id="{{ $accommodation['id'] }}"
               data-accommodation-id="{{ $accommodation['id'] }}"
-              data-current-rating="ni">
-            NI
+              data-current-rating="{{ $accommodation['condition_rating'] ?? 'ni' }}">
+            {{ $accommodation['condition_rating'] ?? 'NI' }}
         </span> 
         <i class="fas fa-chevron-up survey-data-mock-section-title-collapse"></i>
         </div>
@@ -68,7 +70,7 @@
                                         </label>
                                         <div class="survey-data-mock-button-group">
                                             @php
-                                                $materials = app(\App\Services\SurveyDataService::class)->getComponentMaterials($component['component_key']);
+                                                $materials = app(\App\Services\SurveyAccommodationDataService::class)->getComponentMaterials($component['component_key']);
                                             @endphp
                                             @foreach($materials as $material)
                                                 <button type="button" 
@@ -87,7 +89,7 @@
                                         <label class="survey-data-mock-field-label">Defects</label>
                                         <div class="survey-data-mock-button-group">
                                             @php
-                                                $defects = app(\App\Services\SurveyDataService::class)->getComponentDefects();
+                                                $defects = app(\App\Services\SurveyAccommodationDataService::class)->getComponentDefects();
                                             @endphp
                                             @foreach($defects as $defect)
                                                 <button type="button" 
@@ -166,7 +168,7 @@
                         class="survey-data-mock-action-btn survey-data-mock-action-clone" 
                         data-accommodation-id="{{ $accommodation['id'] }}"
                         data-accommodation-name="{{ $accommodation['name'] }}">
-                    Save & Clone
+                    Save and Clone
                 </button>
                 <button type="button" 
                         class="survey-data-mock-action-btn survey-data-mock-action-save" 

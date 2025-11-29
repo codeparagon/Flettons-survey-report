@@ -129,16 +129,19 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     Route::get('/surveys/{survey}/detail-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'detailMock'])->name('surveyor.surveys.detail.mock');
     Route::get('/surveys/{survey}/desk-study-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'deskStudyMock'])->name('surveyor.surveys.desk-study.mock');
     Route::get('/surveys/{survey}/data-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'dataMock'])->name('surveyor.surveys.data.mock');
+    Route::post('/surveys/{survey}/sections/{sectionDefinition}/save', [\App\Http\Controllers\Surveyor\SurveyController::class, 'saveSectionAssessment'])->name('surveyor.surveys.sections.save');
+    Route::post('/surveys/{survey}/accommodations/save', [\App\Http\Controllers\Surveyor\SurveyController::class, 'saveAccommodationAssessment'])->name('surveyor.surveys.accommodations.save');
+    Route::post('/surveys/{survey}/assessments/{assessment}/condition-rating', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateConditionRating'])->name('surveyor.surveys.assessments.update-condition-rating');
+    Route::post('/surveys/{survey}/assessments/{assessment}/costs', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateCosts'])->name('surveyor.surveys.assessments.update-costs');
+    Route::post('/surveys/{survey}/assessments/{assessment}/photos', [\App\Http\Controllers\Surveyor\SurveyController::class, 'uploadPhotos'])->name('surveyor.surveys.assessments.upload-photos');
+    Route::post('/surveys/{survey}/assessments/{assessment}/photos/{photo}/delete', [\App\Http\Controllers\Surveyor\SurveyController::class, 'deletePhoto'])->name('surveyor.surveys.delete-photo');
     Route::post('/surveys/{survey}/clone-section-item', [\App\Http\Controllers\Surveyor\SurveyController::class, 'cloneSectionItem'])->name('surveyor.surveys.clone-section-item');
+    Route::post('/surveys/{survey}/clone-accommodation-item', [\App\Http\Controllers\Surveyor\SurveyController::class, 'cloneAccommodationItem'])->name('surveyor.surveys.clone-accommodation-item');
     Route::get('/surveys/{survey}/media-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'mediaMock'])->name('surveyor.surveys.media.mock');
     Route::get('/surveys/{survey}/transcript-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'transcriptMock'])->name('surveyor.surveys.transcript.mock');
     Route::get('/surveys/{survey}/documents-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'documentsMock'])->name('surveyor.surveys.documents.mock');
-    Route::get('/surveys/{survey}', [\App\Http\Controllers\Surveyor\SurveyController::class, 'show'])->name('surveyor.surveys.show');
-    // Temporary route for new detail design
-    Route::get('/surveys/{survey}/detail', [\App\Http\Controllers\Surveyor\SurveyController::class, 'detail'])->name('surveyor.surveys.detail');
     Route::post('/surveys/{survey}/status', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateStatus'])->name('surveyor.surveys.updateStatus');
     Route::post('/surveys/{survey}/claim', [\App\Http\Controllers\Surveyor\SurveyController::class, 'claim'])->name('surveyor.surveys.claim');
-    Route::post('/surveys/{survey}/start', [\App\Http\Controllers\Surveyor\SurveyController::class, 'start'])->name('surveyor.surveys.start');
 
     Route::post('new-survey/store', [SurveyController::class, 'createNewSurvey'])->name('surveyor.surveys.createNewSurvey');
 
@@ -146,21 +149,6 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     Route::post('survey/update', [SurveyController::class, 'updateSurvey'])->name('surveyor.surveys.updateSurvey');
     Route::post('survey/note/add', [SurveyController::class, 'addSurveyNote'])->name('surveyor.surveys.addSurveyNote');
     
-    // Survey Sections
-    Route::get('/survey/{survey}/categories', [\App\Http\Controllers\Surveyor\SurveySectionController::class, 'showCategories'])->name('surveyor.survey.categories');
-    Route::get('/survey/{survey}/category/{category}/sections', [\App\Http\Controllers\Surveyor\SurveySectionController::class, 'showCategorySections'])->name('surveyor.survey.category.sections');
-    Route::get('/survey/{survey}/sections', [\App\Http\Controllers\Surveyor\SurveySectionController::class, 'showSections'])->name('surveyor.survey.sections');
-    Route::get('/survey/{survey}/section/{section}', [\App\Http\Controllers\Surveyor\SurveySectionController::class, 'showSectionForm'])->name('surveyor.survey.section.form');
-    Route::post('/survey/{survey}/section/{section}', [\App\Http\Controllers\Surveyor\SurveySectionController::class, 'saveSectionAssessment'])->name('surveyor.survey.section.save');
-    Route::delete('/survey/{survey}/section/{section}/photo', [\App\Http\Controllers\Surveyor\SurveySectionController::class, 'deletePhoto'])->name('surveyor.survey.section.deletePhoto');
-    Route::post('/survey/{survey}/section/{section}/incomplete', [\App\Http\Controllers\Surveyor\SurveySectionController::class, 'markIncomplete'])->name('surveyor.survey.section.incomplete');
-    
-    // Survey Media
-    Route::get('/survey/{survey}/media', [\App\Http\Controllers\Surveyor\MediaController::class, 'index'])->name('surveyor.survey.media');
-    Route::post('/survey/{survey}/media/upload', [\App\Http\Controllers\Surveyor\MediaController::class, 'upload'])->name('surveyor.survey.media.upload');
-    Route::delete('/survey/{survey}/media/delete', [\App\Http\Controllers\Surveyor\MediaController::class, 'delete'])->name('surveyor.survey.media.delete');
-    Route::get('/survey/{survey}/media/list', [\App\Http\Controllers\Surveyor\MediaController::class, 'getMedia'])->name('surveyor.survey.media.list');
-
     // aws
     Route::post('/aws-transcription', [AwsTranscriptionController::class, 'uploadMedia'])->name('aws.transcription');  
 });

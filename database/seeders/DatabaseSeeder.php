@@ -15,8 +15,13 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             UserSeeder::class,
             SurveyCategorySeeder::class,
-            SurveySectionSeeder::class,
-            SurveyLevelSeeder::class,
+            SurveySubcategorySeeder::class,
+            SurveyOptionTypeSeeder::class,
+            SurveySectionDefinitionSeeder::class,
+            SurveyOptionSeeder::class,
+            SurveySectionRequiredFieldsSeeder::class,
+            AccommodationSeeder::class,
+            // SurveyLevelSeeder::class, // Commented out - survey_levels table removed in restructure
             SurveySeeder::class,
         ]);
     }

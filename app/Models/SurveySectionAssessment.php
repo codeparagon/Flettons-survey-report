@@ -11,28 +11,28 @@ class SurveySectionAssessment extends Model
 
     protected $fillable = [
         'survey_id',
-        'survey_section_id',
+        'section_definition_id',
         'condition_rating',
-        'defects_noted',
-        'recommendations',
+        'section_type_id',
+        'location_id',
+        'structure_id',
+        'material_id',
+        'remaining_life_id',
         'notes',
         'report_content',
-        'material',
-        'defects',
-        'remaining_life',
+        'is_clone',
+        'cloned_from_id',
+        'clone_index',
         'is_completed',
         'completed_at',
-        'completed_by',
-        'photos',
-        'additional_data',
     ];
 
     protected $casts = [
         'is_completed' => 'boolean',
+        'is_clone' => 'boolean',
         'completed_at' => 'datetime',
-        'photos' => 'array',
-        'additional_data' => 'array',
-        'defects' => 'array',
+        'condition_rating' => 'integer',
+        'clone_index' => 'integer',
     ];
 
     /**
@@ -44,11 +44,91 @@ class SurveySectionAssessment extends Model
     }
 
     /**
-     * Get the section this assessment is for.
+     * Get the section definition this assessment is for.
      */
-    public function section()
+    public function sectionDefinition()
     {
-        return $this->belongsTo(SurveySection::class, 'survey_section_id');
+        return $this->belongsTo(SurveySectionDefinition::class, 'section_definition_id');
+    }
+
+    /**
+     * Get the section type option.
+     */
+    public function sectionType()
+    {
+        return $this->belongsTo(SurveyOption::class, 'section_type_id');
+    }
+
+    /**
+     * Get the location option.
+     */
+    public function location()
+    {
+        return $this->belongsTo(SurveyOption::class, 'location_id');
+    }
+
+    /**
+     * Get the structure option.
+     */
+    public function structure()
+    {
+        return $this->belongsTo(SurveyOption::class, 'structure_id');
+    }
+
+    /**
+     * Get the material option.
+     */
+    public function material()
+    {
+        return $this->belongsTo(SurveyOption::class, 'material_id');
+    }
+
+    /**
+     * Get the remaining life option.
+     */
+    public function remainingLife()
+    {
+        return $this->belongsTo(SurveyOption::class, 'remaining_life_id');
+    }
+
+    /**
+     * Get all defects for this assessment.
+     */
+    public function defects()
+    {
+        return $this->belongsToMany(SurveyOption::class, 'survey_section_defects', 'section_assessment_id', 'defect_option_id');
+    }
+
+    /**
+     * Get all photos for this assessment.
+     */
+    public function photos()
+    {
+        return $this->hasMany(SurveySectionPhoto::class, 'section_assessment_id')->orderBy('sort_order');
+    }
+
+    /**
+     * Get all costs for this assessment.
+     */
+    public function costs()
+    {
+        return $this->hasMany(SurveySectionCost::class, 'section_assessment_id');
+    }
+
+    /**
+     * Get the assessment this was cloned from.
+     */
+    public function clonedFrom()
+    {
+        return $this->belongsTo(SurveySectionAssessment::class, 'cloned_from_id');
+    }
+
+    /**
+     * Get all clones of this assessment.
+     */
+    public function clones()
+    {
+        return $this->hasMany(SurveySectionAssessment::class, 'cloned_from_id');
     }
 
     /**

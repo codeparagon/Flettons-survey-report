@@ -13,7 +13,6 @@ class SurveyCategory extends Model
         'name',
         'display_name',
         'icon',
-        'description',
         'sort_order',
         'is_active',
     ];
@@ -24,11 +23,11 @@ class SurveyCategory extends Model
     ];
 
     /**
-     * Get all sections for this category.
+     * Get all subcategories for this category.
      */
-    public function sections()
+    public function subcategories()
     {
-        return $this->hasMany(SurveySection::class, 'survey_category_id');
+        return $this->hasMany(SurveySubcategory::class, 'category_id');
     }
 
     /**

@@ -4,10 +4,25 @@ namespace App\Services;
 
 use App\Models\Survey;
 use App\Models\SurveySectionAssessment;
+use App\Models\SurveyCategory;
+use App\Models\SurveySubcategory;
+use App\Models\SurveySectionDefinition;
+use App\Models\SurveyOptionType;
+use App\Models\SurveyOption;
+use App\Models\SurveySectionCost;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SurveyDataService
 {
+    protected ChatGPTService $chatGPTService;
+
+    public function __construct(ChatGPTService $chatGPTService)
+    {
+        $this->chatGPTService = $chatGPTService;
+    }
     /**
      * Get survey data grouped by category with section grouping for clones.
      * 
@@ -25,40 +40,72 @@ class SurveyDataService
     }
 
     /**
-     * Get real section assessments grouped by category.
+     * Get real section assessments grouped by category from database.
      * 
      * @param Survey $survey
      * @return array
      */
     protected function getRealGroupedData(Survey $survey): array
     {
-        // Load required sections for this survey level
-        $requiredSections = $survey->getRequiredSections();
+        // Get all section definitions with their relationships
+        $sectionDefinitions = SurveySectionDefinition::with(['subcategory.category'])
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
         
-        // Load assessments with relationships
-        $assessments = $survey->sectionAssessments()
-            ->with(['section.category'])
+        // Load existing assessments for this survey
+        $assessments = SurveySectionAssessment::where('survey_id', $survey->id)
+            ->with([
+                'sectionDefinition.subcategory.category', 
+                'sectionType', 
+                'location', 
+                'structure', 
+                'material', 
+                'remainingLife', 
+                'defects', 
+                'photos' => function($query) {
+                    $query->orderBy('sort_order');
+                }, 
+                'costs'
+            ])
             ->get()
-            ->keyBy('survey_section_id');
+            ->groupBy('section_definition_id');
         
-        // Group sections by category
+        // Group sections by category and subcategory
         $categoriesRaw = [];
         
-        foreach ($requiredSections as $section) {
-            $categoryName = $section->category->display_name ?? 'Uncategorized';
-            $assessment = $assessments->get($section->id);
+        foreach ($sectionDefinitions as $sectionDef) {
+            $categoryName = $sectionDef->subcategory->category->display_name ?? 'Uncategorized';
+            $subcategoryName = $sectionDef->subcategory->display_name ?? '';
+            $subcategoryKey = $sectionDef->subcategory->name ?? '';
             
-            // Transform assessment to view format
-            $sectionData = $this->transformAssessmentToViewFormat($section, $assessment);
+            // Get assessments for this section definition
+            $sectionAssessments = $assessments->get($sectionDef->id, collect());
+            
+            // If no assessments exist, create one default entry
+            if ($sectionAssessments->isEmpty()) {
+                $sectionData = $this->transformSectionDefinitionToViewFormat($sectionDef, null);
+                $sectionData['subcategory_key'] = $subcategoryKey;
             
             if (!isset($categoriesRaw[$categoryName])) {
                 $categoriesRaw[$categoryName] = [];
             }
-            
+                $categoriesRaw[$categoryName][] = $sectionData;
+            } else {
+                // Transform each assessment
+                foreach ($sectionAssessments as $assessment) {
+                    $sectionData = $this->transformAssessmentToViewFormat($sectionDef, $assessment);
+                    $sectionData['subcategory_key'] = $subcategoryKey;
+                    
+                    if (!isset($categoriesRaw[$categoryName])) {
+                        $categoriesRaw[$categoryName] = [];
+                    }
             $categoriesRaw[$categoryName][] = $sectionData;
+                }
+            }
         }
         
-        // Group by sub-category and create structure
+        // Group by sub-category using the existing method
         return $this->groupSectionsBySubCategory($categoriesRaw);
     }
 
@@ -75,138 +122,158 @@ class SurveyDataService
     }
 
     /**
-     * Transform a section assessment to view format.
+     * Transform a section definition to view format (when no assessment exists).
      * 
-     * @param \App\Models\SurveySection $section
+     * @param SurveySectionDefinition $sectionDef
      * @param SurveySectionAssessment|null $assessment
      * @return array
      */
-    protected function transformAssessmentToViewFormat($section, $assessment = null): array
+    protected function transformSectionDefinitionToViewFormat(SurveySectionDefinition $sectionDef, $assessment = null): array
     {
-        // Get data from assessment or use defaults
-        $additionalData = $assessment && $assessment->additional_data 
-            ? (is_array($assessment->additional_data) ? $assessment->additional_data : [])
-            : [];
+        $subcategoryKey = $sectionDef->subcategory->name ?? '';
         
-        // Calculate completion (simplified - can be enhanced)
-        $completion = $this->calculateCompletion($assessment);
-        $total = 10; // Can be made dynamic based on section fields
-        
-        // Handle cloned sections - get name from additional_data if it's a clone
-        $sectionName = $section->display_name ?? $section->name;
-        if ($assessment && isset($additionalData['clone_name'])) {
-            $sectionName = $additionalData['clone_name'];
-        } elseif ($assessment && isset($additionalData['variant_section'])) {
-            // Build name from base name + variant
-            $baseName = $this->extractBaseName($section->display_name ?? $section->name);
-            $variant = $additionalData['variant_section'];
-            $sectionName = $baseName . ' [' . $variant . ']';
+        // Build section name - if assessment has section_type, use it
+        $sectionName = $sectionDef->display_name;
+        if ($assessment && $assessment->sectionType) {
+            $sectionName = $sectionDef->display_name . ' [' . $assessment->sectionType->value . ']';
         }
         
-        // Get selected section - prioritize additional_data, fallback to section name
-        $selectedSection = $additionalData['selected_section'] ?? 
-                          $additionalData['variant_section'] ?? 
-                          $section->display_name ?? 
-                          $section->name;
-        
-        // Get photos from additional_data or empty array
-        $photos = $additionalData['photos'] ?? [];
-        // If photos is stored as JSON string, decode it
-        if (is_string($photos)) {
-            $photos = json_decode($photos, true) ?? [];
-        }
-        
-        // Get subcategory_key from section's field_config or additional_data, or derive from section name
-        $subcategoryKey = null;
-        if ($section->field_config && isset($section->field_config['subcategory_key'])) {
-            $subcategoryKey = $section->field_config['subcategory_key'];
-        } elseif (isset($additionalData['subcategory_key'])) {
-            $subcategoryKey = $additionalData['subcategory_key'];
-        } else {
-            // Fallback: try to derive from section name using mapping
-            $baseName = $this->extractBaseName($section->display_name ?? $section->name);
-            $categoryName = $section->category->display_name ?? '';
-            $subCategoriesMapping = $this->getSubCategoriesMapping();
-            $subCategories = $subCategoriesMapping[$categoryName] ?? [];
-            
-            // Try to find matching subcategory by name
-            foreach ($subCategories as $subCategory) {
-                if (stripos($baseName, $subCategory['display_name']) !== false || 
-                    stripos($subCategory['display_name'], $baseName) !== false) {
-                    $subcategoryKey = $subCategory['key'];
-                    break;
-                }
-            }
-        }
+        // Calculate completion count based on submitted fields
+        $completionData = $this->calculateCompletionCount($assessment);
         
         return [
-            'id' => $assessment ? $assessment->id : 'new_' . $section->id,
-            'section_id' => $section->id,
+            'id' => $assessment ? $assessment->id : 'new_' . $sectionDef->id,
+            'section_id' => $sectionDef->id,
             'name' => $sectionName,
             'subcategory_key' => $subcategoryKey,
-            'completion' => $completion,
-            'total' => $total,
-            'condition_rating' => $this->mapConditionRating($assessment->condition_rating ?? null),
-            'selected_section' => $selectedSection,
-            'location' => $additionalData['location'] ?? '',
-            'structure' => $additionalData['structure'] ?? '',
-            'material' => $assessment->material ?? $additionalData['material'] ?? '',
-            'defects' => $assessment->defects ?? $additionalData['defects'] ?? [],
-            'remaining_life' => $assessment->remaining_life ?? $additionalData['remaining_life'] ?? '',
-            'costs' => $additionalData['costs'] ?? [],
-            'notes' => $assessment->notes ?? $additionalData['notes'] ?? '',
-            'photos' => $photos, // For photo count display
+            'completion' => $completionData['count'],
+            'total' => $completionData['total'],
+            'condition_rating' => $assessment ? $this->mapConditionRatingFromNumeric($assessment->condition_rating) : 'ni',
+            'selected_section' => $assessment && $assessment->sectionType ? $assessment->sectionType->value : '',
+            'location' => $assessment && $assessment->location ? $assessment->location->value : '',
+            'structure' => $assessment && $assessment->structure ? $assessment->structure->value : '',
+            'material' => $assessment && $assessment->material ? $assessment->material->value : '',
+            'defects' => $assessment ? $assessment->defects->pluck('value')->toArray() : [],
+            'remaining_life' => $assessment && $assessment->remainingLife ? $assessment->remainingLife->value : '',
+            'costs' => $assessment ? $assessment->costs->map(function($cost) {
+                return [
+                    'category' => $cost->category,
+                    'description' => $cost->description,
+                    'due' => $cost->due_year ? (string)$cost->due_year : '',
+                    'cost' => number_format($cost->amount, 2),
+                ];
+            })->toArray() : [],
+            'notes' => $assessment ? $assessment->notes : '',
+            'photos' => $assessment && $assessment->photos ? $assessment->photos->sortBy('sort_order')->map(function($photo) {
+                // Generate full URL using asset() helper to include base URL
+                $url = asset('storage/' . ltrim($photo->file_path, '/'));
+                return [
+                    'id' => $photo->id,
+                    'file_path' => $photo->file_path,
+                    'file_name' => $photo->file_name,
+                    'url' => $url,
+                ];
+            })->values()->toArray() : [],
+            'report_content' => $assessment && $assessment->report_content ? $assessment->report_content : null,
+            'has_report' => $assessment && !empty(trim($assessment->report_content ?? '')),
         ];
     }
 
     /**
-     * Calculate completion percentage for an assessment.
+     * Transform a section assessment to view format.
+     * 
+     * @param SurveySectionDefinition $sectionDef
+     * @param SurveySectionAssessment|null $assessment
+     * @return array
+     */
+    protected function transformAssessmentToViewFormat($sectionDef, $assessment = null): array
+    {
+        return $this->transformSectionDefinitionToViewFormat($sectionDef, $assessment);
+    }
+    
+    /**
+     * Map condition rating from numeric to string format.
+     * 
+     * @param int|null $rating
+     * @return string
+     */
+    protected function mapConditionRatingFromNumeric($rating): string
+    {
+        if ($rating === null) {
+            return 'ni';
+        }
+        
+        return (string)$rating;
+    }
+
+    /**
+     * Calculate completion count based on submitted fields.
+     * Counts all fields that have been submitted to the database.
+     * Notes, costs, and photos are counted as 1 if they exist, 0 if they don't.
+     * Notes are excluded if empty.
+     * 
+     * @param SurveySectionAssessment|null $assessment
+     * @return array ['count' => int, 'total' => int]
+     */
+    protected function calculateCompletionCount($assessment): array
+    {
+        if (!$assessment) {
+            return ['count' => 0, 'total' => 10];
+        }
+        
+        $count = 0;
+        
+        // Count basic fields (1 point each if filled)
+        if ($assessment->section_type_id) $count++;
+        if ($assessment->location_id) $count++;
+        if ($assessment->structure_id) $count++;
+        if ($assessment->material_id) $count++;
+        if ($assessment->remaining_life_id) $count++;
+        if ($assessment->condition_rating !== null) $count++;
+        
+        // Count defects (1 point if any defects exist)
+        if ($assessment->defects()->count() > 0) $count++;
+        
+        // Count notes (1 point if notes exist and are not empty) - EXCLUDE if empty
+        $hasNotes = !empty(trim($assessment->notes ?? ''));
+        if ($hasNotes) $count++;
+        
+        // Count costs (1 point if any costs exist, 0 if no costs) - similar to notes
+        $hasCosts = $assessment->costs()->count() > 0;
+        if ($hasCosts) $count++;
+        
+        // Count photos (1 point if any photos exist, 0 if no photos) - similar to notes
+        $hasPhotos = $assessment->photos()->count() > 0;
+        if ($hasPhotos) $count++;
+        
+        // Calculate total: base fields (7) + notes (0 or 1) + costs (0 or 1) + photos (0 or 1)
+        // Base fields: section_type, location, structure, material, remaining_life, condition_rating, defects = 7
+        $baseFields = 7;
+        $notesField = $hasNotes ? 1 : 0;
+        $costsField = $hasCosts ? 1 : 0;
+        $photosField = $hasPhotos ? 1 : 0;
+        
+        // Total is always 10: 7 base fields + 3 optional fields (notes, costs, photos)
+        $total = $baseFields + 3; // 7 + 3 = 10
+        
+        return [
+            'count' => $count,
+            'total' => $total
+        ];
+    }
+
+    /**
+     * Calculate completion percentage for an assessment (kept for backward compatibility).
      * 
      * @param SurveySectionAssessment|null $assessment
      * @return int
      */
     protected function calculateCompletion($assessment): int
     {
-        if (!$assessment) {
-            return 0;
-        }
-        
-        // Simple calculation - can be enhanced
-        $fields = 0;
-        $completed = 0;
-        
-        if ($assessment->material) $fields++;
-        if ($assessment->defects && count($assessment->defects) > 0) $fields++;
-        if ($assessment->remaining_life) $fields++;
-        if ($assessment->notes) $fields++;
-        if ($assessment->report_content) $fields++;
-        
-        if ($assessment->material) $completed++;
-        if ($assessment->defects && count($assessment->defects) > 0) $completed++;
-        if ($assessment->remaining_life) $completed++;
-        if ($assessment->notes) $completed++;
-        if ($assessment->report_content) $completed++;
-        
-        return $fields > 0 ? (int)round(($completed / $fields) * 10) : 0;
+        $completionData = $this->calculateCompletionCount($assessment);
+        return $completionData['count'];
     }
 
-    /**
-     * Map condition rating to numeric value.
-     * 
-     * @param string|null $rating
-     * @return int
-     */
-    protected function mapConditionRating($rating): int
-    {
-        $mapping = [
-            'excellent' => 1,
-            'good' => 2,
-            'fair' => 3,
-            'poor' => 3,
-        ];
-        
-        return $mapping[$rating] ?? 2;
-    }
 
     /**
      * Get sub-categories mapping for each category.
@@ -217,37 +284,24 @@ class SurveyDataService
      */
     protected function getSubCategoriesMapping(): array
     {
+        $categories = SurveyCategory::with(['subcategories' => function($query) {
+            $query->where('is_active', true)->orderBy('sort_order');
+        }])
+        ->where('is_active', true)
+        ->orderBy('sort_order')
+        ->get();
+
+        $mapping = [];
+        foreach ($categories as $category) {
+            $mapping[$category->display_name] = $category->subcategories->map(function($subcategory) {
         return [
-            'Exterior' => [
-                ['key' => 'roofing', 'display_name' => 'Roofing'],
-                ['key' => 'chimneys', 'display_name' => 'Chimneys, Pots and Stacks'],
-                ['key' => 'walls', 'display_name' => 'Walls'],
-                ['key' => 'windows', 'display_name' => 'Windows'],
-                ['key' => 'doors', 'display_name' => 'Doors'],
-                ['key' => 'gutters', 'display_name' => 'Gutters and Downpipes'],
-                ['key' => 'external_joinery', 'display_name' => 'External Joinery'],
-            ],
-            'Interior' => [
-                ['key' => 'roof_void', 'display_name' => 'Roof Void'],
-                ['key' => 'ceilings', 'display_name' => 'Ceilings'],
-                ['key' => 'internal_walls', 'display_name' => 'Internal walls'],
-                ['key' => 'floors', 'display_name' => 'Floors'],
-                ['key' => 'internal_doors', 'display_name' => 'Internal Doors'],
-                ['key' => 'internal_joinery', 'display_name' => 'Internal Joinery'],
-            ],
-            'Building Services' => [
-                ['key' => 'fire_smoke_alarms', 'display_name' => 'Fire and Smoke Alarms'],
-                ['key' => 'water_supply', 'display_name' => 'Water Supply and Fittings'],
-                ['key' => 'electricity_supply', 'display_name' => 'Electricity Supply and Fittings'],
-                ['key' => 'heating', 'display_name' => 'Heating'],
-                ['key' => 'ventilation', 'display_name' => 'Ventilation'],
-            ],
-            'Damp & Timber and Structural Defects' => [
-                ['key' => 'high_moisture', 'display_name' => 'High Moisture and Locations'],
-                ['key' => 'timber_defects', 'display_name' => 'Timber Defects and Locations'],
-                ['key' => 'structural_defects', 'display_name' => 'Structural Defects and Locations'],
-            ],
-        ];
+                    'key' => $subcategory->name,
+                    'display_name' => $subcategory->display_name,
+                ];
+            })->toArray();
+        }
+
+        return $mapping;
     }
 
     /**
@@ -587,169 +641,36 @@ class SurveyDataService
         return trim($baseName);
     }
 
-    /**
-     * Get accommodation configuration data with carousel structure.
-     * Uses separate JSON structure for accommodation sections.
-     * 
-     * @param Survey $survey
-     * @param bool $useMockData Whether to use mock data or real database data
-     * @return array
-     */
-    public function getAccommodationConfigurationData(Survey $survey, bool $useMockData = true): array
-    {
-        if ($useMockData) {
-            return $this->getMockAccommodationData($survey);
-        }
-        
-        return $this->getRealAccommodationData($survey);
-    }
 
     /**
-     * Get mock accommodation data for UI development.
-     * 
-     * @param Survey $survey
-     * @return array
-     */
-    protected function getMockAccommodationData(Survey $survey): array
-    {
-        $components = $this->getAccommodationComponents();
-        
-        return [
-            [
-                'id' => 'accommodation_1',
-                'name' => 'Bedroom 1',
-                'notes' => '', // Shared notes for all components
-                'photos' => [], // Shared photos for all components
-                'components' => array_map(function($component) {
-                    return [
-                        'component_key' => $component['key'],
-                        'component_name' => $component['name'],
-                        'material' => $component['key'] === 'ceiling' ? 'Lath and Plaster' : '',
-                        'defects' => $component['key'] === 'ceiling' ? ['No Defects'] : [],
-                    ];
-                }, $components),
-            ],
-        ];
-    }
-
-    /**
-     * Get real accommodation data from database.
-     * 
-     * @param Survey $survey
-     * @return array
-     */
-    protected function getRealAccommodationData(Survey $survey): array
-    {
-        // TODO: Implement database retrieval for accommodation sections
-        // This would query for sections with name "Accommodation Configuration"
-        // and parse their additional_data JSON for accommodation structure
-        return [];
-    }
-
-    /**
-     * Get available accommodation component types.
-     * 
-     * @return array
-     */
-    public function getAccommodationComponents(): array
-    {
-        return [
-            ['key' => 'ceiling', 'name' => 'Ceiling'],
-            ['key' => 'walls', 'name' => 'Walls'],
-            ['key' => 'windows', 'name' => 'Windows'],
-            ['key' => 'internal_door', 'name' => 'Internal Door'],
-            ['key' => 'external_door', 'name' => 'External Door'],
-            ['key' => 'floors', 'name' => 'Floors'],
-            ['key' => 'services', 'name' => 'Services'],
-        ];
-    }
-
-    /**
-     * Get material options for a specific component type.
-     * 
-     * @param string $componentKey
-     * @return array
-     */
-    public function getComponentMaterials(string $componentKey): array
-    {
-        $materials = [
-            'ceiling' => ['Plasterboard', 'Concrete', 'LDFB', 'AIB', 'Lath and Plaster'],
-            'walls' => ['Plasterboard', 'Plaster', 'Concrete', 'Brick', 'Stone'],
-            'windows' => ['Double Glazed Aluminium', 'Single Glazed', 'Timber', 'UPVC'],
-            'internal_door' => ['Timber', 'MDF', 'Composite', 'Glass'],
-            'external_door' => ['Timber', 'UPVC', 'Aluminium', 'Composite'],
-            'floors' => ['Timber', 'Concrete', 'Tiles', 'Carpet', 'Vinyl'],
-            'services' => ['Standard', 'Modern', 'Mixed'],
-        ];
-
-        return $materials[$componentKey] ?? [];
-    }
-
-    /**
-     * Get defect options for accommodation components.
-     * 
-     * @return array
-     */
-    public function getComponentDefects(): array
-    {
-        return [
-            'No Defects',
-            'Cracks',
-            'TEX',
-            'AIB',
-            'BULGE',
-            'DRY STAIN',
-            'WET STAIN',
-            'POLYSTYRENE',
-            'CLADDING',
-            'BER REPLACE',
-        ];
-    }
-
-    /**
-     * Get all options mapping in a structured format.
-     * This can easily be stored in database as JSON in the future.
+     * Get all options mapping in a structured format from database.
      * 
      * @return array
      */
     public function getOptionsMapping(): array
     {
-        return [
-            // Location options (global)
+        $mapping = [
+            // Global options
             'location' => $this->getLocationOptions(),
-            
-            // Remaining life options (global)
             'remaining_life' => $this->getRemainingLifeOptions(),
-            
-            // Defect options (can be category-specific in future)
             'defects' => $this->getDefectOptions(),
-            
-            // Category-based options
-            'Exterior' => [
-                'section' => $this->getSectionOptions('Exterior'),
-                'structure' => $this->getStructureOptions('Exterior'),
-                'material' => $this->getMaterialOptions('Exterior'),
-            ],
-            'Interior' => [
-                'section' => $this->getSectionOptions('Interior'),
-                'structure' => $this->getStructureOptions('Interior'),
-                'material' => $this->getMaterialOptions('Interior'),
-            ],
-            'Building Services' => [
-                'section' => $this->getSectionOptions('Building Services'),
-                'structure' => $this->getStructureOptions('Building Services'),
-                'material' => $this->getMaterialOptions('Building Services'),
-            ],
-            'Damp & Timber and Structural Defects' => [
-                'section' => $this->getSectionOptions('Damp & Timber and Structural Defects'),
-                'structure' => $this->getStructureOptions('Damp & Timber and Structural Defects'),
-                'material' => $this->getMaterialOptions('Damp & Timber and Structural Defects'),
-            ],
         ];
+
+        // Get category-based options
+        $categories = SurveyCategory::where('is_active', true)->orderBy('sort_order')->get();
+        foreach ($categories as $category) {
+            $mapping[$category->display_name] = [
+                'section' => $this->getSectionOptions($category->display_name),
+                'structure' => $this->getStructureOptions($category->display_name),
+                'material' => $this->getMaterialOptions($category->display_name),
+            ];
+        }
+
+        return $mapping;
     }
 
     /**
-     * Get section options based on category.
+     * Get section options based on category and subcategory from database.
      * 
      * @param string $categoryName
      * @param string|null $subCategoryKey
@@ -757,40 +678,65 @@ class SurveyDataService
      */
     public function getSectionOptions(string $categoryName, ?string $subCategoryKey = null): array
     {
-        $mapping = [
-            'Exterior' => [
-                'roofing' => ['Main Roof', 'Side Extension', 'Rear Extension', 'Dormer', 'Lean-to'],
-            ],
-        ];
-
-        // For Exterior with roofing subcategory
-        if ($categoryName === 'Exterior' && ($subCategoryKey === 'roofing' || !$subCategoryKey)) {
-            return $mapping['Exterior']['roofing'] ?? [];
+        $sectionType = SurveyOptionType::where('key_name', 'section_type')->first();
+        if (!$sectionType) {
+            return [];
         }
 
-        // For other categories or if no mapping exists, return empty array
-        // The section name itself will be used as the only option
+        $category = SurveyCategory::where('display_name', $categoryName)->orWhere('name', $categoryName)->first();
+        if (!$category) {
+            return [];
+        }
+
+        $query = SurveyOption::where('option_type_id', $sectionType->id)
+            ->where('is_active', true);
+
+        if ($subCategoryKey) {
+            $subcategory = SurveySubcategory::where('category_id', $category->id)
+                ->where('name', $subCategoryKey)
+                ->first();
+            if ($subcategory) {
+                $query->where('scope_type', 'subcategory')
+                    ->where('scope_id', $subcategory->id);
+            } else {
         return [];
+            }
+        } else {
+            // Get all subcategory-scoped options for this category
+            $subcategoryIds = SurveySubcategory::where('category_id', $category->id)
+                ->pluck('id')
+                ->toArray();
+            $query->where('scope_type', 'subcategory')
+                ->whereIn('scope_id', $subcategoryIds);
+        }
+
+        return $query->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray();
     }
 
     /**
-     * Get location options (global for all categories).
+     * Get location options (global) from database.
      * 
      * @return array
      */
     public function getLocationOptions(): array
     {
-        return [
-            'Whole Property',
-            'Right',
-            'Left',
-            'Front',
-            'Rear',
-        ];
+        $locationType = SurveyOptionType::where('key_name', 'location')->first();
+        if (!$locationType) {
+            return [];
+        }
+
+        return SurveyOption::where('option_type_id', $locationType->id)
+            ->where('scope_type', 'global')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray();
     }
 
     /**
-     * Get structure options based on category.
+     * Get structure options based on category from database.
      * 
      * @param string $categoryName
      * @param string|null $subCategoryKey
@@ -798,40 +744,27 @@ class SurveyDataService
      */
     public function getStructureOptions(string $categoryName, ?string $subCategoryKey = null): array
     {
-        $mapping = [
-            'Exterior' => [
-                'Pitched',
-                'Flat',
-                'Inverted pitched',
-                'Mono-Pitch',
-                'Curved',
-            ],
-            'Interior' => [
-                'Standard',
-                'Flat',
-                'Pitched',
-                'Suspended',
-                'Solid',
-            ],
-            'Building Services' => [
-                'Standard',
-                'Modern',
-                'Traditional',
-                'Mixed',
-            ],
-            'Damp & Timber and Structural Defects' => [
-                'Standard',
-                'Timber Frame',
-                'Concrete',
-                'Mixed',
-            ],
-        ];
+        $structureType = SurveyOptionType::where('key_name', 'structure')->first();
+        if (!$structureType) {
+            return ['Standard'];
+        }
 
-        return $mapping[$categoryName] ?? ['Standard'];
+        $category = SurveyCategory::where('display_name', $categoryName)->orWhere('name', $categoryName)->first();
+        if (!$category) {
+            return ['Standard'];
+        }
+
+        return SurveyOption::where('option_type_id', $structureType->id)
+            ->where('scope_type', 'category')
+            ->where('scope_id', $category->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray() ?: ['Standard'];
     }
 
     /**
-     * Get material options based on category.
+     * Get material options based on category from database.
      * 
      * @param string $categoryName
      * @param string|null $subCategoryKey
@@ -839,75 +772,383 @@ class SurveyDataService
      */
     public function getMaterialOptions(string $categoryName, ?string $subCategoryKey = null): array
     {
-        $mapping = [
-            'Exterior' => [
-                'Double Glazed Aluminium',
-                'Polycarbonate',
-                'Slate',
-                'Asphalt',
-                'Concrete Interlocking',
-                'Fibre Slate',
-                'Felt',
-            ],
-            'Interior' => [
-                'Plasterboard',
-                'Plaster',
-                'Timber',
-                'Concrete',
-                'Mixed',
-            ],
-            'Building Services' => [
-                'Copper',
-                'Plastic',
-                'Mixed',
-                'Aluminium',
-            ],
-            'Damp & Timber and Structural Defects' => [
-                'Timber',
-                'Mixed',
-                'Concrete',
-                'Brick',
-            ],
-        ];
+        $materialType = SurveyOptionType::where('key_name', 'material')->first();
+        if (!$materialType) {
+            return ['Mixed'];
+        }
 
-        return $mapping[$categoryName] ?? ['Mixed'];
+        $category = SurveyCategory::where('display_name', $categoryName)->orWhere('name', $categoryName)->first();
+        if (!$category) {
+            return ['Mixed'];
+        }
+
+        return SurveyOption::where('option_type_id', $materialType->id)
+            ->where('scope_type', 'category')
+            ->where('scope_id', $category->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray() ?: ['Mixed'];
     }
 
     /**
-     * Get defect options (can be category-specific in future).
+     * Get defect options from database (global for now, can be category-specific in future).
      * 
      * @param string|null $categoryName
      * @return array
      */
     public function getDefectOptions(?string $categoryName = null): array
     {
-        // Global defect options - can be made category-specific in future
-        return [
-            'Holes',
-            'Perished',
-            'Thermal Sag',
-            'Deflection',
-            'Rot',
-            'Moss',
-            'Lichen',
-            'Slipped Tiles',
-            'None',
-        ];
+        $defectType = SurveyOptionType::where('key_name', 'defects')->first();
+        if (!$defectType) {
+            return [];
+        }
+
+        return SurveyOption::where('option_type_id', $defectType->id)
+            ->where('scope_type', 'global')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray();
     }
 
     /**
-     * Get remaining life options (global for all categories).
+     * Get remaining life options (global) from database.
      * 
      * @return array
      */
     public function getRemainingLifeOptions(): array
     {
+        $remainingLifeType = SurveyOptionType::where('key_name', 'remaining_life')->first();
+        if (!$remainingLifeType) {
+            return [];
+        }
+
+        return SurveyOption::where('option_type_id', $remainingLifeType->id)
+            ->where('scope_type', 'global')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray();
+    }
+
+    // ============================================================================
+    // SECTION ASSESSMENT METHODS
+    // ============================================================================
+
+    /**
+     * Save section assessment and generate report.
+     * 
+     * @param Survey $survey
+     * @param SurveySectionDefinition $sectionDefinition
+     * @param array $formData Form data from frontend
+     * @param bool $isClone Whether this is a cloned section
+     * @param int|null $assessmentId If provided, update this specific assessment (for updates)
+     * @return array ['success' => bool, 'assessment' => SurveySectionAssessment, 'report_content' => string]
+     */
+    public function saveSectionAssessment(Survey $survey, SurveySectionDefinition $sectionDefinition, array $formData, bool $isClone = false, ?int $assessmentId = null): array
+    {
+        DB::beginTransaction();
+        
+        try {
+            // If assessment ID is provided, update that specific assessment
+            if ($assessmentId) {
+                $assessment = SurveySectionAssessment::where('id', $assessmentId)
+                    ->where('survey_id', $survey->id)
+                    ->where('section_definition_id', $sectionDefinition->id)
+                    ->firstOrFail();
+            } elseif ($isClone) {
+                // New clone - create a new assessment
+                $sourceAssessment = SurveySectionAssessment::where('survey_id', $survey->id)
+                    ->where('section_definition_id', $sectionDefinition->id)
+                    ->where(function($query) {
+                        $query->where('is_clone', false)
+                              ->where('clone_index', 0)
+                              ->orWhereNull('is_clone');
+                    })
+                    ->orderBy('clone_index')
+                    ->orderBy('id')
+                    ->first();
+                
+                if (!$sourceAssessment) {
+                    $sourceAssessment = new SurveySectionAssessment();
+                    $sourceAssessment->survey_id = $survey->id;
+                    $sourceAssessment->section_definition_id = $sectionDefinition->id;
+                    $sourceAssessment->is_clone = false;
+                    $sourceAssessment->clone_index = 0;
+                    $sourceAssessment->save();
+                }
+                
+                $cloneIndex = SurveySectionAssessment::where('survey_id', $survey->id)
+                    ->where('section_definition_id', $sectionDefinition->id)
+                    ->where('is_clone', true)
+                    ->max('clone_index') ?? 0;
+                $cloneIndex += 1;
+                
+                $assessment = new SurveySectionAssessment();
+                $assessment->survey_id = $survey->id;
+                $assessment->section_definition_id = $sectionDefinition->id;
+                $assessment->is_clone = true;
+                $assessment->cloned_from_id = $sourceAssessment->id;
+                $assessment->clone_index = $cloneIndex;
+            } else {
+                $assessment = SurveySectionAssessment::where('survey_id', $survey->id)
+                    ->where('section_definition_id', $sectionDefinition->id)
+                    ->where(function($query) {
+                        $query->where('is_clone', false)
+                              ->orWhereNull('is_clone');
+                    })
+                    ->where('clone_index', 0)
+                    ->first();
+                
+                if (!$assessment) {
+                    $assessment = new SurveySectionAssessment();
+                    $assessment->survey_id = $survey->id;
+                    $assessment->section_definition_id = $sectionDefinition->id;
+                    $assessment->is_clone = false;
+                    $assessment->clone_index = 0;
+                }
+            }
+
+            // Get option type IDs
+            $optionTypes = SurveyOptionType::whereIn('key_name', ['section_type', 'location', 'structure', 'material', 'remaining_life', 'defects'])
+                ->get()
+                ->keyBy('key_name');
+
+            $sectionDefinition->load('subcategory.category');
+            
+            // Map form values to option IDs
+            $sectionTypeId = $this->findSectionOptionId($optionTypes['section_type']->id ?? null, $formData['section'] ?? null, $sectionDefinition->subcategory_id);
+            $locationId = $this->findSectionOptionId($optionTypes['location']->id ?? null, $formData['location'] ?? null);
+            $structureId = $this->findSectionOptionId($optionTypes['structure']->id ?? null, $formData['structure'] ?? null, $sectionDefinition->subcategory->category_id ?? null);
+            $materialId = $this->findSectionOptionId($optionTypes['material']->id ?? null, $formData['material'] ?? null, $sectionDefinition->subcategory->category_id ?? null);
+            $remainingLifeId = $this->findSectionOptionId($optionTypes['remaining_life']->id ?? null, $formData['remaining_life'] ?? null);
+
+            // Update assessment fields
+            $assessment->survey_id = $survey->id;
+            $assessment->section_definition_id = $sectionDefinition->id;
+            $assessment->section_type_id = $sectionTypeId;
+            $assessment->location_id = $locationId;
+            $assessment->structure_id = $structureId;
+            $assessment->material_id = $materialId;
+            $assessment->remaining_life_id = $remainingLifeId;
+            $assessment->notes = $formData['notes'] ?? null;
+            
+            $conditionRating = $this->mapConditionRating($formData['condition_rating'] ?? null);
+            $assessment->condition_rating = $conditionRating;
+            
+            $assessment->is_completed = true;
+            $assessment->completed_at = now();
+            $assessment->save();
+            $assessment->refresh();
+
+            // Sync defects
+            if (isset($formData['defects']) && is_array($formData['defects'])) {
+                $defectOptionIds = $this->findSectionDefectOptionIds($optionTypes['defects']->id ?? null, $formData['defects']);
+                $assessment->defects()->sync($defectOptionIds);
+            }
+
+            // Save costs
+            if (isset($formData['costs']) && is_array($formData['costs'])) {
+                $this->saveSectionCosts($assessment, $formData['costs']);
+            }
+
+            // Load assessment relationships for ChatGPT
+            $assessment->load(['sectionType', 'location', 'structure', 'material', 'remainingLife', 'defects', 'costs']);
+            
+            $chatGPTData = $this->prepareSectionChatGPTData($assessment, $formData);
+            
+            $reportContent = '';
+            try {
+                $categoryName = $sectionDefinition->subcategory->category->display_name ?? 'Unknown';
+                $sectionName = $sectionDefinition->display_name;
+                $reportContent = $this->chatGPTService->generateReport($chatGPTData, $sectionName, $categoryName);
+                
+                $assessment->report_content = $reportContent;
+                $assessment->save();
+            } catch (\Exception $e) {
+                Log::error('Failed to generate report content', [
+                    'assessment_id' => $assessment->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'assessment' => $assessment,
+                'report_content' => $reportContent,
+            ];
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to save section assessment', [
+                'survey_id' => $survey->id,
+                'section_definition_id' => $sectionDefinition->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Save photos for a section assessment.
+     */
+    public function saveSectionPhotos(SurveySectionAssessment $assessment, array $photos): void
+    {
+        if (empty($photos)) {
+            return;
+        }
+
+        $surveyId = $assessment->survey_id;
+        $assessmentId = $assessment->id;
+        $storagePath = "survey-photos/{$surveyId}/{$assessmentId}";
+        
+        $maxSortOrder = \App\Models\SurveySectionPhoto::where('section_assessment_id', $assessmentId)
+            ->max('sort_order') ?? -1;
+        
+        foreach ($photos as $index => $photo) {
+            if (!$photo->isValid()) {
+                continue;
+            }
+            
+            $extension = $photo->getClientOriginalExtension();
+            $filename = time() . '_' . uniqid() . '_' . $index . '.' . $extension;
+            $filePath = $photo->storeAs($storagePath, $filename, 'public');
+            
+            if ($filePath) {
+                \App\Models\SurveySectionPhoto::create([
+                    'section_assessment_id' => $assessmentId,
+                    'file_path' => $filePath,
+                    'file_name' => $photo->getClientOriginalName(),
+                    'file_size' => $photo->getSize(),
+                    'mime_type' => $photo->getMimeType(),
+                    'sort_order' => $maxSortOrder + $index + 1,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Find section option ID by value and option type.
+     */
+    protected function findSectionOptionId(?int $optionTypeId, ?string $value, ?int $scopeId = null): ?int
+    {
+        if (!$optionTypeId || !$value) {
+            return null;
+        }
+
+        $query = SurveyOption::where('option_type_id', $optionTypeId)
+            ->where('value', $value)
+            ->where('is_active', true);
+
+        if ($scopeId) {
+            $scopedOption = (clone $query)
+                ->where('scope_id', $scopeId)
+                ->whereIn('scope_type', ['category', 'subcategory'])
+                ->first();
+            
+            if ($scopedOption) {
+                return $scopedOption->id;
+            }
+        }
+
+        $globalOption = (clone $query)
+            ->where('scope_type', 'global')
+            ->whereNull('scope_id')
+            ->first();
+
+        return $globalOption->id ?? null;
+    }
+
+    /**
+     * Find section defect option IDs by values.
+     */
+    protected function findSectionDefectOptionIds(?int $defectOptionTypeId, array $defectValues): array
+    {
+        if (!$defectOptionTypeId || empty($defectValues)) {
+            return [];
+        }
+
+        return SurveyOption::where('option_type_id', $defectOptionTypeId)
+            ->whereIn('value', $defectValues)
+            ->where('is_active', true)
+            ->where('scope_type', 'global')
+            ->pluck('id')
+            ->toArray();
+    }
+
+    /**
+     * Save costs for section assessment.
+     */
+    public function saveSectionCosts(SurveySectionAssessment $assessment, array $costs): void
+    {
+        $assessment->costs()->delete();
+
+        foreach ($costs as $cost) {
+            if (empty($cost['category']) || empty($cost['description'])) {
+                continue;
+            }
+
+            SurveySectionCost::create([
+                'section_assessment_id' => $assessment->id,
+                'category' => $cost['category'],
+                'description' => $cost['description'],
+                'due_year' => !empty($cost['due']) ? (int)$cost['due'] : null,
+                'amount' => isset($cost['cost']) ? (float)str_replace(['£', ','], '', $cost['cost']) : 0.00,
+                'is_active' => true,
+            ]);
+        }
+    }
+
+    /**
+     * Prepare data for ChatGPT service (section).
+     */
+    protected function prepareSectionChatGPTData(SurveySectionAssessment $assessment, array $formData): array
+    {
         return [
-            '0',
-            '1-5',
-            '6-10',
-            '10+',
+            'section' => $assessment->sectionType->value ?? $formData['section'] ?? '',
+            'location' => $assessment->location->value ?? $formData['location'] ?? '',
+            'structure' => $assessment->structure->value ?? $formData['structure'] ?? '',
+            'material' => $assessment->material->value ?? $formData['material'] ?? '',
+            'defects' => $assessment->defects->pluck('value')->toArray() ?: ($formData['defects'] ?? []),
+            'remaining_life' => $assessment->remainingLife->value ?? $formData['remaining_life'] ?? '',
+            'notes' => $assessment->notes ?? $formData['notes'] ?? '',
+            'costs' => $assessment->costs->map(function($cost) {
+                return [
+                    'category' => $cost->category,
+                    'description' => $cost->description,
+                    'due' => $cost->due_year ? (string)$cost->due_year : '',
+                    'cost' => number_format($cost->amount, 2),
+                ];
+            })->toArray() ?: ($formData['costs'] ?? []),
         ];
     }
+
+    /**
+     * Map condition rating from string/numeric to integer.
+     */
+    public function mapConditionRating($rating): ?int
+    {
+        if ($rating === null || $rating === 'ni' || $rating === '') {
+            return null;
+        }
+
+        if (is_numeric($rating)) {
+            return (int)$rating;
+        }
+
+        $mapping = [
+            'excellent' => 1,
+            'good' => 2,
+            'fair' => 3,
+            'poor' => 3,
+        ];
+
+        return $mapping[strtolower($rating)] ?? null;
+    }
+
 }
 

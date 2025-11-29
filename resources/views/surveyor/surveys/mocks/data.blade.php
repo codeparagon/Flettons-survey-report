@@ -9,14 +9,14 @@
         <div class="survey-data-mock-header-left">
             <a href="{{ route('surveyor.surveys.index') }}" class="survey-data-mock-back">
                 <i class="fas fa-chevron-left"></i>
-                <span>Survey Data Capture</span>
             </a>
+            <div class="survey-data-mock-header-title">
+                <span class="survey-data-mock-header-address">{{ $survey->full_address ?? 'Property Address' }}</span>
+                <span class="survey-data-mock-header-ref">{{ $survey->job_reference ?? 'Job Reference' }}</span>
+            </div>
         </div>
         <div class="survey-data-mock-header-right">
-            <div class="survey-data-mock-jobref">
-                <span class="survey-data-mock-jobref-label">Workspace</span>
-                <span class="survey-data-mock-jobref-value">{{ $survey->level ?? 'Level 1' }} Assessment</span>
-            </div>
+            <span class="survey-data-mock-header-level">{{ $survey->level ?? 'Level 2' }}</span>
         </div>
     </div>
 
@@ -107,6 +107,40 @@
                                     </div>
                                 </div>
 
+<!-- Cost Modal -->
+<div id="survey-data-mock-cost-modal" class="survey-data-mock-cost-modal">
+    <div class="survey-data-mock-cost-modal-content">
+        <div class="survey-data-mock-cost-modal-header">
+            <h3 class="survey-data-mock-cost-modal-title">Add Cost</h3>
+            <button type="button" class="survey-data-mock-cost-modal-close" id="cost-modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="survey-data-mock-cost-modal-body">
+            <div class="survey-data-mock-cost-modal-field">
+                <label class="survey-data-mock-cost-modal-label">Category</label>
+                <input type="text" class="survey-data-mock-cost-modal-input" id="cost-modal-category" placeholder="e.g., Essential, Recommended, Optional">
+            </div>
+            <div class="survey-data-mock-cost-modal-field">
+                <label class="survey-data-mock-cost-modal-label">Description</label>
+                <textarea class="survey-data-mock-cost-modal-textarea" id="cost-modal-description" rows="3" placeholder="Enter cost description..."></textarea>
+            </div>
+            <div class="survey-data-mock-cost-modal-field">
+                <label class="survey-data-mock-cost-modal-label">Due Year</label>
+                <input type="text" class="survey-data-mock-cost-modal-input" id="cost-modal-due" placeholder="e.g., 2025">
+            </div>
+            <div class="survey-data-mock-cost-modal-field">
+                <label class="survey-data-mock-cost-modal-label">Cost Amount (£)</label>
+                <input type="text" class="survey-data-mock-cost-modal-input" id="cost-modal-cost" placeholder="0.00">
+            </div>
+        </div>
+        <div class="survey-data-mock-cost-modal-footer">
+            <button type="button" class="survey-data-mock-cost-modal-btn survey-data-mock-cost-modal-btn-cancel" id="cost-modal-cancel">Cancel</button>
+            <button type="button" class="survey-data-mock-cost-modal-btn survey-data-mock-cost-modal-btn-save" id="cost-modal-save">Save</button>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('styles')
@@ -143,51 +177,63 @@
     .survey-data-mock-header-left {
         display: flex;
         align-items: center;
+        gap: 1rem;
     }
 
     .survey-data-mock-back {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
         color: #C1EC4A;
         text-decoration: none;
-        font-size: 16px;
-        transition: color 0.2s ease;
+        transition: all 0.2s ease;
     }
 
     .survey-data-mock-back:hover {
-        color: #A8D043;
+        background: rgba(255, 255, 255, 0.15);
+        color: #C1EC4A;
     }
 
     .survey-data-mock-back i {
-        font-size: 14px;
+        font-size:1.6rem;
         display: inline-block !important;
         visibility: visible !important;
         opacity: 1 !important;
     }
 
+    .survey-data-mock-header-title {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+
+    .survey-data-mock-header-address {
+        font-size: 16px;
+        font-weight: 600;
+        color: #FFFFFF;
+    }
+
+    .survey-data-mock-header-ref {
+        font-size: 13px;
+        color: #94A3B8;
+    }
+
     .survey-data-mock-header-right {
         display: flex;
         align-items: center;
-        gap: 1.5rem;
     }
 
-    .survey-data-mock-jobref {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 0.25rem;
-    }
-
-    .survey-data-mock-jobref-label {
-        font-size: 12px;
-        color: #94A3B8;
-        text-transform: uppercase;
-    }
-
-    .survey-data-mock-jobref-value {
-        font-size: 16px;
-        color: #FFFFFF;
+    .survey-data-mock-header-level {
+        font-size: 14px;
+        font-weight: 600;
+        color: #C1EC4A;
+        padding: 0.5rem 1rem;
+        background: rgba(193, 236, 74, 0.1);
+        border-radius: 6px;
     }
 
     /* Main Body */
@@ -236,7 +282,7 @@
     }
 
     .survey-data-mock-category-toggle-icon {
-        font-size: 18px;
+        font-size: 1.8rem;
         color: #C1EC4A;
         transition: transform 0.3s ease;
         display: inline-block !important;
@@ -437,7 +483,7 @@
     }
 
     .survey-data-mock-expand-icon {
-        font-size: 14px;
+        font-size: 1.8rem;
         color: #C1EC4A;
         transition: transform 0.3s ease;
         display: inline-block !important;
@@ -482,7 +528,7 @@
     }
 
     .survey-data-mock-section-title-collapse {
-        font-size: 16px;
+        font-size: 1.8rem;
         color: #C1EC4A;
         cursor: pointer;
         transition: transform 0.3s ease;
@@ -867,11 +913,21 @@
         border-bottom: 1px solid rgba(148, 163, 184, 0.2);
     }
 
+    .survey-data-mock-costs-table th:last-child {
+        text-align: center;
+        width: 100px;
+    }
+
     .survey-data-mock-costs-table td {
         padding: 0.5rem;
         font-size: 13px;
         color: #1A202C;
         border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .survey-data-mock-costs-table td:last-child {
+        text-align: center;
+        padding: 0.25rem;
     }
 
     .survey-data-mock-costs-table tbody tr:last-child td {
@@ -1004,6 +1060,79 @@
     }
 
     .survey-data-mock-upload-text strong {
+    }
+
+    /* Image Preview Grid */
+    .survey-data-mock-images-preview,
+    .survey-data-mock-existing-images {
+        margin-top: 1rem;
+    }
+
+    .survey-data-mock-images-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .survey-data-mock-image-item {
+        position: relative;
+        width: 100%;
+        padding-top: 100%; /* 1:1 Aspect Ratio */
+        background: #F8FAFC;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 4px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .survey-data-mock-image-item:hover {
+        border-color: #C1EC4A;
+        box-shadow: 0 2px 8px rgba(193, 236, 74, 0.2);
+    }
+
+    .survey-data-mock-image-thumbnail {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .survey-data-mock-image-delete {
+        position: absolute;
+        top: 0.25rem;
+        right: 0.25rem;
+        width: 28px;
+        height: 28px;
+        background: rgba(239, 68, 68, 0.9);
+        color: #FFFFFF;
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: 10;
+        font-size: 12px;
+    }
+
+    .survey-data-mock-image-item:hover .survey-data-mock-image-delete {
+        opacity: 1;
+    }
+
+    .survey-data-mock-image-delete:hover {
+        background: rgba(220, 38, 38, 1);
+    }
+
+    .survey-data-mock-image-delete i {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     /* Action Buttons */
@@ -1534,6 +1663,191 @@
         background: #0F172A;
     }
 
+    /* Cost Modal Styles */
+    .survey-data-mock-cost-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10002;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .survey-data-mock-cost-modal.show {
+        display: flex;
+    }
+
+    .survey-data-mock-cost-modal-content {
+        background: #FFFFFF;
+        border-radius: 8px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .survey-data-mock-cost-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .survey-data-mock-cost-modal-title {
+        font-size: 20px;
+        color: #1A202C;
+        margin: 0;
+    }
+
+    .survey-data-mock-cost-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #94A3B8;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .survey-data-mock-cost-modal-close:hover {
+        background: rgba(148, 163, 184, 0.1);
+        color: #64748B;
+    }
+
+    .survey-data-mock-cost-modal-body {
+        margin-bottom: 1.5rem;
+    }
+
+    .survey-data-mock-cost-modal-field {
+        margin-bottom: 1.5rem;
+    }
+
+    .survey-data-mock-cost-modal-field:last-child {
+        margin-bottom: 0;
+    }
+
+    .survey-data-mock-cost-modal-label {
+        display: block;
+        font-size: 13px;
+        color: #64748B;
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    .survey-data-mock-cost-modal-input,
+    .survey-data-mock-cost-modal-textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
+        font-size: 14px;
+        color: #1A202C;
+        background: #FFFFFF;
+        transition: border-color 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-data-mock-cost-modal-textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .survey-data-mock-cost-modal-input:focus,
+    .survey-data-mock-cost-modal-textarea:focus {
+        outline: none;
+        border-color: #C1EC4A;
+    }
+
+    .survey-data-mock-cost-modal-footer {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+
+    .survey-data-mock-cost-modal-btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-data-mock-cost-modal-btn-cancel {
+        background: #F1F5F9;
+        color: #64748B;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .survey-data-mock-cost-modal-btn-cancel:hover {
+        background: #E2E8F0;
+        border-color: rgba(148, 163, 184, 0.6);
+    }
+
+    .survey-data-mock-cost-modal-btn-save {
+        background: #1E293B;
+        color: #FFFFFF;
+    }
+
+    .survey-data-mock-cost-modal-btn-save:hover {
+        background: #0F172A;
+    }
+
+    /* Cost Table Actions */
+    .survey-data-mock-costs-table td {
+        position: relative;
+    }
+
+    .survey-data-mock-cost-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .survey-data-mock-cost-edit-btn,
+    .survey-data-mock-cost-delete-btn {
+        padding: 0.25rem 0.5rem;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
+        background: #FFFFFF;
+        color: #64748B;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .survey-data-mock-cost-edit-btn:hover {
+        background: #F1F5F9;
+        border-color: rgba(148, 163, 184, 0.6);
+        color: #1A202C;
+    }
+
+    .survey-data-mock-cost-delete-btn:hover {
+        background: #FEF2F2;
+        border-color: #EF4444;
+        color: #EF4444;
+    }
+
+    .survey-data-mock-cost-edit-btn i,
+    .survey-data-mock-cost-delete-btn i {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
     @media (max-width: 1024px) {
         .survey-data-mock-body {
             padding: 1.5rem 1rem;
@@ -1632,7 +1946,7 @@
     .survey-data-mock-accommodation-expand-icon {
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         color: #C1EC4A;
-        font-size: 14px;
+        font-size: 1.8rem;
         display: inline-block !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -1645,15 +1959,6 @@
     .survey-data-mock-accommodation-status {
         display: flex;
         align-items: center;
-    }
-
-    .survey-data-mock-expand-icon {
-        color: #C1EC4A;
-        font-size: 14px;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: inline-block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
     }
 
     .survey-data-mock-accommodation-item.expanded .survey-data-mock-expand-icon {
@@ -1789,8 +2094,8 @@
     }
 
     .survey-data-mock-carousel-indicator.active {
-        background: #C1EC4A;
-        width: 24px;
+        background: #1E293B;
+        width: 10px;
         height: 10px;
         border-radius: 5px;
         box-shadow: 0 2px 4px rgba(193, 236, 74, 0.3);
@@ -2048,19 +2353,19 @@ $(document).ready(function() {
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
         const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
-        const isSaved = $sectionItem.attr('data-saved') === 'true';
+        const hasReport = $sectionItem.attr('data-has-report') === 'true' || $sectionItem.attr('data-saved') === 'true';
         const isAccommodation = $sectionItem.attr('data-accommodation-id') !== undefined;
         
         $sectionItem.toggleClass('expanded');
         
         if ($sectionItem.hasClass('expanded')) {
             $titleBar.slideDown(300);
-            if (isSaved && !isAccommodation) {
-                // Show report if saved, hide form (only for regular sections)
+            if (hasReport && !isAccommodation) {
+                // Show report if report_content exists, hide form (only for regular sections)
                 $details.hide();
                 $reportContent.slideDown(300);
             } else {
-                // Show form/details if not saved or if accommodation
+                // Show form/details if no report_content or if accommodation
                 $details.slideDown(300);
                 $reportContent.hide();
             }
@@ -2076,10 +2381,12 @@ $(document).ready(function() {
         e.stopPropagation();
         const $sectionItem = $(this).closest('.survey-data-mock-section-item');
         const $details = $sectionItem.find('.survey-data-mock-section-details');
+        const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
         const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
         
         $sectionItem.removeClass('expanded');
         $details.slideUp(300);
+        $reportContent.slideUp(300);
         $titleBar.slideUp(300);
     });
 
@@ -2092,13 +2399,17 @@ $(document).ready(function() {
         e.preventDefault();
         
         const $badge = $(this);
-        const sectionId = $badge.data('section-id');
+        // Check for section-id first, then accommodation-id as fallback
+        let sectionId = $badge.data('section-id');
+        if (!sectionId) {
+            sectionId = $badge.data('accommodation-id');
+        }
         const currentRating = $badge.data('current-rating') || 'ni';
         
         console.log('Rating badge clicked:', { sectionId, currentRating });
         
         if (!sectionId) {
-            console.error('No section ID found on badge');
+            console.error('No section ID or accommodation ID found on badge');
             return;
         }
         
@@ -2142,7 +2453,11 @@ $(document).ready(function() {
         }
         
         // Find all badges for this section (collapsed header and expanded title bar)
-        const $badges = $(`.survey-data-mock-condition-badge[data-section-id="${currentRatingSectionId}"]`);
+        // Check both section-id and accommodation-id
+        let $badges = $(`.survey-data-mock-condition-badge[data-section-id="${currentRatingSectionId}"]`);
+        if ($badges.length === 0) {
+            $badges = $(`.survey-data-mock-condition-badge[data-accommodation-id="${currentRatingSectionId}"]`);
+        }
         
         // Update all badges
         const ratingText = selectedRating === 'ni' ? 'NI' : selectedRating;
@@ -2159,22 +2474,87 @@ $(document).ready(function() {
             
             // Update badge data (no text - badge shows only color)
             $badge.data('current-rating', selectedRating);
+            // Also update section-id if it was accommodation-id
+            if ($badge.data('accommodation-id') && !$badge.data('section-id')) {
+                $badge.attr('data-section-id', currentRatingSectionId);
+            }
         });
         
-        // Close modal
-        $('#survey-data-mock-rating-modal').removeClass('show');
-        currentRatingSectionId = null;
-        selectedRating = null;
-        $('.survey-data-mock-rating-option').removeClass('selected');
+        // Check if assessment exists in backend (sectionId is numeric)
+        const sectionId = currentRatingSectionId;
+        const isNumericId = /^\d+$/.test(sectionId.toString());
         
-        // TODO: Save to backend via AJAX
-        const updatedSectionId = currentRatingSectionId;
-        const updatedRating = selectedRating;
-        
-        console.log('Rating updated:', {
-            sectionId: updatedSectionId,
-            rating: updatedRating
-        });
+        if (isNumericId) {
+            // Assessment exists - update backend (works for both section and accommodation assessments)
+            const surveyId = $('.survey-data-mock-content').data('survey-id');
+            const assessmentId = parseInt(sectionId);
+            
+            console.log('Saving condition rating:', {
+                surveyId: surveyId,
+                assessmentId: assessmentId,
+                rating: selectedRating,
+                sectionId: sectionId
+            });
+            
+            // Show loading state
+            const $saveBtn = $('#rating-modal-save');
+            const originalBtnText = $saveBtn.text();
+            $saveBtn.prop('disabled', true).text('Saving...');
+            
+            // Send AJAX request to update condition rating
+            $.ajax({
+                url: `/surveyor/surveys/${surveyId}/assessments/${assessmentId}/condition-rating`,
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    condition_rating: selectedRating
+                },
+                success: function(response) {
+                    console.log('Condition rating updated in backend:', response);
+                    
+                    // Close modal
+                    $('#survey-data-mock-rating-modal').removeClass('show');
+                    currentRatingSectionId = null;
+                    selectedRating = null;
+                    $('.survey-data-mock-rating-option').removeClass('selected');
+                    $saveBtn.prop('disabled', false).text(originalBtnText);
+                },
+                error: function(xhr) {
+                    console.error('Failed to update condition rating:', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        response: xhr.responseJSON,
+                        url: xhr.responseURL || `/surveyor/surveys/${surveyId}/assessments/${assessmentId}/condition-rating`
+                    });
+                    let errorMessage = 'Failed to update condition rating. Please try again.';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.status === 404) {
+                        errorMessage = 'Assessment not found. Please save the accommodation first.';
+                    } else if (xhr.status === 403) {
+                        errorMessage = 'You are not authorized to update this rating.';
+                    }
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(errorMessage);
+                    } else {
+                        alert(errorMessage);
+                    }
+                    $saveBtn.prop('disabled', false).text(originalBtnText);
+                }
+            });
+        } else {
+            // No assessment in backend - just update JS
+            console.log('Rating updated in JS only (no backend assessment yet):', {
+                sectionId: sectionId,
+                rating: selectedRating
+            });
+            
+            // Close modal
+            $('#survey-data-mock-rating-modal').removeClass('show');
+            currentRatingSectionId = null;
+            selectedRating = null;
+            $('.survey-data-mock-rating-option').removeClass('selected');
+        }
     });
 
     // Close modal on backdrop click
@@ -2507,8 +2887,56 @@ $(document).ready(function() {
         }
     }
     
+    // Initialize section states on page load
+    function initializeSectionStates() {
+        $('.survey-data-mock-section-item').each(function() {
+            const $sectionItem = $(this);
+            const $details = $sectionItem.find('.survey-data-mock-section-details');
+            const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
+            const hasReport = $sectionItem.attr('data-has-report') === 'true' || $reportContent.attr('data-initial-has-report') === 'true';
+            
+            // Set active buttons based on saved data
+            const selectedSection = $details.data('selected-section');
+            const selectedLocation = $details.data('selected-location');
+            const selectedStructure = $details.data('selected-structure');
+            const selectedMaterial = $details.data('selected-material');
+            const selectedDefects = $details.data('selected-defects') || [];
+            const selectedRemainingLife = $details.data('selected-remaining-life');
+            
+            if (selectedSection) {
+                $details.find(`[data-group="section"][data-value="${selectedSection}"]`).addClass('active');
+            }
+            if (selectedLocation) {
+                $details.find(`[data-group="location"][data-value="${selectedLocation}"]`).addClass('active');
+            }
+            if (selectedStructure) {
+                $details.find(`[data-group="structure"][data-value="${selectedStructure}"]`).addClass('active');
+            }
+            if (selectedMaterial) {
+                $details.find(`[data-group="material"][data-value="${selectedMaterial}"]`).addClass('active');
+            }
+            if (Array.isArray(selectedDefects)) {
+                selectedDefects.forEach(function(defect) {
+                    $details.find(`[data-group="defects"][data-value="${defect}"]`).addClass('active');
+                });
+            }
+            if (selectedRemainingLife) {
+                $details.find(`[data-group="remaining_life"][data-value="${selectedRemainingLife}"]`).addClass('active');
+            }
+            
+            // Set initial visibility - both should be hidden initially (shown when expanded)
+            $details.hide();
+            $reportContent.hide();
+        });
+    }
+    
     // Start initialization
     initOnReady();
+    
+    // Initialize section states after DOM is ready
+    $(document).ready(function() {
+        initializeSectionStates();
+    });
     
     // Also initialize after full page load
     $(window).on('load', function() {
@@ -2518,6 +2946,7 @@ $(document).ready(function() {
                 initializeDividers();
             }, 200);
         }
+        initializeSectionStates();
     });
     
     // Reinitialize when sections expand (for dynamically added content)
@@ -2711,12 +3140,277 @@ $(document).ready(function() {
         updateSectionHeader($sectionItem);
     });
 
+    // Cost Management Functionality
+    let currentCostSectionItem = null;
+    let currentCostIndex = null;
+
     // Add Cost Button
-    $('.survey-data-mock-add-cost-btn').on('click', function(e) {
+    $(document).on('click', '.survey-data-mock-add-cost-btn', function(e) {
         e.stopPropagation();
-        alert('Add Cost functionality - to be implemented');
-        // TODO: Open modal/form to add new cost entry
+        const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+        currentCostSectionItem = $sectionItem;
+        currentCostIndex = null;
+        
+        // Reset modal form
+        $('#cost-modal-category').val('');
+        $('#cost-modal-description').val('');
+        $('#cost-modal-due').val('');
+        $('#cost-modal-cost').val('');
+        $('.survey-data-mock-cost-modal-title').text('Add Cost');
+        
+        // Show modal
+        $('#survey-data-mock-cost-modal').addClass('show');
     });
+
+    // Edit Cost Button
+    $(document).on('click', '.survey-data-mock-cost-edit-btn', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+        const $row = $(this).closest('tr');
+        const costIndex = parseInt($row.data('cost-index'));
+        
+        currentCostSectionItem = $sectionItem;
+        currentCostIndex = costIndex;
+        
+        // Get cost data from table row
+        const category = $row.find('td:eq(0)').text().trim();
+        const description = $row.find('td:eq(1)').text().trim();
+        const due = $row.find('td:eq(2)').text().trim();
+        const cost = $row.find('td:eq(3)').text().trim();
+        
+        // Populate modal form
+        $('#cost-modal-category').val(category);
+        $('#cost-modal-description').val(description);
+        $('#cost-modal-due').val(due);
+        $('#cost-modal-cost').val(cost);
+        $('.survey-data-mock-cost-modal-title').text('Edit Cost');
+        
+        // Show modal
+        $('#survey-data-mock-cost-modal').addClass('show');
+    });
+
+    // Delete Cost Button
+    $(document).on('click', '.survey-data-mock-cost-delete-btn', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+        const $row = $(this).closest('tr');
+        
+        if (confirm('Are you sure you want to delete this cost?')) {
+            $row.fadeOut(300, function() {
+                $(this).remove();
+                updateCostsTable($sectionItem);
+                
+                // Check if assessment exists in backend (sectionId is numeric)
+                const sectionId = $sectionItem.data('section-id');
+                const isNumericId = /^\d+$/.test(sectionId.toString());
+                
+                if (isNumericId) {
+                    // Assessment exists - save updated costs to backend immediately
+                    const surveyId = $('.survey-data-mock-content').data('survey-id');
+                    const assessmentId = parseInt(sectionId);
+                    
+                    // Collect all remaining costs from table
+                    const $table = $sectionItem.find('.survey-data-mock-costs-table tbody');
+                    const costs = [];
+                    $table.find('tr[data-cost-index]').each(function() {
+                        const $costRow = $(this);
+                        const cat = $costRow.find('td:eq(0)').text().trim();
+                        const desc = $costRow.find('td:eq(1)').text().trim();
+                        const dueYear = $costRow.find('td:eq(2)').text().trim();
+                        const costAmount = $costRow.find('td:eq(3)').text().trim();
+                        
+                        if (cat && cat !== 'No costs added') {
+                            costs.push({
+                                category: cat,
+                                description: desc,
+                                due: dueYear,
+                                cost: costAmount
+                            });
+                        }
+                    });
+                    
+                    // Send AJAX request to update costs
+                    $.ajax({
+                        url: `/surveyor/surveys/${surveyId}/assessments/${assessmentId}/costs`,
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            costs: costs
+                        },
+                        success: function(response) {
+                            console.log('Costs updated in backend after delete:', response);
+                        },
+                        error: function(xhr) {
+                            console.error('Failed to update costs:', xhr.responseJSON);
+                            alert('Failed to update costs. Please try again.');
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    // Save Cost from Modal
+    $('#cost-modal-save').on('click', function() {
+        const category = $('#cost-modal-category').val().trim();
+        const description = $('#cost-modal-description').val().trim();
+        const due = $('#cost-modal-due').val().trim();
+        const cost = $('#cost-modal-cost').val().trim();
+        
+        // Validate
+        if (!category || !description) {
+            alert('Please fill in Category and Description fields.');
+            return;
+        }
+        
+        if (!currentCostSectionItem) {
+            alert('Error: Section item not found.');
+            return;
+        }
+        
+        const $table = currentCostSectionItem.find('.survey-data-mock-costs-table tbody');
+        
+        if (currentCostIndex !== null) {
+            // Edit existing cost
+            const $row = $table.find(`tr[data-cost-index="${currentCostIndex}"]`);
+            $row.find('td:eq(0)').text(category);
+            $row.find('td:eq(1)').text(description);
+            $row.find('td:eq(2)').text(due);
+            $row.find('td:eq(3)').text(cost);
+        } else {
+            // Add new cost
+            const $noCostsRow = $table.find('tr:has(.survey-data-mock-no-costs)');
+            if ($noCostsRow.length > 0) {
+                $noCostsRow.remove();
+            }
+            
+            // Get next index
+            const maxIndex = $table.find('tr[data-cost-index]').length > 0 
+                ? Math.max(...$table.find('tr[data-cost-index]').map(function() {
+                    return parseInt($(this).data('cost-index')) || 0;
+                }).get())
+                : -1;
+            const newIndex = maxIndex + 1;
+            
+            const $newRow = $('<tr data-cost-index="' + newIndex + '">' +
+                '<td>' + category + '</td>' +
+                '<td>' + description + '</td>' +
+                '<td>' + due + '</td>' +
+                '<td>' + cost + '</td>' +
+                '<td>' +
+                    '<div class="survey-data-mock-cost-actions">' +
+                        '<button type="button" class="survey-data-mock-cost-edit-btn" data-cost-index="' + newIndex + '">' +
+                            '<i class="fas fa-edit"></i>' +
+                        '</button>' +
+                        '<button type="button" class="survey-data-mock-cost-delete-btn" data-cost-index="' + newIndex + '">' +
+                            '<i class="fas fa-trash"></i>' +
+                        '</button>' +
+                    '</div>' +
+                '</td>' +
+            '</tr>');
+            
+            $table.append($newRow);
+        }
+        
+        updateCostsTable(currentCostSectionItem);
+        
+        // Check if assessment exists in backend (sectionId is numeric)
+        const sectionId = currentCostSectionItem.data('section-id');
+        const isNumericId = /^\d+$/.test(sectionId.toString());
+        
+        if (isNumericId) {
+            // Assessment exists - save costs to backend immediately
+            const surveyId = $('.survey-data-mock-content').data('survey-id');
+            const assessmentId = parseInt(sectionId);
+            
+            // Collect all costs from table
+            const costs = [];
+            $table.find('tr[data-cost-index]').each(function() {
+                const $row = $(this);
+                const cat = $row.find('td:eq(0)').text().trim();
+                const desc = $row.find('td:eq(1)').text().trim();
+                const dueYear = $row.find('td:eq(2)').text().trim();
+                const costAmount = $row.find('td:eq(3)').text().trim();
+                
+                if (cat && cat !== 'No costs added') {
+                    costs.push({
+                        category: cat,
+                        description: desc,
+                        due: dueYear,
+                        cost: costAmount
+                    });
+                }
+            });
+            
+            // Show loading state
+            const $saveBtn = $('#cost-modal-save');
+            const originalBtnText = $saveBtn.text();
+            $saveBtn.prop('disabled', true).text('Saving...');
+            
+            // Send AJAX request to update costs
+            $.ajax({
+                url: `/surveyor/surveys/${surveyId}/assessments/${assessmentId}/costs`,
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    costs: costs
+                },
+                success: function(response) {
+                    console.log('Costs saved to backend:', response);
+                    $saveBtn.prop('disabled', false).text(originalBtnText);
+                    
+                    // Close modal
+                    $('#survey-data-mock-cost-modal').removeClass('show');
+                    currentCostSectionItem = null;
+                    currentCostIndex = null;
+                },
+                error: function(xhr) {
+                    console.error('Failed to save costs:', xhr.responseJSON);
+                    alert('Failed to save costs. Please try again.');
+                    $saveBtn.prop('disabled', false).text(originalBtnText);
+                }
+            });
+        } else {
+            // No assessment in backend - just update JS, will be saved on form submit
+            console.log('Costs updated in JS only (no backend assessment yet)');
+            
+            // Close modal
+            $('#survey-data-mock-cost-modal').removeClass('show');
+            currentCostSectionItem = null;
+            currentCostIndex = null;
+        }
+    });
+
+    // Close Cost Modal
+    $('#cost-modal-close, #cost-modal-cancel').on('click', function() {
+        $('#survey-data-mock-cost-modal').removeClass('show');
+        currentCostSectionItem = null;
+        currentCostIndex = null;
+    });
+
+    // Close modal on background click
+    $('#survey-data-mock-cost-modal').on('click', function(e) {
+        if ($(e.target).hasClass('survey-data-mock-cost-modal')) {
+            $(this).removeClass('show');
+            currentCostSectionItem = null;
+            currentCostIndex = null;
+        }
+    });
+
+    // Update costs table (ensure no empty row if costs exist)
+    function updateCostsTable($sectionItem) {
+        const $table = $sectionItem.find('.survey-data-mock-costs-table tbody');
+        const $costRows = $table.find('tr[data-cost-index]');
+        
+        if ($costRows.length === 0) {
+            // Add "No costs" row if table is empty
+            if ($table.find('tr:has(.survey-data-mock-no-costs)').length === 0) {
+                $table.append('<tr><td colspan="5" class="survey-data-mock-no-costs">No costs added</td></tr>');
+            }
+        }
+    }
 
     // Microphone Button
     $('.survey-data-mock-mic-btn').on('click', function(e) {
@@ -2725,10 +3419,275 @@ $(document).ready(function() {
         // TODO: Implement voice input
     });
 
-    // Image Upload Area
-    $('.survey-data-mock-images-upload').on('click', function() {
-        alert('Image upload functionality - to be implemented');
-        // TODO: Trigger file input or drag-drop handler
+    // Image Upload Functionality
+    // Initialize image upload for each section
+    function initializeImageUpload($sectionItem) {
+        const $uploadArea = $sectionItem.find('.survey-data-mock-images-upload');
+        const $fileInput = $sectionItem.find('.survey-data-mock-file-input');
+        const $previewArea = $sectionItem.find('.survey-data-mock-images-preview');
+        const $previewGrid = $sectionItem.find('.survey-data-mock-images-grid');
+        const $existingImages = $sectionItem.find('.survey-data-mock-existing-images');
+        
+        // Store selected files per section
+        if (!$sectionItem.data('selectedFiles')) {
+            $sectionItem.data('selectedFiles', []);
+        }
+        
+        // Click on upload area to trigger file input
+        $uploadArea.on('click', function(e) {
+            e.stopPropagation();
+            $fileInput.click();
+        });
+        
+        // File input change handler
+        $fileInput.on('change', function(e) {
+            e.stopPropagation();
+            const files = Array.from(this.files);
+            handleFilesSelected($sectionItem, files);
+        });
+        
+        // Drag and drop handlers
+        $uploadArea.on('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).addClass('dragover');
+        });
+        
+        $uploadArea.on('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('dragover');
+        });
+        
+        $uploadArea.on('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('dragover');
+            
+            const files = Array.from(e.originalEvent.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+            if (files.length > 0) {
+                handleFilesSelected($sectionItem, files);
+            }
+        });
+        
+        // Delete button for existing images
+        $sectionItem.on('click', '.survey-data-mock-image-delete', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            const $imageItem = $(this).closest('.survey-data-mock-image-item');
+            const photoId = $imageItem.data('photo-id');
+            
+            if (photoId && confirm('Are you sure you want to delete this image?')) {
+                deleteExistingPhoto($sectionItem, photoId, $imageItem);
+            }
+        });
+    }
+    
+    // Handle selected files
+    function handleFilesSelected($sectionItem, files) {
+        const selectedFiles = $sectionItem.data('selectedFiles') || [];
+        const validFiles = files.filter(file => file.type.startsWith('image/'));
+        
+        // Check if assessment exists in backend (sectionId is numeric)
+        const sectionId = $sectionItem.data('section-id');
+        const isNumericId = /^\d+$/.test(sectionId.toString());
+        
+        if (isNumericId && validFiles.length > 0) {
+            // Assessment exists - upload photos to backend immediately
+            const surveyId = $('.survey-data-mock-content').data('survey-id');
+            const assessmentId = parseInt(sectionId);
+            
+            // Create FormData for file upload
+            const formData = new FormData();
+            formData.append('_token', '{{ csrf_token() }}');
+            validFiles.forEach((file, index) => {
+                formData.append(`photos[${index}]`, file);
+            });
+            
+            // Show loading state
+            const $uploadArea = $sectionItem.find('.survey-data-mock-images-upload');
+            const originalText = $uploadArea.find('.survey-data-mock-upload-text').text();
+            $uploadArea.find('.survey-data-mock-upload-text').text('Uploading...');
+            $uploadArea.css('pointer-events', 'none');
+            
+            // Send AJAX request to upload photos
+            $.ajax({
+                url: `/surveyor/surveys/${surveyId}/assessments/${assessmentId}/photos`,
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log('Photos uploaded to backend:', response);
+                    
+                    // Add uploaded photos to existing images display
+                    if (response.photos && response.photos.length > 0) {
+                        let $existingContainer = $sectionItem.find('.survey-data-mock-existing-images');
+                        let $existingGrid = $existingContainer.find('.survey-data-mock-images-grid');
+                        
+                        if ($existingContainer.length === 0) {
+                            // Create existing images container if it doesn't exist
+                            $existingContainer = $('<div class="survey-data-mock-existing-images" style="margin-top: 1rem;">');
+                            $existingGrid = $('<div class="survey-data-mock-images-grid">');
+                            $existingContainer.append($existingGrid);
+                            $sectionItem.find('.survey-data-mock-images-upload').after($existingContainer);
+                        }
+                        
+                        response.photos.forEach(function(photo) {
+                            const $imageItem = $('<div class="survey-data-mock-image-item" data-photo-id="' + photo.id + '">');
+                            const $img = $('<img src="' + photo.url + '" alt="Photo" class="survey-data-mock-image-thumbnail">');
+                            const $deleteBtn = $('<button type="button" class="survey-data-mock-image-delete" data-photo-id="' + photo.id + '">')
+                                .html('<i class="fas fa-times"></i>');
+                            
+                            $imageItem.append($img).append($deleteBtn);
+                            $existingGrid.append($imageItem);
+                        });
+                        
+                        $existingContainer.show();
+                    }
+                    
+                    // Reset upload area
+                    $uploadArea.find('.survey-data-mock-upload-text').text(originalText);
+                    $uploadArea.css('pointer-events', 'auto');
+                    
+                    // Clear file input
+                    $sectionItem.find('.survey-data-mock-file-input').val('');
+                },
+                error: function(xhr) {
+                    console.error('Failed to upload photos:', xhr.responseJSON);
+                    alert('Failed to upload photos. Please try again.');
+                    
+                    // Reset upload area
+                    $uploadArea.find('.survey-data-mock-upload-text').text(originalText);
+                    $uploadArea.css('pointer-events', 'auto');
+                    
+                    // Still add to preview for form submit
+                    validFiles.forEach(file => {
+                        const isDuplicate = selectedFiles.some(f => f.name === file.name && f.size === file.size);
+                        if (!isDuplicate) {
+                            selectedFiles.push(file);
+                        }
+                    });
+                    $sectionItem.data('selectedFiles', selectedFiles);
+                    updateImagePreview($sectionItem);
+                }
+            });
+        } else {
+            // No assessment in backend - just update JS, will be saved on form submit
+            validFiles.forEach(file => {
+                // Check if file already selected (by name and size)
+                const isDuplicate = selectedFiles.some(f => f.name === file.name && f.size === file.size);
+                if (!isDuplicate) {
+                    selectedFiles.push(file);
+                }
+            });
+            
+            $sectionItem.data('selectedFiles', selectedFiles);
+            updateImagePreview($sectionItem);
+        }
+    }
+    
+    // Update image preview display
+    function updateImagePreview($sectionItem) {
+        const selectedFiles = $sectionItem.data('selectedFiles') || [];
+        const $previewArea = $sectionItem.find('.survey-data-mock-images-preview');
+        const $previewGrid = $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-images-grid');
+        
+        if (selectedFiles.length === 0) {
+            $previewArea.hide();
+            return;
+        }
+        
+        $previewGrid.empty();
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const $imageItem = $('<div class="survey-data-mock-image-item" data-file-index="' + index + '">');
+                const $img = $('<img src="' + e.target.result + '" alt="Preview" class="survey-data-mock-image-thumbnail">');
+                const $deleteBtn = $('<button type="button" class="survey-data-mock-image-delete" data-file-index="' + index + '">')
+                    .html('<i class="fas fa-times"></i>');
+                
+                $imageItem.append($img).append($deleteBtn);
+                $previewGrid.append($imageItem);
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        $previewArea.show();
+    }
+    
+    // Delete preview image
+    $(document).on('click', '.survey-data-mock-image-delete[data-file-index]', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+        const fileIndex = parseInt($(this).data('file-index'));
+        const selectedFiles = $sectionItem.data('selectedFiles') || [];
+        
+        // Remove file from selection
+        selectedFiles.splice(fileIndex, 1);
+        $sectionItem.data('selectedFiles', selectedFiles);
+        
+        // Update preview
+        updateImagePreview($sectionItem);
+    });
+    
+    // Delete existing photo from server
+    function deleteExistingPhoto($sectionItem, photoId, $imageItem) {
+        const surveyId = $('.survey-data-mock-content').data('survey-id');
+        const assessmentId = $sectionItem.data('section-id');
+        
+        // Check if assessmentId is numeric (saved assessment)
+        if (!assessmentId || !/^\d+$/.test(assessmentId)) {
+            alert('Please save the assessment first before deleting photos.');
+            return;
+        }
+        
+        $.ajax({
+            url: `/surveyor/surveys/${surveyId}/assessments/${assessmentId}/photos/${photoId}/delete`,
+            method: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    $imageItem.fadeOut(300, function() {
+                        $(this).remove();
+                        // Hide existing images container if empty
+                        const $existingContainer = $sectionItem.find('.survey-data-mock-existing-images');
+                        if ($existingContainer.find('.survey-data-mock-image-item').length === 0) {
+                            $existingContainer.hide();
+                        }
+                    });
+                    
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('Photo deleted successfully');
+                    }
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Failed to delete photo. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                }
+                
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(errorMessage);
+                } else {
+                    alert(errorMessage);
+                }
+            }
+        });
+    }
+    
+    // Initialize image upload for all sections on page load
+    $('.survey-data-mock-section-item').each(function() {
+        initializeImageUpload($(this));
+    });
+    
+    // Initialize for dynamically added sections
+    $(document).on('sectionItemAdded', function(e, $sectionItem) {
+        initializeImageUpload($sectionItem);
     });
 
     // Action Buttons
@@ -2740,11 +3699,7 @@ $(document).ready(function() {
         }
     });
 
-    $('.survey-data-mock-action-clone').on('click', function(e) {
-        e.stopPropagation();
-        alert('Save & Clone functionality - to be implemented');
-        // TODO: Implement save and clone
-    });
+    // Removed duplicate clone handler - using delegated handler below with specific selector
 
     // Save Button Handler
     $(document).on('click', '.survey-data-mock-action-save', function(e) {
@@ -2752,11 +3707,21 @@ $(document).ready(function() {
         const $button = $(this);
         const sectionId = $button.data('section-id');
         const $sectionItem = $button.closest('.survey-data-mock-section-item');
+        const sectionDefinitionId = $sectionItem.data('section-definition-id');
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
         const $categorySection = $sectionItem.closest('.survey-data-mock-category');
         const categoryName = $categorySection.find('.survey-data-mock-category-title').text().trim();
         const sectionName = $sectionItem.find('.survey-data-mock-section-name').text().trim();
+        
+        // Get survey ID from header
+        const surveyId = $('.survey-data-mock-content').data('survey-id');
+        
+        // Validate required data
+        if (!surveyId || !sectionDefinitionId) {
+            alert('Error: Missing survey or section information. Please refresh the page.');
+            return;
+        }
         
         // Collect all form data
         const formData = {
@@ -2767,13 +3732,13 @@ $(document).ready(function() {
             defects: $details.find('[data-group="defects"].active').map(function() {
                 return $(this).data('value');
             }).get(),
-            remainingLife: $details.find('[data-group="remaining_life"].active').data('value') || '',
+            remaining_life: $details.find('[data-group="remaining_life"].active').data('value') || '',
             notes: $details.find('.survey-data-mock-notes-input').val() || '',
             costs: []
         };
         
         // Collect costs
-        $details.find('.survey-data-mock-costs-table tbody tr').each(function() {
+        $details.find('.survey-data-mock-costs-table tbody tr[data-cost-index]').each(function() {
             const $row = $(this);
             const category = $row.find('td:eq(0)').text().trim();
             const description = $row.find('td:eq(1)').text().trim();
@@ -2790,20 +3755,125 @@ $(document).ready(function() {
             }
         });
         
-        // Generate mock report content
-        const reportContent = generateMockReportContent(formData, sectionName, categoryName);
+        // Get condition rating
+        const conditionRating = $sectionItem.find('.survey-data-mock-condition-badge').data('current-rating') || 'ni';
+        formData.condition_rating = conditionRating;
         
-        // Hide form, show report
-        $details.slideUp(300);
-        $reportContent.find('.survey-data-mock-report-textarea').val(reportContent);
-        $reportContent.slideDown(300);
+        // Get selected image files
+        const selectedFiles = $sectionItem.data('selectedFiles') || [];
         
-        // Mark section as saved
-        $sectionItem.attr('data-saved', 'true');
-        $sectionItem.attr('data-locked', 'false');
+        // Create FormData for file upload
+        const formDataObj = new FormData();
+        formDataObj.append('_token', '{{ csrf_token() }}');
+        formDataObj.append('section_id', sectionId);
+        formDataObj.append('section', formData.section);
+        formDataObj.append('location', formData.location);
+        formDataObj.append('structure', formData.structure);
+        formDataObj.append('material', formData.material);
+        formDataObj.append('remaining_life', formData.remaining_life);
+        formDataObj.append('notes', formData.notes);
+        formDataObj.append('condition_rating', conditionRating);
         
-        // Initialize lock state (unlocked by default)
-        updateLockState($sectionItem, false);
+        // Append defects array
+        if (formData.defects && formData.defects.length > 0) {
+            formData.defects.forEach((defect, index) => {
+                formDataObj.append(`defects[${index}]`, defect);
+            });
+        }
+        
+        // Append costs array
+        if (formData.costs && formData.costs.length > 0) {
+            formData.costs.forEach((cost, index) => {
+                formDataObj.append(`costs[${index}][category]`, cost.category || '');
+                formDataObj.append(`costs[${index}][description]`, cost.description || '');
+                formDataObj.append(`costs[${index}][due]`, cost.due || '');
+                formDataObj.append(`costs[${index}][cost]`, cost.cost || '');
+            });
+        }
+        
+        // Append image files
+        selectedFiles.forEach((file, index) => {
+            formDataObj.append(`photos[${index}]`, file);
+        });
+        
+        // Show loading state
+        $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+        
+        // Send AJAX request to save assessment
+        $.ajax({
+            url: `/surveyor/surveys/${surveyId}/sections/${sectionDefinitionId}/save`,
+            method: 'POST',
+            data: formDataObj,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    // Update section ID if it's a new assessment (clones get real database IDs)
+                    if (response.assessment_id && typeof response.assessment_id === 'number') {
+                        $sectionItem.attr('data-section-id', response.assessment_id);
+                        // Update all references to the section ID
+                        $sectionItem.find('[data-section-id]').attr('data-section-id', response.assessment_id);
+                    }
+                    
+                    // Clear selected files after successful save
+                    $sectionItem.data('selectedFiles', []);
+                    $sectionItem.find('.survey-data-mock-images-preview').hide();
+                    $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-images-grid').empty();
+                    
+                    // Hide form, show report
+                    $details.slideUp(300);
+                    $reportContent.find('.survey-data-mock-report-textarea').val(response.report_content || '');
+                    $reportContent.slideDown(300);
+                    
+                    // Mark section as saved and has report
+                    $sectionItem.attr('data-saved', 'true');
+                    $sectionItem.attr('data-has-report', response.report_content ? 'true' : 'false');
+                    $sectionItem.attr('data-locked', 'false');
+                    
+                    // Initialize lock state (unlocked by default)
+                    updateLockState($sectionItem, false);
+                    
+                    // Note: Images will be visible after page refresh or when section is reopened
+                    // The uploaded images are now saved in the database
+                    
+                    // Show success message
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success(response.message || 'Assessment saved successfully');
+                    } else {
+                        console.log('Assessment saved successfully');
+                    }
+                } else {
+                    throw new Error(response.error || 'Failed to save assessment');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Failed to save assessment. Please try again.';
+                
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    // Validation errors
+                    const errors = Object.values(xhr.responseJSON.errors).flat();
+                    errorMessage = errors.join('\n');
+                } else if (xhr.status === 403) {
+                    errorMessage = 'You are not authorized to save this assessment.';
+                } else if (xhr.status === 404) {
+                    errorMessage = 'Section not found. Please refresh the page.';
+                }
+                
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(errorMessage);
+                } else {
+                    alert(errorMessage);
+                }
+                
+                console.error('Error saving assessment:', xhr);
+            },
+            complete: function() {
+                // Reset button state
+                $button.prop('disabled', false).html('Save');
+            }
+        });
     });
 
     // Helper function to update lock state
@@ -2872,7 +3942,7 @@ $(document).ready(function() {
                 };
                 
                 // Collect costs
-                $detailsForRefresh.find('.survey-data-mock-costs-table tbody tr').each(function() {
+                $detailsForRefresh.find('.survey-data-mock-costs-table tbody tr[data-cost-index]').each(function() {
                     const $row = $(this);
                     const category = $row.find('td:eq(0)').text().trim();
                     const description = $row.find('td:eq(1)').text().trim();
@@ -2936,14 +4006,16 @@ $(document).ready(function() {
     $('body').append(cloneModal);
 
     let currentCloneSectionId = null;
+    let currentCloneSectionDefinitionId = null;
     let currentCloneData = null;
     let currentCloneCategory = null;
     let selectedCloneSection = null;
     let selectedCloneLocation = null;
     let currentCloneSubCategory = null;
 
-    // Open Clone Modal
-    $('.survey-data-mock-action-clone').on('click', function(e) {
+    // Open Clone Modal (only for regular sections, not accommodations)
+    // Use more specific selector to avoid conflicts with accommodation handler
+    $(document).on('click', '.survey-data-mock-section-item:not([data-accommodation-id]) .survey-data-mock-action-clone', function(e) {
         e.stopPropagation();
         const $button = $(this);
         const sectionId = $button.data('section-id');
@@ -2973,7 +4045,7 @@ $(document).ready(function() {
         formData.photos = Array(photosCount).fill(null); // Create array with photos count
 
         // Collect costs
-        $details.find('.survey-data-mock-costs-table tbody tr').each(function() {
+        $details.find('.survey-data-mock-costs-table tbody tr[data-cost-index]').each(function() {
             const $row = $(this);
             const category = $row.find('td:eq(0)').text().trim();
             const description = $row.find('td:eq(1)').text().trim();
@@ -2991,6 +4063,12 @@ $(document).ready(function() {
         });
 
         currentCloneSectionId = sectionId;
+        // Get and convert section definition ID to integer
+        let sectionDefId = $sectionItem.data('section-definition-id');
+        if (sectionDefId) {
+            sectionDefId = parseInt(sectionDefId, 10);
+        }
+        currentCloneSectionDefinitionId = sectionDefId;
         currentCloneData = formData;
         currentCloneCategory = categoryName;
         selectedCloneSection = null;
@@ -3123,6 +4201,7 @@ $(document).ready(function() {
     $('#survey-data-mock-clone-modal-close, #clone-modal-cancel').on('click', function() {
         $('#survey-data-mock-clone-modal').removeClass('show');
         currentCloneSectionId = null;
+        currentCloneSectionDefinitionId = null;
         currentCloneData = null;
         currentCloneCategory = null;
         currentCloneSubCategory = null;
@@ -3139,6 +4218,7 @@ $(document).ready(function() {
         if ($(e.target).hasClass('survey-data-mock-clone-modal')) {
             $(this).removeClass('show');
             currentCloneSectionId = null;
+            currentCloneSectionDefinitionId = null;
             currentCloneData = null;
             currentCloneCategory = null;
             currentCloneSubCategory = null;
@@ -3175,6 +4255,17 @@ $(document).ready(function() {
         const surveyId = $('.survey-data-mock-content').data('survey-id');
         if (!surveyId) {
             alert('Error: Survey ID not found');
+            return;
+        }
+        
+        // Get section definition ID from source item (this is the actual section definition ID)
+        let sourceSectionDefinitionId = $sourceItem.data('section-definition-id');
+        // Convert to integer if it's a string
+        if (sourceSectionDefinitionId) {
+            sourceSectionDefinitionId = parseInt(sourceSectionDefinitionId, 10);
+        }
+        if (!sourceSectionDefinitionId || isNaN(sourceSectionDefinitionId)) {
+            alert('Error: Section definition ID not found. Please refresh the page.');
             return;
         }
         
@@ -3224,6 +4315,7 @@ $(document).ready(function() {
             data: {
                 _token: $('meta[name="csrf-token"]').attr('content'),
                 source_section_id: currentCloneSectionId,
+                source_section_definition_id: parseInt(currentCloneSectionDefinitionId || sourceSectionDefinitionId, 10),
                 source_section_name: originalSectionName,
                 selected_section: selectedCloneSection,
                 category_name: categoryName,
@@ -3259,6 +4351,7 @@ $(document).ready(function() {
                     // Close modal
                     $('#survey-data-mock-clone-modal').removeClass('show');
                     currentCloneSectionId = null;
+                    currentCloneSectionDefinitionId = null;
                     currentCloneData = null;
                     currentCloneCategory = null;
                     currentCloneSubCategory = null;
@@ -3336,6 +4429,12 @@ $(document).ready(function() {
             });
 
             currentCloneSectionId = sectionId;
+            // Get and convert section definition ID to integer
+            let sectionDefId = $item.data('section-definition-id');
+            if (sectionDefId) {
+                sectionDefId = parseInt(sectionDefId, 10);
+            }
+            currentCloneSectionDefinitionId = sectionDefId;
             currentCloneData = formData;
             currentCloneCategory = categoryName;
             selectedCloneSection = null;
@@ -3612,7 +4711,7 @@ $(document).ready(function() {
                         <!-- Action Buttons -->
                         <div class="survey-data-mock-actions">
                             <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-delete" data-section-id="${sectionId}">Delete</button>
-                            <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-clone" data-section-id="${sectionId}" data-section-name="${sectionName}">Save & Clone</button>
+                            <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-clone" data-section-id="${sectionId}" data-section-name="${sectionName}">Save and Clone</button>
                             <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-save" data-section-id="${sectionId}">Save</button>
                         </div>
                     </div>
@@ -3690,18 +4789,18 @@ $(document).ready(function() {
             const $details = $item.find('.survey-data-mock-section-details');
             const $reportContent = $item.find('.survey-data-mock-report-content');
             const $titleBar = $item.find('.survey-data-mock-section-title-bar');
-            const isSaved = $item.attr('data-saved') === 'true';
+            const hasReport = $item.attr('data-has-report') === 'true' || $item.attr('data-saved') === 'true';
             
             $item.toggleClass('expanded');
             
             if ($item.hasClass('expanded')) {
                 $titleBar.slideDown(300);
-                if (isSaved) {
-                    // Show report if saved, hide form
+                if (hasReport) {
+                    // Show report if report_content exists, hide form
                     $details.hide();
                     $reportContent.slideDown(300);
                 } else {
-                    // Show form if not saved, hide report
+                    // Show form if no report_content, hide report
                     $details.slideDown(300);
                     $reportContent.hide();
                 }
@@ -3729,11 +4828,21 @@ $(document).ready(function() {
             const $button = $(this);
             const sectionId = $button.data('section-id');
             const $sectionItem = $button.closest('.survey-data-mock-section-item');
+            const sectionDefinitionId = $sectionItem.data('section-definition-id');
             const $details = $sectionItem.find('.survey-data-mock-section-details');
             const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
             const $categorySection = $sectionItem.closest('.survey-data-mock-category');
             const categoryName = $categorySection.find('.survey-data-mock-category-title').text().trim();
             const sectionName = $sectionItem.find('.survey-data-mock-section-name').text().trim();
+            
+            // Get survey ID from header
+            const surveyId = $('.survey-data-mock-content').data('survey-id');
+            
+            // Validate required data
+            if (!surveyId || !sectionDefinitionId) {
+                alert('Error: Missing survey or section information. Please refresh the page.');
+                return;
+            }
             
             // Collect all form data
             const formData = {
@@ -3744,7 +4853,7 @@ $(document).ready(function() {
                 defects: $details.find('[data-group="defects"].active').map(function() {
                     return $(this).data('value');
                 }).get(),
-                remainingLife: $details.find('[data-group="remaining_life"].active').data('value') || '',
+                remaining_life: $details.find('[data-group="remaining_life"].active').data('value') || '',
                 notes: $details.find('.survey-data-mock-notes-input').val() || '',
                 costs: []
             };
@@ -3767,27 +4876,128 @@ $(document).ready(function() {
                 }
             });
             
-            // Generate mock report content
-            const reportContent = generateMockReportContent(formData, sectionName, categoryName);
+            // Get condition rating
+            const conditionRating = $sectionItem.find('.survey-data-mock-condition-badge').data('current-rating') || 'ni';
+            formData.condition_rating = conditionRating;
             
-            // Hide form, show report
-            $details.slideUp(300);
-            $reportContent.find('.survey-data-mock-report-textarea').val(reportContent);
-            $reportContent.slideDown(300);
+            // Get selected image files
+            const selectedFiles = $sectionItem.data('selectedFiles') || [];
             
-            // Mark section as saved
-            $sectionItem.attr('data-saved', 'true');
-            $sectionItem.attr('data-locked', 'false');
+            // Create FormData for file upload
+            const formDataObj = new FormData();
+            formDataObj.append('_token', '{{ csrf_token() }}');
+            formDataObj.append('section_id', sectionId);
+            formDataObj.append('section', formData.section);
+            formDataObj.append('location', formData.location);
+            formDataObj.append('structure', formData.structure);
+            formDataObj.append('material', formData.material);
+            formDataObj.append('remaining_life', formData.remaining_life);
+            formDataObj.append('notes', formData.notes);
+            formDataObj.append('condition_rating', conditionRating);
             
-            // Initialize lock state (unlocked by default)
-            updateLockState($sectionItem, false);
+            // Append defects array
+            if (formData.defects && formData.defects.length > 0) {
+                formData.defects.forEach((defect, index) => {
+                    formDataObj.append(`defects[${index}]`, defect);
+                });
+            }
+            
+            // Append costs array
+            if (formData.costs && formData.costs.length > 0) {
+                formData.costs.forEach((cost, index) => {
+                    formDataObj.append(`costs[${index}][category]`, cost.category || '');
+                    formDataObj.append(`costs[${index}][description]`, cost.description || '');
+                    formDataObj.append(`costs[${index}][due]`, cost.due || '');
+                    formDataObj.append(`costs[${index}][cost]`, cost.cost || '');
+                });
+            }
+            
+            // Append image files
+            selectedFiles.forEach((file, index) => {
+                formDataObj.append(`photos[${index}]`, file);
+            });
+            
+            // Show loading state
+            $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+            
+            // Send AJAX request to save assessment
+            $.ajax({
+                url: `/surveyor/surveys/${surveyId}/sections/${sectionDefinitionId}/save`,
+                method: 'POST',
+                data: formDataObj,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        // Update section ID if it's a new assessment (clones get real database IDs)
+                        if (response.assessment_id && typeof response.assessment_id === 'number') {
+                            $sectionItem.attr('data-section-id', response.assessment_id);
+                            // Update all references to the section ID
+                            $sectionItem.find('[data-section-id]').attr('data-section-id', response.assessment_id);
+                        }
+                        
+                        // Clear selected files after successful save
+                        $sectionItem.data('selectedFiles', []);
+                        $sectionItem.find('.survey-data-mock-images-preview').hide();
+                        $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-images-grid').empty();
+                        
+                        // Hide form, show report
+                        $details.slideUp(300);
+                        $reportContent.find('.survey-data-mock-report-textarea').val(response.report_content || '');
+                        $reportContent.slideDown(300);
+                        
+                        // Mark section as saved and has report
+                        $sectionItem.attr('data-saved', 'true');
+                        $sectionItem.attr('data-has-report', response.report_content ? 'true' : 'false');
+                        $sectionItem.attr('data-locked', 'false');
+                        
+                        // Initialize lock state (unlocked by default)
+                        updateLockState($sectionItem, false);
+                        
+                        // Show success message
+                        if (typeof toastr !== 'undefined') {
+                            toastr.success(response.message || 'Assessment saved successfully');
+                        } else {
+                            console.log('Assessment saved successfully');
+                        }
+                        
+                        // Note: Images will be visible after page refresh or when section is reopened
+                        // The uploaded images are now saved in the database
+                    } else {
+                        throw new Error(response.error || 'Failed to save assessment');
+                    }
+                },
+                error: function(xhr) {
+                    let errorMessage = 'Failed to save assessment. Please try again.';
+                    
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        // Validation errors
+                        const errors = Object.values(xhr.responseJSON.errors).flat();
+                        errorMessage = errors.join('\n');
+                    } else if (xhr.status === 403) {
+                        errorMessage = 'You are not authorized to save this assessment.';
+                    } else if (xhr.status === 404) {
+                        errorMessage = 'Section not found. Please refresh the page.';
+                    }
+                    
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(errorMessage);
+                    } else {
+                        alert(errorMessage);
+                    }
+                    
+                    console.error('Error saving assessment:', xhr);
+                },
+                complete: function() {
+                    // Reset button state
+                    $button.prop('disabled', false).html('Save');
+                }
+            });
         });
         
-        // Add Cost handler
-        $sectionItem.find('.survey-data-mock-add-cost-btn').off('click').on('click', function(e) {
-            e.stopPropagation();
-            alert('Add Cost functionality - to be implemented');
-        });
+        // Add Cost handler - already handled by document-level delegation above
         
         // Microphone handler
         $sectionItem.find('.survey-data-mock-mic-btn').off('click').on('click', function(e) {
@@ -4023,9 +5233,9 @@ $(document).ready(function() {
     // No separate handler needed - they use .survey-data-mock-section-item class
 
     // Accommodation action buttons
-    $(document).on('click', '.survey-data-mock-accommodation-item .survey-data-mock-action-delete', function(e) {
+    $(document).on('click', '.survey-data-mock-section-item[data-accommodation-id] .survey-data-mock-action-delete', function(e) {
         e.stopPropagation();
-        const $item = $(this).closest('.survey-data-mock-accommodation-item');
+        const $item = $(this).closest('.survey-data-mock-section-item[data-accommodation-id]');
         if (confirm('Are you sure you want to delete this accommodation?')) {
             $item.fadeOut(300, function() {
                 $(this).remove();
@@ -4033,17 +5243,331 @@ $(document).ready(function() {
         }
     });
 
-    $(document).on('click', '.survey-data-mock-accommodation-item .survey-data-mock-action-save', function(e) {
+    $(document).on('click', '.survey-data-mock-section-item[data-accommodation-id] .survey-data-mock-action-save', function(e) {
         e.stopPropagation();
-        const accommodationId = $(this).data('accommodation-id');
-        alert('Save accommodation functionality - to be implemented for ID: ' + accommodationId);
+        const $button = $(this);
+        const $item = $(this).closest('.survey-data-mock-section-item[data-accommodation-id]');
+        const accommodationId = $item.data('accommodation-id');
+        const accommodationTypeId = $item.data('accommodation-type-id');
+        const $details = $item.find('.survey-data-mock-section-details');
+        const accommodationName = $item.find('.survey-data-mock-section-name').text().trim();
+        
+        // Get survey ID from header
+        const surveyId = $('.survey-data-mock-content').data('survey-id');
+        
+        // Validate required data
+        if (!surveyId) {
+            alert('Error: Missing survey information. Please refresh the page.');
+            return;
+        }
+        
+        // If accommodation_type_id is missing, try to get it from the item attribute
+        let finalAccommodationTypeId = accommodationTypeId;
+        if (!finalAccommodationTypeId || finalAccommodationTypeId === '' || finalAccommodationTypeId === null || finalAccommodationTypeId === undefined) {
+            // Try to get from data attribute (jQuery .data() might not work if value is empty string)
+            finalAccommodationTypeId = $item.attr('data-accommodation-type-id');
+            
+            // If still empty, try to parse as integer or use default
+            if (!finalAccommodationTypeId || finalAccommodationTypeId === '' || finalAccommodationTypeId === 'null' || finalAccommodationTypeId === 'undefined') {
+                console.error('Accommodation type ID missing', {
+                    accommodationId: accommodationId,
+                    accommodationName: accommodationName,
+                    itemData: $item.data()
+                });
+                alert('Error: Missing accommodation type information. Please refresh the page.\n\nIf this error persists, please contact support.');
+                return;
+            }
+        }
+        
+        // Ensure it's a valid number
+        finalAccommodationTypeId = parseInt(finalAccommodationTypeId);
+        if (isNaN(finalAccommodationTypeId) || finalAccommodationTypeId <= 0) {
+            console.error('Invalid accommodation type ID', finalAccommodationTypeId);
+            alert('Error: Invalid accommodation type information. Please refresh the page.');
+            return;
+        }
+        
+        // Collect all form data
+        const formData = {
+            custom_name: accommodationName,
+            components: [],
+            notes: $details.find('.survey-data-mock-notes-input').val() || ''
+        };
+        
+        // Collect component data from carousel slides
+        $details.find('.survey-data-mock-carousel-slide').each(function() {
+            const $slide = $(this);
+            const componentKey = $slide.data('component-key');
+            
+            if (!componentKey) {
+                return;
+            }
+            
+            // Get material for this component
+            const material = $slide.find('[data-group="material"].active').data('value') || '';
+            
+            // Get defects for this component (multiple selection)
+            const defects = $slide.find('[data-group="defects"].active').map(function() {
+                return $(this).data('value');
+            }).get();
+            
+            formData.components.push({
+                component_key: componentKey,
+                material: material,
+                defects: defects
+            });
+        });
+        
+        // Get selected image files
+        const selectedFiles = $item.data('selectedFiles') || [];
+        
+        // Create FormData for file upload
+        const formDataObj = new FormData();
+        formDataObj.append('_token', '{{ csrf_token() }}');
+        formDataObj.append('accommodation_id', accommodationId || '');
+        formDataObj.append('accommodation_type_id', finalAccommodationTypeId);
+        formDataObj.append('custom_name', formData.custom_name);
+        formDataObj.append('notes', formData.notes);
+        
+        // Append components array (even if empty, send empty array)
+        formData.components.forEach((component, index) => {
+            formDataObj.append(`components[${index}][component_key]`, component.component_key || '');
+            formDataObj.append(`components[${index}][material]`, component.material || '');
+            if (component.defects && component.defects.length > 0) {
+                component.defects.forEach((defect, defectIndex) => {
+                    formDataObj.append(`components[${index}][defects][${defectIndex}]`, defect);
+                });
+            }
+        });
+        
+        // Append image files
+        selectedFiles.forEach((file, index) => {
+            formDataObj.append(`photos[${index}]`, file);
+        });
+        
+        // Show loading state
+        $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+        
+        // Send AJAX request to save accommodation assessment
+        $.ajax({
+            url: `/surveyor/surveys/${surveyId}/accommodations/save`,
+            method: 'POST',
+            data: formDataObj,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    // Update accommodation ID if it's a new assessment (clones get real database IDs)
+                    if (response.assessment_id && typeof response.assessment_id === 'number') {
+                        const newId = response.assessment_id;
+                        $item.attr('data-accommodation-id', newId);
+                        $item.attr('data-section-id', newId);
+                        // Update all references to the accommodation ID, including rating badges
+                        $item.find('[data-accommodation-id]').attr('data-accommodation-id', newId);
+                        $item.find('.survey-data-mock-condition-badge').each(function() {
+                            $(this).attr('data-section-id', newId);
+                            $(this).attr('data-accommodation-id', newId);
+                        });
+                    }
+                    
+                    // Clear selected files after successful save
+                    $item.data('selectedFiles', []);
+                    $item.find('.survey-data-mock-images-preview').hide();
+                    $item.find('.survey-data-mock-images-preview .survey-data-mock-images-grid').empty();
+                    
+                    // Show success message
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success(response.message || 'Accommodation assessment saved successfully');
+                    } else {
+                        console.log('Accommodation assessment saved successfully');
+                    }
+                    
+                    // Note: Images will be visible after page refresh or when accommodation is reopened
+                    // The uploaded images are now saved in the database
+                } else {
+                    throw new Error(response.error || 'Failed to save accommodation assessment');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Failed to save accommodation assessment. Please try again.';
+                
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    // Validation errors
+                    const errors = Object.values(xhr.responseJSON.errors).flat();
+                    errorMessage = errors.join('\n');
+                } else if (xhr.status === 403) {
+                    errorMessage = 'You are not authorized to save this accommodation assessment.';
+                } else if (xhr.status === 404) {
+                    errorMessage = 'Accommodation type not found. Please refresh the page.';
+                }
+                
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(errorMessage);
+                } else {
+                    alert(errorMessage);
+                }
+                
+                console.error('Error saving accommodation assessment:', xhr);
+            },
+            complete: function() {
+                // Reset button state
+                $button.prop('disabled', false).html('Save');
+            }
+        });
     });
 
-    $(document).on('click', '.survey-data-mock-accommodation-item .survey-data-mock-action-clone', function(e) {
+    $(document).on('click', '.survey-data-mock-section-item[data-accommodation-id] .survey-data-mock-action-clone', function(e) {
         e.stopPropagation();
-        const accommodationId = $(this).data('accommodation-id');
-        const accommodationName = $(this).data('accommodation-name');
-        alert('Clone accommodation functionality - to be implemented for: ' + accommodationName);
+        const $button = $(this);
+        const $item = $(this).closest('.survey-data-mock-section-item[data-accommodation-id]');
+        const accommodationId = $item.data('accommodation-id');
+        const accommodationTypeId = $item.data('accommodation-type-id');
+        const $details = $item.find('.survey-data-mock-section-details');
+        const accommodationName = $item.find('.survey-data-mock-section-name').text().trim();
+        
+        // Get survey ID from header
+        const surveyId = $('.survey-data-mock-content').data('survey-id');
+        
+        // Validate required data
+        if (!surveyId) {
+            alert('Error: Missing survey information. Please refresh the page.');
+            return;
+        }
+        
+        // If accommodation_type_id is missing, try to get it from the item attribute
+        let finalAccommodationTypeId = accommodationTypeId;
+        if (!finalAccommodationTypeId || finalAccommodationTypeId === '' || finalAccommodationTypeId === null || finalAccommodationTypeId === undefined) {
+            finalAccommodationTypeId = $item.attr('data-accommodation-type-id');
+            
+            if (!finalAccommodationTypeId || finalAccommodationTypeId === '' || finalAccommodationTypeId === 'null' || finalAccommodationTypeId === 'undefined') {
+                console.error('Accommodation type ID missing for clone');
+                alert('Error: Missing accommodation type information. Please refresh the page.');
+                return;
+            }
+        }
+        
+        // Ensure it's a valid number
+        finalAccommodationTypeId = parseInt(finalAccommodationTypeId);
+        if (isNaN(finalAccommodationTypeId) || finalAccommodationTypeId <= 0) {
+            console.error('Invalid accommodation type ID for clone', finalAccommodationTypeId);
+            alert('Error: Invalid accommodation type information. Please refresh the page.');
+            return;
+        }
+        
+        // Get condition rating from badge
+        const $badge = $item.find('.survey-data-mock-condition-badge');
+        let conditionRating = 'ni';
+        if ($badge.hasClass('survey-data-mock-condition-badge--3')) {
+            conditionRating = '3';
+        } else if ($badge.hasClass('survey-data-mock-condition-badge--2')) {
+            conditionRating = '2';
+        } else if ($badge.hasClass('survey-data-mock-condition-badge--1')) {
+            conditionRating = '1';
+        }
+        
+        // Collect all form data (copy all selected values)
+        const formData = {
+            custom_name: accommodationName,
+            components: [],
+            notes: $details.find('.survey-data-mock-notes-input').val() || '',
+            condition_rating: conditionRating
+        };
+        
+        // Collect component data from carousel slides (copy all selected values)
+        $details.find('.survey-data-mock-carousel-slide').each(function() {
+            const $slide = $(this);
+            const componentKey = $slide.data('component-key');
+            
+            if (!componentKey) {
+                return;
+            }
+            
+            // Get material for this component
+            const material = $slide.find('[data-group="material"].active').data('value') || '';
+            
+            // Get defects for this component (multiple selection)
+            const defects = $slide.find('[data-group="defects"].active').map(function() {
+                return $(this).data('value');
+            }).get();
+            
+            formData.components.push({
+                component_key: componentKey,
+                material: material,
+                defects: defects
+            });
+        });
+        
+        // Show loading state
+        $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Cloning...');
+        
+        // Send AJAX request to clone endpoint (returns HTML, no page reload)
+        $.ajax({
+            url: `/surveyor/surveys/${surveyId}/clone-accommodation-item`,
+            method: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                source_accommodation_id: accommodationId,
+                accommodation_type_id: finalAccommodationTypeId,
+                form_data: formData
+            },
+            success: function(response) {
+                if (response.success && response.html) {
+                    // Insert cloned accommodation immediately after the source accommodation
+                    $item.after(response.html);
+                    
+                    // Get the new accommodation item
+                    const $newAccommodationItem = $(`.survey-data-mock-section-item[data-accommodation-id="${response.accommodation_id}"]`);
+                    
+                    // Initialize carousel for the new accommodation
+                    if ($newAccommodationItem.length) {
+                        initializeAccommodationCarousel($newAccommodationItem);
+                        
+                        // Initialize dividers for the new accommodation
+                        setTimeout(function() {
+                            initializeDividers();
+                        }, 100);
+                    }
+                    
+                    // Show success message
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('Accommodation cloned successfully');
+                    } else {
+                        console.log('Accommodation cloned successfully');
+                    }
+                    
+                    // Scroll to new accommodation
+                    setTimeout(function() {
+                        $('html, body').animate({
+                            scrollTop: $newAccommodationItem.offset().top - 100
+                        }, 500);
+                    }, 100);
+                    
+                    // Reset button state
+                    $button.prop('disabled', false).html('Save and Clone');
+                } else {
+                    throw new Error(response.error || 'Failed to clone accommodation');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Failed to clone accommodation. Please try again.';
+                
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    const errors = Object.values(xhr.responseJSON.errors).flat();
+                    errorMessage = errors.join('\n');
+                }
+                
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(errorMessage);
+                } else {
+                    alert(errorMessage);
+                }
+                $button.prop('disabled', false).html('Save and Clone');
+            }
+        });
     });
 
     // Accommodation Draggable Divider

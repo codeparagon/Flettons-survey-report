@@ -1,4 +1,4 @@
-<div class="survey-data-mock-section-item" data-section-id="{{ $section['id'] }}">
+<div class="survey-data-mock-section-item" data-section-id="{{ $section['id'] }}" data-section-definition-id="{{ $section['section_id'] ?? $section['id'] }}" data-has-report="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}" data-saved="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}">
     <div class="survey-data-mock-section-header" data-expandable="true">
         <div class="survey-data-mock-section-name">
             {{ $section['name'] }}
@@ -38,7 +38,7 @@
 
     <!-- Expanded Form Content -->
     <div class="survey-data-mock-section-details" 
-         style="display: none;"
+         style="display: {{ ($section['has_report'] ?? false) ? 'none' : 'none' }};"
          data-selected-section="{{ $section['selected_section'] ?? '' }}"
          data-selected-location="{{ $section['location'] ?? '' }}"
          data-selected-structure="{{ $section['structure'] ?? '' }}"
@@ -155,21 +155,32 @@
                                     <th>Description</th>
                                     <th>Due</th>
                                     <th>cost (£)</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @if(isset($section['costs']) && count($section['costs']) > 0)
-                                    @foreach($section['costs'] as $cost)
-                                        <tr>
+                                    @foreach($section['costs'] as $index => $cost)
+                                        <tr data-cost-index="{{ $index }}">
                                             <td>{{ $cost['category'] }}</td>
                                             <td>{{ $cost['description'] }}</td>
                                             <td>{{ $cost['due'] }}</td>
                                             <td>{{ $cost['cost'] }}</td>
+                                            <td>
+                                                <div class="survey-data-mock-cost-actions">
+                                                    <button type="button" class="survey-data-mock-cost-edit-btn" data-cost-index="{{ $index }}">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button type="button" class="survey-data-mock-cost-delete-btn" data-cost-index="{{ $index }}">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="4" class="survey-data-mock-no-costs">No costs added</td>
+                                        <td colspan="5" class="survey-data-mock-no-costs">No costs added</td>
                                     </tr>
                                 @endif
                             </tbody>
@@ -190,10 +201,39 @@
                     <!-- Images Upload -->
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Images</label>
+                        <input type="file" class="survey-data-mock-file-input" multiple accept="image/*" style="display: none;">
                         <div class="survey-data-mock-images-upload">
                             <i class="fas fa-cloud-upload-alt survey-data-mock-upload-icon"></i>
                             <p class="survey-data-mock-upload-text">Drag and Drop Photos or Upload</p>
                         </div>
+                        <!-- Image Preview Area -->
+                        <div class="survey-data-mock-images-preview" style="display: none; margin-top: 1rem;">
+                            <div class="survey-data-mock-images-grid"></div>
+                        </div>
+                        <!-- Existing Images Display -->
+                        @if(isset($section['photos']) && is_array($section['photos']) && count($section['photos']) > 0)
+                            <div class="survey-data-mock-existing-images" style="margin-top: 1rem;">
+                                <div class="survey-data-mock-images-grid">
+                                    @foreach($section['photos'] as $photo)
+                                        @if(is_array($photo) && isset($photo['id']))
+                                            <div class="survey-data-mock-image-item" data-photo-id="{{ $photo['id'] }}">
+                                                @php
+                                                    // Use the URL from the data, or generate from file_path
+                                                    $imageUrl = $photo['url'] ?? '';
+                                                    if (empty($imageUrl) && isset($photo['file_path'])) {
+                                                        $imageUrl = asset('storage/' . ltrim($photo['file_path'], '/'));
+                                                    }
+                                                @endphp
+                                                <img src="{{ $imageUrl }}" alt="Photo" class="survey-data-mock-image-thumbnail" onerror="console.error('Failed to load image: {{ $imageUrl }}'); this.style.display='none';">
+                                                <button type="button" class="survey-data-mock-image-delete" data-photo-id="{{ $photo['id'] }}">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -201,16 +241,16 @@
             <!-- Action Buttons -->
             <div class="survey-data-mock-actions">
                 <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-delete" data-section-id="{{ $section['id'] }}">Delete</button>
-                <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-clone" data-section-id="{{ $section['id'] }}" data-section-name="{{ $section['name'] }}">Save & Clone</button>
+                <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-clone" data-section-id="{{ $section['id'] }}" data-section-name="{{ $section['name'] }}">Save and Clone</button>
                 <button type="button" class="survey-data-mock-action-btn survey-data-mock-action-save" data-section-id="{{ $section['id'] }}">Save</button>
             </div>
         </div>
     </div>
 
     <!-- Report Content Area (shown after save) -->
-    <div class="survey-data-mock-report-content" style="display: none;" data-section-id="{{ $section['id'] }}">
+    <div class="survey-data-mock-report-content" style="display: none;" data-section-id="{{ $section['id'] }}" data-initial-has-report="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}">
         <div class="survey-data-mock-report-content-wrapper">
-            <textarea class="survey-data-mock-report-textarea" rows="12" placeholder="Report content will be generated after saving..."></textarea>
+            <textarea class="survey-data-mock-report-textarea" rows="12" placeholder="Report content will be generated after saving...">{{ $section['report_content'] ?? '' }}</textarea>
             
             <!-- Action Icons Bar -->
             <div class="survey-data-mock-action-icons">
