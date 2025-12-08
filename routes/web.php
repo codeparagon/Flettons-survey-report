@@ -58,9 +58,6 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     Route::get('/surveys/{survey}/edit', [\App\Http\Controllers\Admin\SurveyController::class, 'edit'])->name('admin.surveys.edit');
     Route::put('/surveys/{survey}', [\App\Http\Controllers\Admin\SurveyController::class, 'update'])->name('admin.surveys.update');
     
-    // Survey Sections (Admin)
-    Route::get('/survey/{survey}/sections', [\App\Http\Controllers\Admin\SurveySectionController::class, 'showSections'])->name('admin.survey.sections');
-    
     // Survey Levels Management
     Route::resource('survey-levels', \App\Http\Controllers\Admin\SurveyLevelController::class)->names([
         'index' => 'admin.survey-levels.index',
@@ -71,7 +68,6 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
         'update' => 'admin.survey-levels.update',
         'destroy' => 'admin.survey-levels.destroy',
     ]);
-    Route::get('/survey/{survey}/section/{section}', [\App\Http\Controllers\Admin\SurveySectionController::class, 'showSectionAssessment'])->name('admin.survey.section.assessment');
     
     // Survey Categories CMS
     Route::resource('survey-categories', \App\Http\Controllers\Admin\SurveyCategoryController::class)->names([
@@ -85,26 +81,7 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     ]);
     Route::post('/survey-categories/{surveyCategory}/toggle-status', [\App\Http\Controllers\Admin\SurveyCategoryController::class, 'toggleStatus'])->name('admin.survey-categories.toggle-status');
     
-    // Survey Sections CMS
-    Route::resource('survey-sections', \App\Http\Controllers\Admin\SurveySectionController::class)->names([
-        'index' => 'admin.survey-sections.index',
-        'create' => 'admin.survey-sections.create',
-        'store' => 'admin.survey-sections.store',
-        'show' => 'admin.survey-sections.show',
-        'edit' => 'admin.survey-sections.edit',
-        'update' => 'admin.survey-sections.update',
-        'destroy' => 'admin.survey-sections.destroy',
-    ]);
-    Route::post('/survey-sections/{surveySection}/toggle-status', [\App\Http\Controllers\Admin\SurveySectionController::class, 'toggleStatus'])->name('admin.survey-sections.toggle-status');
-    
-    // Section Fields Management
-    Route::get('/survey-sections/{surveySection}/fields/{field}', [\App\Http\Controllers\Admin\SurveySectionController::class, 'showField'])->name('admin.survey-sections.fields.show');
-    Route::post('/survey-sections/{surveySection}/fields', [\App\Http\Controllers\Admin\SurveySectionController::class, 'storeField'])->name('admin.survey-sections.fields.store');
-    Route::put('/survey-sections/{surveySection}/fields/{field}', [\App\Http\Controllers\Admin\SurveySectionController::class, 'updateField'])->name('admin.survey-sections.fields.update');
-    Route::delete('/survey-sections/{surveySection}/fields/{field}', [\App\Http\Controllers\Admin\SurveySectionController::class, 'deleteField'])->name('admin.survey-sections.fields.delete');
-    Route::post('/survey-sections/{surveySection}/fields/reorder', [\App\Http\Controllers\Admin\SurveySectionController::class, 'reorderFields'])->name('admin.survey-sections.fields.reorder');
-    
-    // Survey Levels CMS (update existing routes)
+    // Survey Levels CMS
     Route::post('/survey-levels/{surveyLevel}/toggle-status', [\App\Http\Controllers\Admin\SurveyLevelController::class, 'toggleStatus'])->name('admin.survey-levels.toggle-status');
     
     // Survey Section Assessments CMS
@@ -117,6 +94,87 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     ]);
     Route::post('/survey-section-assessments/{assessment}/toggle-completion', [\App\Http\Controllers\Admin\SurveySectionAssessmentController::class, 'toggleCompletion'])->name('admin.survey-section-assessments.toggle-completion');
     Route::delete('/survey-section-assessments/{assessment}/delete-photo', [\App\Http\Controllers\Admin\SurveySectionAssessmentController::class, 'deletePhoto'])->name('admin.survey-section-assessments.delete-photo');
+    
+    // ============================================
+    // SURVEY BUILDER - Wizard Style Admin Panel
+    // ============================================
+    
+    // Survey Section Builder (Main Page)
+    Route::get('/survey-builder', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'index'])->name('admin.survey-builder.index');
+    
+    // Accommodation Builder
+    Route::get('/accommodation-builder', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'index'])->name('admin.accommodation-builder.index');
+    
+    // Global Options Manager
+    Route::get('/survey-options', [\App\Http\Controllers\Admin\GlobalOptionsController::class, 'index'])->name('admin.survey-options.index');
+    
+    // ============================================
+    // SURVEY BUILDER API ENDPOINTS
+    // ============================================
+    
+    // Categories API
+    Route::post('/api/categories', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'storeCategory']);
+    Route::put('/api/categories/{category}', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'updateCategory']);
+    Route::delete('/api/categories/{category}', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'deleteCategory']);
+    Route::post('/api/categories/reorder', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'reorderCategories']);
+    
+    // Subcategories API
+    Route::post('/api/subcategories', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'storeSubcategory']);
+    Route::put('/api/subcategories/{subcategory}', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'updateSubcategory']);
+    Route::delete('/api/subcategories/{subcategory}', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'deleteSubcategory']);
+    Route::post('/api/subcategories/reorder', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'reorderSubcategories']);
+    
+    // Section Definitions API
+    Route::get('/api/section-definitions/{section}', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'getSection']);
+    Route::post('/api/section-definitions', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'storeSection']);
+    Route::put('/api/section-definitions/{section}', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'updateSection']);
+    Route::delete('/api/section-definitions/{section}', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'deleteSection']);
+    Route::post('/api/section-definitions/{section}/clone', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'cloneSection']);
+    Route::post('/api/section-definitions/reorder', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'reorderSections']);
+    
+    // Bulk Actions API
+    Route::post('/api/bulk-action', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'bulkAction']);
+    
+    // Preview API
+    Route::get('/api/preview', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'preview']);
+    
+    // ============================================
+    // ACCOMMODATION BUILDER API ENDPOINTS
+    // ============================================
+    
+    // Accommodation Types API
+    Route::post('/api/accommodation-types', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'storeType']);
+    Route::put('/api/accommodation-types/{type}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'updateType']);
+    Route::delete('/api/accommodation-types/{type}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'deleteType']);
+    Route::post('/api/accommodation-types/reorder', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'reorderTypes']);
+    Route::post('/api/accommodation-types/{type}/clone', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'cloneType']);
+    
+    // Accommodation Components API
+    Route::post('/api/accommodation-components', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'storeComponent']);
+    Route::put('/api/accommodation-components/{component}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'updateComponent']);
+    Route::delete('/api/accommodation-components/{component}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'deleteComponent']);
+    Route::post('/api/accommodation-components/reorder', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'reorderComponents']);
+    
+    // Accommodation Options API (Materials & Defects)
+    Route::post('/api/accommodation-options', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'storeOption']);
+    Route::put('/api/accommodation-options/{accommodationOption}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'updateOption']);
+    Route::delete('/api/accommodation-options/{accommodationOption}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'deleteOption']);
+    
+    // ============================================
+    // GLOBAL OPTIONS API ENDPOINTS
+    // ============================================
+    
+    // Option Types API
+    Route::post('/api/option-types', [\App\Http\Controllers\Admin\GlobalOptionsController::class, 'storeOptionType']);
+    Route::put('/api/option-types/{optionType}', [\App\Http\Controllers\Admin\GlobalOptionsController::class, 'updateOptionType']);
+    Route::delete('/api/option-types/{optionType}', [\App\Http\Controllers\Admin\GlobalOptionsController::class, 'deleteOptionType']);
+    
+    // Options API
+    Route::post('/api/options', [\App\Http\Controllers\Admin\GlobalOptionsController::class, 'storeOption']);
+    Route::put('/api/options/{option}', [\App\Http\Controllers\Admin\GlobalOptionsController::class, 'updateOption']);
+    Route::delete('/api/options/{option}', [\App\Http\Controllers\Admin\GlobalOptionsController::class, 'deleteOption']);
+    Route::post('/api/options/reorder', [\App\Http\Controllers\Admin\GlobalOptionsController::class, 'reorderOptions']);
+    Route::post('/api/options/bulk-delete', [\App\Http\Controllers\Admin\GlobalOptionsController::class, 'bulkDeleteOptions']);
 });
 
 // Surveyor Routes

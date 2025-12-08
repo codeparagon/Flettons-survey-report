@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SurveyLevel;
-use App\Models\SurveySection;
+use App\Models\SurveySectionDefinition;
 use Illuminate\Http\Request;
 
 class SurveyLevelController extends Controller
@@ -14,7 +14,7 @@ class SurveyLevelController extends Controller
      */
     public function index()
     {
-        $levels = SurveyLevel::ordered()->paginate(15);
+        $levels = SurveyLevel::with('sectionDefinitions')->ordered()->paginate(15);
         
         return view('admin.survey-levels.index', compact('levels'));
     }
@@ -24,7 +24,7 @@ class SurveyLevelController extends Controller
      */
     public function create()
     {
-        $sections = SurveySection::active()->ordered()->get();
+        $sections = SurveySectionDefinition::active()->ordered()->with('subcategory.category')->get();
         
         return view('admin.survey-levels.create', compact('sections'));
     }
@@ -41,7 +41,7 @@ class SurveyLevelController extends Controller
             'sort_order' => 'required|integer|min:0',
             'is_active' => 'boolean',
             'sections' => 'nullable|array',
-            'sections.*' => 'exists:survey_sections,id',
+            'sections.*' => 'exists:survey_section_definitions,id',
         ]);
 
         $level = SurveyLevel::create($validated);
@@ -52,7 +52,7 @@ class SurveyLevelController extends Controller
             foreach ($validated['sections'] as $index => $sectionId) {
                 $sectionsWithOrder[$sectionId] = ['sort_order' => $index + 1];
             }
-            $level->sections()->attach($sectionsWithOrder);
+            $level->sectionDefinitions()->attach($sectionsWithOrder);
         }
 
         return redirect()->route('admin.survey-levels.index')
@@ -64,7 +64,7 @@ class SurveyLevelController extends Controller
      */
     public function show(SurveyLevel $surveyLevel)
     {
-        $surveyLevel->load(['sections.category', 'surveys']);
+        $surveyLevel->load(['sectionDefinitions.subcategory.category', 'surveys']);
         
         return view('admin.survey-levels.show', compact('surveyLevel'));
     }
@@ -74,8 +74,8 @@ class SurveyLevelController extends Controller
      */
     public function edit(SurveyLevel $surveyLevel)
     {
-        $sections = SurveySection::active()->ordered()->get();
-        $selectedSections = $surveyLevel->sections->pluck('id')->toArray();
+        $sections = SurveySectionDefinition::active()->ordered()->with('subcategory.category')->get();
+        $selectedSections = $surveyLevel->sectionDefinitions->pluck('id')->toArray();
         
         return view('admin.survey-levels.edit', compact('surveyLevel', 'sections', 'selectedSections'));
     }
@@ -92,7 +92,7 @@ class SurveyLevelController extends Controller
             'sort_order' => 'required|integer|min:0',
             'is_active' => 'boolean',
             'sections' => 'nullable|array',
-            'sections.*' => 'exists:survey_sections,id',
+            'sections.*' => 'exists:survey_section_definitions,id',
         ]);
 
         $surveyLevel->update($validated);
@@ -103,9 +103,9 @@ class SurveyLevelController extends Controller
             foreach ($validated['sections'] as $index => $sectionId) {
                 $sectionsWithOrder[$sectionId] = ['sort_order' => $index + 1];
             }
-            $surveyLevel->sections()->sync($sectionsWithOrder);
+            $surveyLevel->sectionDefinitions()->sync($sectionsWithOrder);
         } else {
-            $surveyLevel->sections()->detach();
+            $surveyLevel->sectionDefinitions()->detach();
         }
 
         return redirect()->route('admin.survey-levels.index')
@@ -124,7 +124,7 @@ class SurveyLevelController extends Controller
         }
 
         // Detach sections first
-        $surveyLevel->sections()->detach();
+        $surveyLevel->sectionDefinitions()->detach();
         
         $surveyLevel->delete();
 

@@ -126,6 +126,7 @@ class Survey extends Model
     {
         return $this->hasMany(SurveyNote::class, 'survey_id');
     }
+
     /**
      * Get all section assessments for this survey.
      */
@@ -135,11 +136,25 @@ class Survey extends Model
     }
 
     /**
-     * Get sections required for this survey's level.
+     * Get the survey level.
      */
-    public function getRequiredSections()
+    public function surveyLevel()
     {
-        return SurveySection::getSectionsForLevel($this->level);
+        return $this->belongsTo(SurveyLevel::class, 'level', 'name');
+    }
+
+    /**
+     * Get section definitions required for this survey's level.
+     */
+    public function getRequiredSectionDefinitions()
+    {
+        $surveyLevel = SurveyLevel::where('name', $this->level)->first();
+        
+        if (!$surveyLevel) {
+            return collect();
+        }
+        
+        return $surveyLevel->sectionDefinitions;
     }
 
     /**
@@ -147,7 +162,7 @@ class Survey extends Model
      */
     public function getCompletionProgress()
     {
-        $requiredSections = $this->getRequiredSections();
+        $requiredSections = $this->getRequiredSectionDefinitions();
         $totalSections = $requiredSections->count();
         
         if ($totalSections === 0) {
@@ -156,7 +171,7 @@ class Survey extends Model
         
         $completedSections = $this->sectionAssessments()
             ->where('is_completed', true)
-            ->whereIn('survey_section_id', $requiredSections->pluck('id'))
+            ->whereIn('section_definition_id', $requiredSections->pluck('id'))
             ->count();
         
         $percentage = ($completedSections / $totalSections) * 100;
@@ -253,7 +268,7 @@ class Survey extends Model
     public function getAssessmentsWithReportContent()
     {
         return $this->sectionAssessments()
-            ->with('section')
+            ->with('sectionDefinition.subcategory.category')
             ->get()
             ->filter(function($assessment) {
                 return $assessment->hasReportContent();
@@ -268,7 +283,7 @@ class Survey extends Model
         $assessments = $this->getAssessmentsWithReportContent();
         
         return $assessments->groupBy(function($assessment) {
-            return $assessment->section->category->display_name ?? 'Uncategorized';
+            return $assessment->sectionDefinition->subcategory->category->display_name ?? 'Uncategorized';
         });
     }
 }

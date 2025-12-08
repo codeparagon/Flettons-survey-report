@@ -158,7 +158,7 @@
                 <h4 class="info-title">Level Information</h4>
                 <div class="info-grid">
                     <div class="info-item">
-                        <div class="info-value">{{ $surveyLevel->sections->count() }}</div>
+                        <div class="info-value">{{ $surveyLevel->sectionDefinitions->count() }}</div>
                         <div class="info-label">Total Sections</div>
                     </div>
                     <div class="info-item">
@@ -183,16 +183,16 @@
             <!-- Assigned Sections -->
             <div class="info-card">
                 <h4 class="info-title">Assigned Sections</h4>
-                @if($surveyLevel->sections->count() > 0)
+                @if($surveyLevel->sectionDefinitions->count() > 0)
                     <div class="sections-grid">
-                        @foreach($surveyLevel->sections as $section)
+                        @foreach($surveyLevel->sectionDefinitions as $section)
                             <div class="section-card">
                                 <div class="section-icon">
-                                    <i class="{{ $section->category->icon ?? 'fas fa-clipboard-list' }}"></i>
+                                    <i class="{{ $section->subcategory->category->icon ?? 'fas fa-clipboard-list' }}"></i>
                                 </div>
                                 <div class="section-name">{{ $section->display_name }}</div>
                                 <div class="section-description">{{ $section->description }}</div>
-                                <div class="section-category">{{ $section->category->display_name ?? 'No Category' }}</div>
+                                <div class="section-category">{{ $section->subcategory->category->display_name ?? 'No Category' }}</div>
                             </div>
                         @endforeach
                     </div>

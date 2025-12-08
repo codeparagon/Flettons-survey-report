@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
             SurveyOptionSeeder::class,
             SurveySectionRequiredFieldsSeeder::class,
             AccommodationSeeder::class,
-            // SurveyLevelSeeder::class, // Commented out - survey_levels table removed in restructure
+            SurveyLevelSeeder::class,
             SurveySeeder::class,
         ]);
     }

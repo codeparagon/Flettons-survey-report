@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SurveySectionAssessment;
 use App\Models\Survey;
-use App\Models\SurveySection;
+use App\Models\SurveySectionDefinition;
 use Illuminate\Http\Request;
 
 class SurveySectionAssessmentController extends Controller
@@ -15,7 +15,7 @@ class SurveySectionAssessmentController extends Controller
      */
     public function index()
     {
-        $assessments = SurveySectionAssessment::with(['survey', 'section'])
+        $assessments = SurveySectionAssessment::with(['survey', 'sectionDefinition.subcategory.category'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
         
@@ -27,7 +27,7 @@ class SurveySectionAssessmentController extends Controller
      */
     public function show(SurveySectionAssessment $assessment)
     {
-        $assessment->load(['survey', 'section', 'completedBy']);
+        $assessment->load(['survey', 'sectionDefinition.subcategory.category', 'completedBy', 'photos', 'costs', 'defects']);
         
         return view('admin.survey-section-assessments.show', compact('assessment'));
     }
@@ -37,7 +37,7 @@ class SurveySectionAssessmentController extends Controller
      */
     public function edit(SurveySectionAssessment $assessment)
     {
-        $assessment->load(['survey', 'section']);
+        $assessment->load(['survey', 'sectionDefinition.subcategory.category']);
         
         return view('admin.survey-section-assessments.edit', compact('assessment'));
     }
@@ -48,9 +48,7 @@ class SurveySectionAssessmentController extends Controller
     public function update(Request $request, SurveySectionAssessment $assessment)
     {
         $validated = $request->validate([
-            'condition_rating' => 'required|in:excellent,good,fair,poor',
-            'defects_noted' => 'nullable|string|max:2000',
-            'recommendations' => 'nullable|string|max:2000',
+            'condition_rating' => 'nullable|integer|in:1,2,3',
             'notes' => 'nullable|string|max:2000',
             'is_completed' => 'boolean',
         ]);
@@ -67,13 +65,18 @@ class SurveySectionAssessmentController extends Controller
     public function destroy(SurveySectionAssessment $assessment)
     {
         // Delete associated photos
-        if ($assessment->photos) {
-            foreach ($assessment->photos as $photo) {
-                if (\Storage::disk('public')->exists($photo)) {
-                    \Storage::disk('public')->delete($photo);
-                }
+        foreach ($assessment->photos as $photo) {
+            if (\Storage::disk('public')->exists($photo->file_path)) {
+                \Storage::disk('public')->delete($photo->file_path);
             }
+            $photo->delete();
         }
+
+        // Delete costs
+        $assessment->costs()->delete();
+        
+        // Detach defects
+        $assessment->defects()->detach();
 
         $assessment->delete();
 
@@ -89,7 +92,6 @@ class SurveySectionAssessmentController extends Controller
         $assessment->update([
             'is_completed' => !$assessment->is_completed,
             'completed_at' => $assessment->is_completed ? null : now(),
-            'completed_by' => $assessment->is_completed ? null : auth()->id(),
         ]);
 
         $status = $assessment->is_completed ? 'marked as incomplete' : 'marked as complete';
@@ -104,29 +106,18 @@ class SurveySectionAssessmentController extends Controller
     public function deletePhoto(Request $request, SurveySectionAssessment $assessment)
     {
         $request->validate([
-            'photo_path' => 'required|string',
+            'photo_id' => 'required|integer',
         ]);
 
-        if ($assessment->photos) {
-            $photos = $assessment->photos;
-            $photoToDelete = $request->photo_path;
-
-            // Remove photo from array
-            $photos = array_filter($photos, function($photo) use ($photoToDelete) {
-                return $photo !== $photoToDelete;
-            });
-
-            // Delete file from storage
-            if (\Storage::disk('public')->exists($photoToDelete)) {
-                \Storage::disk('public')->delete($photoToDelete);
+        $photo = $assessment->photos()->find($request->photo_id);
+        
+        if ($photo) {
+            if (\Storage::disk('public')->exists($photo->file_path)) {
+                \Storage::disk('public')->delete($photo->file_path);
             }
-
-            // Update assessment
-            $assessment->update(['photos' => array_values($photos)]);
+            $photo->delete();
         }
 
         return response()->json(['success' => true]);
     }
 }
-
-

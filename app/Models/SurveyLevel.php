@@ -23,13 +23,17 @@ class SurveyLevel extends Model
     ];
 
     /**
-     * Get all sections for this level.
+     * Get all section definitions for this level.
      */
-    public function sections()
+    public function sectionDefinitions()
     {
-        return $this->belongsToMany(SurveySection::class, 'survey_level_sections', 'survey_level_id', 'survey_section_id')
-                    ->withPivot('sort_order')
-                    ->orderBy('survey_level_sections.sort_order');
+        return $this->belongsToMany(
+            SurveySectionDefinition::class, 
+            'survey_level_section_definitions', 
+            'survey_level_id', 
+            'section_definition_id'
+        )->withPivot('sort_order')
+         ->orderBy('survey_level_section_definitions.sort_order');
     }
 
     /**
@@ -61,23 +65,25 @@ class SurveyLevel extends Model
      */
     public function getCategoriesWithSections()
     {
-        $sectionIds = $this->sections->pluck('id');
+        $sectionIds = $this->sectionDefinitions->pluck('id');
         
         return SurveyCategory::active()
             ->ordered()
-            ->with(['sections' => function($query) use ($sectionIds) {
-                $query->whereIn('id', $sectionIds)
+            ->with(['subcategories' => function($query) use ($sectionIds) {
+                $query->active()->ordered()->with(['sectionDefinitions' => function($q) use ($sectionIds) {
+                    $q->whereIn('id', $sectionIds)
                       ->where('is_active', true)
                       ->orderBy('sort_order');
+                }]);
             }])
             ->get();
     }
 
     /**
-     * Get section names for this level.
+     * Get section definition names for this level.
      */
     public function getSectionNames()
     {
-        return $this->sections->pluck('name')->toArray();
+        return $this->sectionDefinitions->pluck('name')->toArray();
     }
 }

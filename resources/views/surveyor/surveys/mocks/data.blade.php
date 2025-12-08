@@ -56,7 +56,7 @@
                 </div>
                 
                 <div class="survey-data-mock-category-content collapse show">
-                    <div class="survey-data-mock-sections">
+                    <div class="survey-data-mock-sections" style="gap: 0.75rem;">
                         @foreach($accommodationSections as $accommodation)
                             @include('surveyor.surveys.mocks.partials.accommodation-section-item', ['accommodation' => $accommodation])
                         @endforeach
@@ -137,6 +137,38 @@
         <div class="survey-data-mock-cost-modal-footer">
             <button type="button" class="survey-data-mock-cost-modal-btn survey-data-mock-cost-modal-btn-cancel" id="cost-modal-cancel">Cancel</button>
             <button type="button" class="survey-data-mock-cost-modal-btn survey-data-mock-cost-modal-btn-save" id="cost-modal-save">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Image Lightbox Modal - Clean Design -->
+<div id="survey-data-mock-lightbox" class="survey-data-mock-lightbox">
+    <div class="survey-data-mock-lightbox-backdrop"></div>
+    <div class="survey-data-mock-lightbox-container">
+        <!-- Close Button -->
+        <button type="button" class="survey-data-mock-lightbox-close" id="lightbox-close" title="Close">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <!-- Image Display -->
+        <div class="survey-data-mock-lightbox-body">
+            <button type="button" class="survey-data-mock-lightbox-nav survey-data-mock-lightbox-prev" id="lightbox-prev">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="survey-data-mock-lightbox-image-wrapper" id="lightbox-image-wrapper">
+                <img src="" alt="Preview" class="survey-data-mock-lightbox-image" id="lightbox-image">
+                <div class="survey-data-mock-lightbox-loader">
+                    <div class="survey-data-mock-lightbox-spinner"></div>
+                </div>
+            </div>
+            <button type="button" class="survey-data-mock-lightbox-nav survey-data-mock-lightbox-next" id="lightbox-next">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <!-- Counter -->
+        <div class="survey-data-mock-lightbox-counter">
+            <span id="lightbox-current">1</span> / <span id="lightbox-total">1</span>
         </div>
     </div>
 </div>
@@ -314,7 +346,7 @@
 
     /* Sub-Categories */
     .survey-data-mock-sub-category {
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.75rem;
         background: transparent;
         padding: 0;
         width: 100%;
@@ -327,7 +359,7 @@
     .survey-data-mock-sub-category-title {
         font-size: 20px;
         color: #FFFFFF;
-        margin: 0 0 1rem 0;
+        margin: 0 0 0.25rem 0;
         padding: 0;
         font-family: 'Poppins', sans-serif;
     }
@@ -342,7 +374,7 @@
     .survey-data-mock-sections {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        /* gap: 1rem; */
         padding-top: 1rem;
         flex: 1;
         min-height: 0;
@@ -989,7 +1021,413 @@
         opacity: 1 !important;
     }
 
-    /* Images Upload */
+    /* ============================================
+       IMAGE UPLOAD SYSTEM - Clean Design
+       ============================================ */
+    
+    /* Images Section Container */
+    .survey-data-mock-images-section {
+        margin-top: 1.5rem;
+    }
+
+    .survey-data-mock-images-section .survey-data-mock-field-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .survey-data-mock-image-count {
+        font-size: 13px;
+        color: #64748B;
+        font-weight: 500;
+    }
+
+    /* Upload Dropzone - Matching Project Theme */
+    .survey-data-mock-upload-dropzone {
+        border: 2px dashed #CBD5E1;
+        border-radius: 12px;
+        padding: 2rem 1.5rem;
+        background: #F8FAFC;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .survey-data-mock-upload-dropzone:hover {
+        border-color: #C1EC4A;
+        background: #F1F5F9;
+    }
+
+    .survey-data-mock-upload-dropzone.dragover {
+        border-color: #C1EC4A;
+        border-style: solid;
+        background: rgba(193, 236, 74, 0.1);
+    }
+
+    .survey-data-mock-upload-icon-main {
+        font-size: 36px;
+        color: #1E293B;
+        margin-bottom: 0.75rem;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .survey-data-mock-upload-dropzone:hover .survey-data-mock-upload-icon-main {
+        color: #C1EC4A;
+    }
+
+    .survey-data-mock-upload-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1E293B;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .survey-data-mock-upload-subtitle {
+        font-size: 14px;
+        color: #64748B;
+        margin: 0;
+    }
+
+    .survey-data-mock-upload-browse {
+        color: #1E293B;
+        font-weight: 600;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .survey-data-mock-upload-browse:hover {
+        color: #C1EC4A;
+    }
+
+    /* Image Grid */
+    .survey-data-mock-images-preview,
+    .survey-data-mock-existing-images {
+        margin-top: 1rem;
+    }
+
+    .survey-data-mock-images-grid-enhanced {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 0.75rem;
+    }
+
+    /* Image Card */
+    .survey-data-mock-image-card {
+        position: relative;
+        background: #FFFFFF;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #E2E8F0;
+        transition: all 0.2s ease;
+    }
+
+    .survey-data-mock-image-card:hover {
+        border-color: #C1EC4A;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .survey-data-mock-image-wrapper {
+        position: relative;
+        width: 100%;
+        padding-top: 100%;
+        overflow: hidden;
+        background: #F1F5F9;
+    }
+
+    .survey-data-mock-image-thumb {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Image Error State */
+    .survey-data-mock-image-error {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: #F1F5F9;
+        color: #94A3B8;
+        font-size: 32px;
+    }
+
+    .survey-data-mock-image-error i {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Image Overlay with Actions */
+    .survey-data-mock-image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(30, 41, 59, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .survey-data-mock-image-card:hover .survey-data-mock-image-overlay {
+        opacity: 1;
+    }
+
+    .survey-data-mock-image-action {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 13px;
+    }
+
+    .survey-data-mock-image-preview-btn {
+        background: #FFFFFF;
+        color: #1E293B;
+    }
+
+    .survey-data-mock-image-preview-btn:hover {
+        background: #C1EC4A;
+    }
+
+    .survey-data-mock-image-delete {
+        background: #EF4444;
+        color: #FFFFFF;
+    }
+
+    .survey-data-mock-image-delete:hover {
+        background: #DC2626;
+    }
+
+    .survey-data-mock-image-action i {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Image Info Bar */
+    .survey-data-mock-image-info {
+        padding: 0.5rem;
+        background: #FFFFFF;
+        border-top: 1px solid #E2E8F0;
+    }
+
+    .survey-data-mock-image-number {
+        font-size: 11px;
+        font-weight: 600;
+        color: #64748B;
+    }
+
+    /* ============================================
+       LIGHTBOX MODAL - Clean Design
+       ============================================ */
+    
+    .survey-data-mock-lightbox {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 99999;
+        display: none;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-data-mock-lightbox.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .survey-data-mock-lightbox-backdrop {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(15, 23, 42, 0.95);
+    }
+
+    .survey-data-mock-lightbox-container {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Close Button */
+    .survey-data-mock-lightbox-close {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        width: 44px;
+        height: 44px;
+        border: none;
+        border-radius: 8px;
+        background: #1E293B;
+        color: #FFFFFF;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        transition: all 0.2s ease;
+        z-index: 20;
+    }
+
+    .survey-data-mock-lightbox-close:hover {
+        background: #EF4444;
+    }
+
+    .survey-data-mock-lightbox-close i {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Lightbox Body */
+    .survey-data-mock-lightbox-body {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        padding: 4rem;
+    }
+
+    .survey-data-mock-lightbox-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 48px;
+        height: 48px;
+        border: none;
+        border-radius: 8px;
+        background: #1E293B;
+        color: #FFFFFF;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        z-index: 10;
+    }
+
+    .survey-data-mock-lightbox-nav:hover {
+        background: #C1EC4A;
+        color: #1E293B;
+    }
+
+    .survey-data-mock-lightbox-nav:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .survey-data-mock-lightbox-nav:disabled:hover {
+        background: #1E293B;
+        color: #FFFFFF;
+    }
+
+    .survey-data-mock-lightbox-nav i {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .survey-data-mock-lightbox-prev {
+        left: 1.5rem;
+    }
+
+    .survey-data-mock-lightbox-next {
+        right: 1.5rem;
+    }
+
+    .survey-data-mock-lightbox-image-wrapper {
+        position: relative;
+        max-width: calc(100% - 160px);
+        max-height: calc(100vh - 120px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .survey-data-mock-lightbox-image {
+        max-width: 100%;
+        max-height: calc(100vh - 120px);
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .survey-data-mock-lightbox-loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+    }
+
+    .survey-data-mock-lightbox-loader.active {
+        display: block;
+    }
+
+    .survey-data-mock-lightbox-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.2);
+        border-top-color: #C1EC4A;
+        border-radius: 50%;
+        animation: lightboxSpin 0.8s linear infinite;
+    }
+
+    @keyframes lightboxSpin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Counter */
+    .survey-data-mock-lightbox-counter {
+        position: absolute;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 14px;
+        color: #94A3B8;
+        background: #1E293B;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+    }
+
+    .survey-data-mock-lightbox-counter span {
+        font-weight: 600;
+        color: #FFFFFF;
+    }
+
+
+    /* Legacy Support - Keep old classes working */
     .survey-data-mock-images-upload {
         border: 2px dashed rgba(148, 163, 184, 0.3);
         border-radius: 8px;
@@ -1002,70 +1440,31 @@
         overflow: hidden;
     }
 
-    .survey-data-mock-images-upload::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(193, 236, 74, 0.05) 0%, rgba(168, 208, 67, 0.05) 100%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
     .survey-data-mock-images-upload:hover {
         border-color: #C1EC4A;
         background: #DBEAFE;
-        box-shadow: 0 4px 12px rgba(193, 236, 74, 0.15);
-        transform: translateY(-2px);
-    }
-
-    .survey-data-mock-images-upload:hover::before {
-        opacity: 1;
     }
 
     .survey-data-mock-images-upload.dragover {
         border-color: #C1EC4A;
         background: #BFDBFE;
         border-width: 3px;
-        box-shadow: 0 6px 16px rgba(193, 236, 74, 0.2);
     }
 
     .survey-data-mock-upload-icon {
         font-size: 40px;
         color: #64748B;
         margin-bottom: 0.75rem;
-        display: block !important;
+        transition: all 0.3s ease;
+        display: inline-block !important;
         visibility: visible !important;
         opacity: 1 !important;
-        transition: all 0.3s ease;
-        position: relative;
-        z-index: 1;
-    }
-
-    .survey-data-mock-images-upload:hover .survey-data-mock-upload-icon {
-        color: #C1EC4A;
-        transform: scale(1.1);
     }
 
     .survey-data-mock-upload-text {
         font-size: 15px;
         color: #1A202C;
         margin: 0;
-        position: relative;
-        z-index: 1;
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.5;
-    }
-
-    .survey-data-mock-upload-text strong {
-    }
-
-    /* Image Preview Grid */
-    .survey-data-mock-images-preview,
-    .survey-data-mock-existing-images {
-        margin-top: 1rem;
     }
 
     .survey-data-mock-images-grid {
@@ -1078,7 +1477,7 @@
     .survey-data-mock-image-item {
         position: relative;
         width: 100%;
-        padding-top: 100%; /* 1:1 Aspect Ratio */
+        padding-top: 100%;
         background: #F8FAFC;
         border: 1px solid rgba(148, 163, 184, 0.3);
         border-radius: 4px;
@@ -1089,7 +1488,6 @@
 
     .survey-data-mock-image-item:hover {
         border-color: #C1EC4A;
-        box-shadow: 0 2px 8px rgba(193, 236, 74, 0.2);
     }
 
     .survey-data-mock-image-thumbnail {
@@ -1099,40 +1497,6 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-    }
-
-    .survey-data-mock-image-delete {
-        position: absolute;
-        top: 0.25rem;
-        right: 0.25rem;
-        width: 28px;
-        height: 28px;
-        background: rgba(239, 68, 68, 0.9);
-        color: #FFFFFF;
-        border: none;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-        z-index: 10;
-        font-size: 12px;
-    }
-
-    .survey-data-mock-image-item:hover .survey-data-mock-image-delete {
-        opacity: 1;
-    }
-
-    .survey-data-mock-image-delete:hover {
-        background: rgba(220, 38, 38, 1);
-    }
-
-    .survey-data-mock-image-delete i {
-        display: inline-block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
     }
 
     /* Action Buttons */
@@ -2297,6 +2661,58 @@ $(document).ready(function() {
         return fallback;
     }
 
+    // Mock GPT Content Generator for Accommodation Sections
+    function generateAccommodationReportContent(formData, accommodationName) {
+        const notes = formData.notes || '';
+        const components = formData.components || [];
+        
+        let report = `**${accommodationName}**\n\n`;
+        report += `The ${accommodationName.toLowerCase()} has been inspected and assessed as part of the property survey.\n\n`;
+        
+        if (components.length > 0) {
+            report += `**Component Assessment:**\n\n`;
+            
+            components.forEach(comp => {
+                const componentName = comp.component_name || comp.component_key || 'Component';
+                const material = comp.material || 'not specified';
+                const defects = comp.defects && comp.defects.length > 0 && !comp.defects.includes('None')
+                    ? comp.defects.join(', ')
+                    : 'no significant defects';
+                
+                report += `*${componentName}:*\n`;
+                report += `- Material: ${material}\n`;
+                
+                if (defects !== 'no significant defects') {
+                    report += `- Defects identified: ${defects}\n`;
+                } else {
+                    report += `- Condition: Good, no significant defects observed\n`;
+                }
+                report += `\n`;
+            });
+        }
+        
+        if (notes) {
+            report += `**Additional Notes:**\n${notes}\n\n`;
+        }
+        
+        report += `**Recommendations:**\n`;
+        
+        const hasDefects = components.some(comp => 
+            comp.defects && comp.defects.length > 0 && !comp.defects.includes('None')
+        );
+        
+        if (hasDefects) {
+            report += `It is recommended that the identified defects in the ${accommodationName.toLowerCase()} be addressed in a timely manner to prevent further deterioration. `;
+            report += `Regular maintenance and monitoring is advised. `;
+        } else {
+            report += `The ${accommodationName.toLowerCase()} is in satisfactory condition. Regular maintenance is recommended to maintain its current state. `;
+        }
+        
+        report += `Any necessary repairs should be carried out by qualified professionals in accordance with current building regulations.`;
+        
+        return report;
+    }
+
     // Mock GPT Content Generator
     function generateMockReportContent(formData, sectionName, categoryName) {
         const location = formData.location || 'the property';
@@ -2354,19 +2770,23 @@ $(document).ready(function() {
         const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
         const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
         const hasReport = $sectionItem.attr('data-has-report') === 'true' || $sectionItem.attr('data-saved') === 'true';
-        const isAccommodation = $sectionItem.attr('data-accommodation-id') !== undefined;
         
         $sectionItem.toggleClass('expanded');
         
         if ($sectionItem.hasClass('expanded')) {
             $titleBar.slideDown(300);
-            if (hasReport && !isAccommodation) {
-                // Show report if report_content exists, hide form (only for regular sections)
+            if (hasReport) {
+                // Show report if report_content exists, hide form
                 $details.hide();
                 $reportContent.slideDown(300);
             } else {
-                // Show form/details if no report_content or if accommodation
-                $details.slideDown(300);
+                // Show form/details if no report_content
+                $details.slideDown(300, function() {
+                    // Re-initialize carousels after the section is fully visible
+                    if (isSwiperAvailable()) {
+                        initializeSectionCarousels($sectionItem);
+                    }
+                });
                 $reportContent.hide();
             }
         } else {
@@ -2567,206 +2987,195 @@ $(document).ready(function() {
         }
     });
 
-    // Initialize Swiper carousels for button groups
-    function initializeCarousels() {
-        $('.survey-data-mock-button-group').each(function() {
-            const $buttonGroup = $(this);
-            
-            // Skip if already initialized as Swiper
-            if ($buttonGroup.hasClass('swiper-initialized')) {
-                return;
+    // Initialize Swiper carousels for a specific section only
+    function initializeSectionCarousels($sectionItem) {
+        $sectionItem.find('.survey-data-mock-button-group').each(function() {
+            initializeSingleCarousel($(this));
+        });
+    }
+
+    // Initialize a single carousel/button group
+    function initializeSingleCarousel($buttonGroup) {
+        // Skip if already initialized as Swiper
+        if ($buttonGroup.hasClass('swiper-initialized')) {
+            // If already a swiper, just update it
+            if ($buttonGroup[0].swiper) {
+                $buttonGroup[0].swiper.update();
+            }
+            return;
+        }
+        
+        // Get buttons (either direct children or from swiper-slide if already converted)
+        let $buttons = $buttonGroup.find('.survey-data-mock-button');
+        if ($buttons.length === 0) {
+            $buttons = $buttonGroup.children('.survey-data-mock-button');
+        }
+        
+        // Skip if no buttons
+        if ($buttons.length === 0) {
+            return;
+        }
+        
+        // Check if content overflows
+        const $fieldGroup = $buttonGroup.closest('.survey-data-mock-field-group');
+        const availableWidth = $fieldGroup.width() || $buttonGroup.parent().width() || $buttonGroup.width();
+        
+        // Skip if width is 0 (element not visible)
+        if (availableWidth <= 0) {
+            return;
+        }
+        
+        // Temporarily set to nowrap to measure actual content width
+        const originalFlexWrap = $buttonGroup.css('flex-wrap');
+        const originalOverflow = $buttonGroup.css('overflow');
+        
+        $buttonGroup.css({
+            'flex-wrap': 'nowrap',
+            'overflow': 'visible'
+        });
+        
+        // Force reflow
+        $buttonGroup[0].offsetHeight;
+        $buttonGroup[0].scrollWidth;
+        
+        const contentWidth = $buttonGroup[0].scrollWidth;
+        const needsCarousel = contentWidth > (availableWidth + 10);
+        
+        // Restore original styles
+        $buttonGroup.css({
+            'flex-wrap': originalFlexWrap,
+            'overflow': originalOverflow
+        });
+        
+        // Debug logging
+        const groupLabel = $fieldGroup.find('label').text() || 'Unknown';
+        
+        if (needsCarousel) {
+            // If already has swiper structure, destroy it first
+            if ($buttonGroup[0].swiper) {
+                $buttonGroup[0].swiper.destroy(true, true);
             }
             
-            // Get buttons (either direct children or from swiper-slide if already converted)
-            let $buttons = $buttonGroup.find('.survey-data-mock-button');
-            if ($buttons.length === 0) {
-                $buttons = $buttonGroup.children('.survey-data-mock-button');
-            }
-            
-            // Skip if no buttons
-            if ($buttons.length === 0) {
-                return;
-            }
-            
-            // Check if content overflows
-            const $fieldGroup = $buttonGroup.closest('.survey-data-mock-field-group');
-            const availableWidth = $fieldGroup.width() || $buttonGroup.parent().width() || $buttonGroup.width();
-            
-            // Temporarily set to nowrap to measure actual content width
-            const originalFlexWrap = $buttonGroup.css('flex-wrap');
-            const originalOverflow = $buttonGroup.css('overflow');
-            
-            $buttonGroup.css({
-                'flex-wrap': 'nowrap',
-                'overflow': 'visible'
+            // Get all buttons (detach to preserve them)
+            const buttons = [];
+            $buttons.each(function() {
+                buttons.push($(this).detach());
             });
             
-            // Force reflow
-            $buttonGroup[0].offsetHeight;
-            $buttonGroup[0].scrollWidth;
+            // Clear the button group
+            $buttonGroup.empty();
             
-            const contentWidth = $buttonGroup[0].scrollWidth;
-            const needsCarousel = contentWidth > (availableWidth + 10);
+            // Add swiper class
+            $buttonGroup.addClass('swiper');
             
-            // Restore original styles
-            $buttonGroup.css({
-                'flex-wrap': originalFlexWrap,
-                'overflow': originalOverflow
+            // Create swiper wrapper
+            const $wrapper = $('<div class="swiper-wrapper"></div>');
+            buttons.forEach(function($btn) {
+                const $slide = $('<div class="swiper-slide"></div>');
+                $slide.append($btn);
+                $wrapper.append($slide);
             });
+            $buttonGroup.append($wrapper);
             
-            // Debug logging
-            const groupLabel = $fieldGroup.find('label').text() || 'Unknown';
-            console.log('Carousel check:', {
-                group: groupLabel,
-                contentWidth: contentWidth,
-                availableWidth: availableWidth,
-                needsCarousel: needsCarousel,
-                buttonCount: $buttons.length
-            });
+            // Add navigation buttons
+            const $prevBtn = $('<div class="swiper-button-prev"></div>');
+            const $nextBtn = $('<div class="swiper-button-next"></div>');
+            $buttonGroup.append($prevBtn);
+            $buttonGroup.append($nextBtn);
             
-            if (needsCarousel) {
-                // If already has swiper structure, destroy it first
-                if ($buttonGroup[0].swiper) {
-                    $buttonGroup[0].swiper.destroy(true, true);
-                }
-                
-                // Get all buttons (detach to preserve them)
-                const buttons = [];
-                $buttons.each(function() {
-                    buttons.push($(this).detach());
+            // Initialize Swiper
+            try {
+                const swiper = new Swiper($buttonGroup[0], {
+                    slidesPerView: 'auto',
+                    spaceBetween: 6,
+                    freeMode: true,
+                    navigation: {
+                        nextEl: $nextBtn[0],
+                        prevEl: $prevBtn[0],
+                    },
+                    watchOverflow: true,
+                    resistance: true,
+                    resistanceRatio: 0.85,
+                    slidesOffsetBefore: 0,
+                    slidesOffsetAfter: 0,
                 });
                 
-                // Clear the button group
-                $buttonGroup.empty();
+                // Add continuous smooth scrolling on button hold
+                let scrollInterval = null;
+                let isScrolling = false;
+                let scrollDirection = null;
                 
-                // Add swiper class
-                $buttonGroup.addClass('swiper');
-                
-                // Create swiper wrapper
-                const $wrapper = $('<div class="swiper-wrapper"></div>');
-                buttons.forEach(function($btn) {
-                    const $slide = $('<div class="swiper-slide"></div>');
-                    $slide.append($btn);
-                    $wrapper.append($slide);
-                });
-                $buttonGroup.append($wrapper);
-                
-                // Add navigation buttons
-                const $prevBtn = $('<div class="swiper-button-prev"></div>');
-                const $nextBtn = $('<div class="swiper-button-next"></div>');
-                $buttonGroup.append($prevBtn);
-                $buttonGroup.append($nextBtn);
-                
-                // Initialize Swiper
-                try {
-                    const swiper = new Swiper($buttonGroup[0], {
-                        slidesPerView: 'auto',
-                        spaceBetween: 6,
-                        freeMode: true,
-                        navigation: {
-                            nextEl: $nextBtn[0],
-                            prevEl: $prevBtn[0],
-                        },
-                        watchOverflow: true,
-                        resistance: true,
-                        resistanceRatio: 0.85,
-                        slidesOffsetBefore: 0,
-                        slidesOffsetAfter: 0,
-                    });
+                // Function to scroll smoothly
+                function smoothScroll() {
+                    if (!isScrolling) return;
                     
-                    // Add continuous smooth scrolling on button hold
-                    let scrollInterval = null;
-                    let isScrolling = false;
-                    let scrollDirection = null;
+                    const scrollAmount = 5; // pixels per scroll
+                    const currentTranslate = swiper.getTranslate();
                     
-                    // Function to scroll smoothly
-                    function smoothScroll() {
-                        if (!isScrolling) return;
-                        
-                        const scrollAmount = 5; // pixels per scroll
-                        const currentTranslate = swiper.getTranslate();
-                        
-                        if (scrollDirection === 'prev') {
-                            swiper.setTranslate(currentTranslate - scrollAmount);
-                        } else if (scrollDirection === 'next') {
-                            swiper.setTranslate(currentTranslate + scrollAmount);
-                        }
-                        
-                        // Update navigation state
-                        swiper.navigation.update();
+                    if (scrollDirection === 'prev') {
+                        swiper.setTranslate(currentTranslate - scrollAmount);
+                    } else if (scrollDirection === 'next') {
+                        swiper.setTranslate(currentTranslate + scrollAmount);
                     }
                     
-                    // Left button - continuous smooth scroll
-                    $prevBtn.on('mousedown touchstart', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        isScrolling = true;
-                        scrollDirection = 'prev';
-                        
-                        // Immediate scroll
-                        swiper.slidePrev();
-                        
-                        // Continuous smooth scroll
-                        scrollInterval = setInterval(smoothScroll, 16); // ~60fps smooth scrolling
-                    });
-                    
-                    // Right button - continuous smooth scroll
-                    $nextBtn.on('mousedown touchstart', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        isScrolling = true;
-                        scrollDirection = 'next';
-                        
-                        // Immediate scroll
-                        swiper.slideNext();
-                        
-                        // Continuous smooth scroll
-                        scrollInterval = setInterval(smoothScroll, 16); // ~60fps smooth scrolling
-                    });
-                    
-                    // Stop scrolling on mouse up/leave/touch end
-                    $(document).on('mouseup touchend mouseleave', function() {
-                        if (scrollInterval) {
-                            clearInterval(scrollInterval);
-                            scrollInterval = null;
-                            isScrolling = false;
-                            scrollDirection = null;
-                        }
-                    });
-                    
-                    // Also handle single click for quick navigation
-                    $prevBtn.on('click', function(e) {
-                        if (!isScrolling) {
-                            swiper.slidePrev();
-                        }
-                    });
-                    
-                    $nextBtn.on('click', function(e) {
-                        if (!isScrolling) {
-                            swiper.slideNext();
-                        }
-                    });
-                    
-                    // Update navigation visibility on init and slide change
-                    swiper.on('init', function() {
-                        swiper.navigation.update();
-                    });
-                    
-                    swiper.on('slideChange', function() {
-                        swiper.navigation.update();
-                    });
-                    
-                    // Force update after a short delay to ensure proper rendering
-                    setTimeout(function() {
-                        swiper.update();
-                        swiper.navigation.update();
-                    }, 100);
-                    
-                    console.log('Swiper initialized for:', groupLabel);
-                } catch (error) {
-                    console.error('Swiper initialization error:', error, groupLabel);
+                    // Update navigation state
+                    swiper.navigation.update();
                 }
+                
+                // Left button - continuous smooth scroll
+                $prevBtn.on('mousedown touchstart', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isScrolling = true;
+                    scrollDirection = 'prev';
+                    
+                    // Immediate scroll
+                    swiper.slidePrev();
+                    
+                    // Continuous smooth scroll
+                    scrollInterval = setInterval(smoothScroll, 16);
+                });
+                
+                // Right button - continuous smooth scroll
+                $nextBtn.on('mousedown touchstart', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isScrolling = true;
+                    scrollDirection = 'next';
+                    
+                    // Immediate scroll
+                    swiper.slideNext();
+                    
+                    // Continuous smooth scroll
+                    scrollInterval = setInterval(smoothScroll, 16);
+                });
+                
+                // Stop scrolling on mouse up/leave/touch end
+                $(document).on('mouseup touchend mouseleave', function() {
+                    if (scrollInterval) {
+                        clearInterval(scrollInterval);
+                        scrollInterval = null;
+                        isScrolling = false;
+                        scrollDirection = null;
+                    }
+                });
+                
+                // Force update after a short delay to ensure proper rendering
+                setTimeout(function() {
+                    swiper.update();
+                    swiper.navigation.update();
+                }, 50);
+                
+            } catch (error) {
+                console.error('Swiper initialization error:', error, groupLabel);
             }
+        }
+    }
+
+    // Initialize Swiper carousels for all visible button groups
+    function initializeCarousels() {
+        $('.survey-data-mock-button-group').each(function() {
+            initializeSingleCarousel($(this));
         });
     }
     
@@ -3680,15 +4089,8 @@ $(document).ready(function() {
         });
     }
     
-    // Initialize image upload for all sections on page load
-    $('.survey-data-mock-section-item').each(function() {
-        initializeImageUpload($(this));
-    });
-    
-    // Initialize for dynamically added sections
-    $(document).on('sectionItemAdded', function(e, $sectionItem) {
-        initializeImageUpload($sectionItem);
-    });
+    // Image upload initialization moved to enhanced upload system below
+    // Old initializeImageUpload disabled to prevent duplicate uploads
 
     // Action Buttons
     $('.survey-data-mock-action-delete').on('click', function(e) {
@@ -3922,45 +4324,82 @@ $(document).ready(function() {
             case 'edit':
                 // Toggle back to form view
                 $reportContent.slideUp(300);
-                $details.slideDown(300);
+                $details.slideDown(300, function() {
+                    // Re-initialize carousels after the form is fully visible
+                    if (isSwiperAvailable()) {
+                        initializeSectionCarousels($sectionItem);
+                    }
+                });
                 break;
                 
             case 'refresh':
                 // Regenerate content
                 const $detailsForRefresh = $sectionItem.find('.survey-data-mock-section-details');
-                const formData = {
-                    section: $detailsForRefresh.find('[data-group="section"].active').data('value') || '',
-                    location: $detailsForRefresh.find('[data-group="location"].active').data('value') || '',
-                    structure: $detailsForRefresh.find('[data-group="structure"].active').data('value') || '',
-                    material: $detailsForRefresh.find('[data-group="material"].active').data('value') || '',
-                    defects: $detailsForRefresh.find('[data-group="defects"].active').map(function() {
-                        return $(this).data('value');
-                    }).get(),
-                    remainingLife: $detailsForRefresh.find('[data-group="remaining_life"].active').data('value') || '',
-                    notes: $detailsForRefresh.find('.survey-data-mock-notes-input').val() || '',
-                    costs: []
-                };
+                const isAccommodationRefresh = $sectionItem.attr('data-accommodation-id') !== undefined;
                 
-                // Collect costs
-                $detailsForRefresh.find('.survey-data-mock-costs-table tbody tr[data-cost-index]').each(function() {
-                    const $row = $(this);
-                    const category = $row.find('td:eq(0)').text().trim();
-                    const description = $row.find('td:eq(1)').text().trim();
-                    const due = $row.find('td:eq(2)').text().trim();
-                    const cost = $row.find('td:eq(3)').text().trim();
+                if (isAccommodationRefresh) {
+                    // Regenerate accommodation report
+                    const accommodationFormData = {
+                        notes: $detailsForRefresh.find('.survey-data-mock-notes-input').val() || '',
+                        components: []
+                    };
                     
-                    if (category && category !== 'No costs added') {
-                        formData.costs.push({
-                            category: category,
-                            description: description,
-                            due: due,
-                            cost: cost
-                        });
-                    }
-                });
-                
-                const newReportContent = generateMockReportContent(formData, sectionName, categoryName);
-                $reportContent.find('.survey-data-mock-report-textarea').val(newReportContent);
+                    // Collect component data from carousel slides
+                    $detailsForRefresh.find('.survey-data-mock-carousel-slide').each(function() {
+                        const $slide = $(this);
+                        const componentKey = $slide.data('component-key');
+                        const componentName = $sectionItem.find(`.survey-data-mock-component-tab[data-component-key="${componentKey}"]`).text().trim() || componentKey;
+                        
+                        if (componentKey) {
+                            accommodationFormData.components.push({
+                                component_key: componentKey,
+                                component_name: componentName,
+                                material: $slide.find('[data-group="material"].active').data('value') || '',
+                                defects: $slide.find('[data-group="defects"].active').map(function() {
+                                    return $(this).data('value');
+                                }).get()
+                            });
+                        }
+                    });
+                    
+                    const newAccommodationReport = generateAccommodationReportContent(accommodationFormData, sectionName);
+                    $reportContent.find('.survey-data-mock-report-textarea').val(newAccommodationReport);
+                } else {
+                    // Regenerate regular section report
+                    const formData = {
+                        section: $detailsForRefresh.find('[data-group="section"].active').data('value') || '',
+                        location: $detailsForRefresh.find('[data-group="location"].active').data('value') || '',
+                        structure: $detailsForRefresh.find('[data-group="structure"].active').data('value') || '',
+                        material: $detailsForRefresh.find('[data-group="material"].active').data('value') || '',
+                        defects: $detailsForRefresh.find('[data-group="defects"].active').map(function() {
+                            return $(this).data('value');
+                        }).get(),
+                        remainingLife: $detailsForRefresh.find('[data-group="remaining_life"].active').data('value') || '',
+                        notes: $detailsForRefresh.find('.survey-data-mock-notes-input').val() || '',
+                        costs: []
+                    };
+                    
+                    // Collect costs
+                    $detailsForRefresh.find('.survey-data-mock-costs-table tbody tr[data-cost-index]').each(function() {
+                        const $row = $(this);
+                        const category = $row.find('td:eq(0)').text().trim();
+                        const description = $row.find('td:eq(1)').text().trim();
+                        const due = $row.find('td:eq(2)').text().trim();
+                        const cost = $row.find('td:eq(3)').text().trim();
+                        
+                        if (category && category !== 'No costs added') {
+                            formData.costs.push({
+                                category: category,
+                                description: description,
+                                due: due,
+                                cost: cost
+                            });
+                        }
+                    });
+                    
+                    const newReportContent = generateMockReportContent(formData, sectionName, categoryName);
+                    $reportContent.find('.survey-data-mock-report-textarea').val(newReportContent);
+                }
                 break;
                 
             case 'eye':
@@ -4247,7 +4686,8 @@ $(document).ready(function() {
             return;
         }
 
-        const $sourceItem = $(`.survey-data-mock-section-item[data-section-id="${currentCloneSectionId}"]`);
+        // Use specific selector to only match regular sections (not accommodations)
+        const $sourceItem = $(`.survey-data-mock-section-item:not([data-accommodation-id])[data-section-id="${currentCloneSectionId}"]`);
         const $categorySection = $sourceItem.closest('.survey-data-mock-category');
         const $subCategoryContainer = $sourceItem.closest('.survey-data-mock-sub-category');
         
@@ -4327,26 +4767,25 @@ $(document).ready(function() {
                     // Insert cloned section immediately after the parent section
                     $sourceItem.after(response.html);
                     
-                    // Get the new section item
-                    const $newSectionItem = $(`.survey-data-mock-section-item[data-section-id="${response.section_id}"]`);
+                    // Get the new section item (only regular sections, not accommodations)
+                    const $newSectionItem = $(`.survey-data-mock-section-item:not([data-accommodation-id])[data-section-id="${response.section_id}"]`);
                     
-                    // Initialize button states from form data
-                    initializeSectionButtons($newSectionItem, formData);
-                    
-                    // Initialize event handlers for the new section
-                    initializeSectionHandlers($newSectionItem);
-                    
-                    // Initialize carousels and dividers in the new section
-                    setTimeout(function() {
-                        initializeCarousels();
-                        initializeDividers();
-                    }, 100);
-                    
-                    // Re-attach clone handler (since it's dynamically created)
-                    attachCloneHandler($newSectionItem);
-                    
-                    // Update the header with section name and location
-                    updateSectionHeader($newSectionItem);
+                    if ($newSectionItem.length) {
+                        // Initialize button states from form data
+                        initializeSectionButtons($newSectionItem, formData);
+                        
+                        // Initialize event handlers for the new section (expand/collapse only)
+                        initializeSectionHandlers($newSectionItem);
+                        
+                        // Initialize carousels and dividers in the new section
+                        setTimeout(function() {
+                            initializeCarousels();
+                            initializeDividers();
+                        }, 100);
+                        
+                        // Update the header with section name and location
+                        updateSectionHeader($newSectionItem);
+                    }
                     
                     // Close modal
                     $('#survey-data-mock-clone-modal').removeClass('show');
@@ -4801,7 +5240,12 @@ $(document).ready(function() {
                     $reportContent.slideDown(300);
                 } else {
                     // Show form if no report_content, hide report
-                    $details.slideDown(300);
+                    $details.slideDown(300, function() {
+                        // Re-initialize carousels after the section is fully visible
+                        if (isSwiperAvailable()) {
+                            initializeSectionCarousels($item);
+                        }
+                    });
                     $reportContent.hide();
                 }
             } else {
@@ -5375,6 +5819,36 @@ $(document).ready(function() {
                     $item.find('.survey-data-mock-images-preview').hide();
                     $item.find('.survey-data-mock-images-preview .survey-data-mock-images-grid').empty();
                     
+                    // Generate report content for accommodation
+                    const reportFormData = {
+                        notes: formData.notes,
+                        components: formData.components.map(comp => {
+                            // Get component name from the tab
+                            const componentName = $details.find(`.survey-data-mock-component-tab[data-component-key="${comp.component_key}"]`).text().trim() || comp.component_key;
+                            return {
+                                component_key: comp.component_key,
+                                component_name: componentName,
+                                material: comp.material,
+                                defects: comp.defects
+                            };
+                        })
+                    };
+                    
+                    const reportContent = response.report_content || generateAccommodationReportContent(reportFormData, accommodationName);
+                    
+                    // Get report content area
+                    const $reportContent = $item.find('.survey-data-mock-report-content');
+                    
+                    // Hide form, show report
+                    $details.slideUp(300);
+                    $reportContent.find('.survey-data-mock-report-textarea').val(reportContent);
+                    $reportContent.slideDown(300);
+                    
+                    // Mark section as saved and has report
+                    $item.attr('data-saved', 'true');
+                    $item.attr('data-has-report', 'true');
+                    $item.attr('data-locked', 'false');
+                    
                     // Show success message
                     if (typeof toastr !== 'undefined') {
                         toastr.success(response.message || 'Accommodation assessment saved successfully');
@@ -5524,6 +5998,9 @@ $(document).ready(function() {
                     if ($newAccommodationItem.length) {
                         initializeAccommodationCarousel($newAccommodationItem);
                         
+                        // Initialize event handlers for expand/collapse
+                        initializeSectionHandlers($newAccommodationItem);
+                        
                         // Initialize dividers for the new accommodation
                         setTimeout(function() {
                             initializeDividers();
@@ -5542,7 +6019,7 @@ $(document).ready(function() {
                         $('html, body').animate({
                             scrollTop: $newAccommodationItem.offset().top - 100
                         }, 500);
-                    }, 100);
+                    }, 200);
                     
                     // Reset button state
                     $button.prop('disabled', false).html('Save and Clone');
@@ -5635,6 +6112,437 @@ $(document).ready(function() {
             
         });
     });
+});
+
+// ============================================
+// ENHANCED IMAGE UPLOAD & LIGHTBOX SYSTEM
+// ============================================
+
+$(document).ready(function() {
+    
+    // ============================================
+    // ENHANCED UPLOAD DROPZONE
+    // ============================================
+    
+    // Initialize enhanced upload areas
+    function initEnhancedUpload($sectionItem) {
+        const $dropzone = $sectionItem.find('.survey-data-mock-upload-dropzone');
+        const $fileInput = $sectionItem.find('.survey-data-mock-file-input');
+        
+        if ($dropzone.length === 0) return;
+        
+        // Skip if already initialized
+        if ($dropzone.data('upload-initialized')) return;
+        $dropzone.data('upload-initialized', true);
+        
+        // Unbind old handlers first
+        $dropzone.off('click.upload dragover.upload dragleave.upload drop.upload');
+        $fileInput.off('change');
+        
+        // Click handler for dropzone
+        $dropzone.on('click.upload', function(e) {
+            e.stopPropagation();
+            $fileInput.trigger('click');
+        });
+        
+        // Drag and drop handlers
+        $dropzone.on('dragover.upload', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).addClass('dragover');
+        });
+        
+        $dropzone.on('dragleave.upload', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('dragover');
+        });
+        
+        $dropzone.on('drop.upload', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('dragover');
+            
+            const files = Array.from(e.originalEvent.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+            if (files.length > 0) {
+                handleEnhancedFilesSelected($sectionItem, files);
+            }
+        });
+        
+        // File input change - single handler
+        $fileInput.on('change', function(e) {
+            e.stopPropagation();
+            const files = Array.from(this.files);
+            if (files.length > 0) {
+                handleEnhancedFilesSelected($sectionItem, files);
+            }
+            $(this).val(''); // Reset input
+        });
+    }
+    
+    // Handle enhanced file selection
+    function handleEnhancedFilesSelected($sectionItem, files) {
+        const validFiles = files.filter(file => file.type.startsWith('image/'));
+        if (validFiles.length === 0) return;
+        
+        const sectionId = $sectionItem.data('section-id');
+        const accommodationId = $sectionItem.data('accommodation-id');
+        const isNumericId = /^\d+$/.test((sectionId || accommodationId || '').toString());
+        const surveyId = $('.survey-data-mock-content').data('survey-id');
+        
+        const $dropzone = $sectionItem.find('.survey-data-mock-upload-dropzone');
+        const $uploadTitle = $dropzone.find('.survey-data-mock-upload-title');
+        const originalTitle = $uploadTitle.text();
+        
+        // Show uploading state
+        $uploadTitle.html('<i class="fas fa-spinner fa-spin"></i> Uploading...');
+        $dropzone.css('pointer-events', 'none');
+        
+        if (isNumericId && surveyId) {
+            // Upload to backend
+            const formData = new FormData();
+            formData.append('_token', '{{ csrf_token() }}');
+            validFiles.forEach((file, index) => {
+                formData.append(`photos[${index}]`, file);
+            });
+            
+            const assessmentId = sectionId || accommodationId;
+            const uploadUrl = accommodationId 
+                ? `/surveyor/surveys/${surveyId}/accommodation-assessments/${assessmentId}/photos`
+                : `/surveyor/surveys/${surveyId}/assessments/${assessmentId}/photos`;
+            
+            $.ajax({
+                url: uploadUrl,
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.photos && response.photos.length > 0) {
+                        addPhotosToGrid($sectionItem, response.photos);
+                        updateImageCount($sectionItem);
+                    }
+                    
+                    $uploadTitle.text(originalTitle);
+                    $dropzone.css('pointer-events', 'auto');
+                    
+                    showToast('Images uploaded successfully!', 'success');
+                },
+                error: function(xhr) {
+                    console.error('Upload failed:', xhr.responseJSON);
+                    $uploadTitle.text(originalTitle);
+                    $dropzone.css('pointer-events', 'auto');
+                    showToast('Failed to upload images. Please try again.', 'error');
+                }
+            });
+        } else {
+            // Preview mode (not saved yet)
+            const $previewArea = $sectionItem.find('.survey-data-mock-images-preview');
+            const $previewGrid = $previewArea.find('.survey-data-mock-images-grid-enhanced');
+            
+            validFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const $card = createImageCard(e.target.result, null, index);
+                    $card.attr('data-file-index', index);
+                    $previewGrid.append($card);
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            $previewArea.show();
+            $uploadTitle.text(originalTitle);
+            $dropzone.css('pointer-events', 'auto');
+            updateImageCount($sectionItem);
+        }
+    }
+    
+    // Create image card HTML
+    function createImageCard(imageUrl, photoId, index) {
+        const $card = $(`
+            <div class="survey-data-mock-image-card" data-image-url="${imageUrl}" ${photoId ? 'data-photo-id="' + photoId + '"' : ''}>
+                <div class="survey-data-mock-image-wrapper">
+                    <img src="${imageUrl}" alt="Photo ${index + 1}" class="survey-data-mock-image-thumb" loading="lazy" onerror="this.style.display='none'; this.parentElement.querySelector('.survey-data-mock-image-error') && (this.parentElement.querySelector('.survey-data-mock-image-error').style.display='flex');">
+                    <div class="survey-data-mock-image-error" style="display:none;"><i class="fas fa-image"></i></div>
+                    <div class="survey-data-mock-image-overlay">
+                        <button type="button" class="survey-data-mock-image-action survey-data-mock-image-preview-btn" title="Preview">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button type="button" class="survey-data-mock-image-action survey-data-mock-image-delete" ${photoId ? 'data-photo-id="' + photoId + '"' : ''} title="Delete">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="survey-data-mock-image-info">
+                    <span class="survey-data-mock-image-number">#${index + 1}</span>
+                </div>
+            </div>
+        `);
+        return $card;
+    }
+    
+    // Add photos to existing grid
+    function addPhotosToGrid($sectionItem, photos) {
+        let $existingContainer = $sectionItem.find('.survey-data-mock-existing-images');
+        let $existingGrid = $existingContainer.find('.survey-data-mock-images-grid-enhanced');
+        
+        if ($existingContainer.length === 0) {
+            $existingContainer = $(`
+                <div class="survey-data-mock-existing-images">
+                    <div class="survey-data-mock-images-grid-enhanced"></div>
+                </div>
+            `);
+            $existingGrid = $existingContainer.find('.survey-data-mock-images-grid-enhanced');
+            // Insert after the dropzone
+            $sectionItem.find('.survey-data-mock-upload-dropzone').after($existingContainer);
+        }
+        
+        const existingCount = $existingGrid.find('.survey-data-mock-image-card').length;
+        
+        photos.forEach(function(photo, index) {
+            const $card = createImageCard(photo.url, photo.id, existingCount + index + 1);
+            $existingGrid.append($card);
+        });
+        
+        $existingContainer.show();
+    }
+    
+    // Update image count display
+    function updateImageCount($sectionItem) {
+        const count = $sectionItem.find('.survey-data-mock-image-card, .survey-data-mock-image-item').length;
+        const $countSpan = $sectionItem.find('[data-image-count]');
+        const $gridCount = $sectionItem.find('.survey-data-mock-images-count');
+        
+        $countSpan.text(count > 0 ? `(${count})` : '');
+        $gridCount.text(`${count} image(s)`);
+    }
+    
+    // Initialize all sections
+    $('.survey-data-mock-section-item').each(function() {
+        initEnhancedUpload($(this));
+    });
+    
+    // ============================================
+    // LIGHTBOX FUNCTIONALITY
+    // ============================================
+    
+    let lightboxImages = [];
+    let currentLightboxIndex = 0;
+    
+    // Open lightbox
+    function openLightbox($sectionItem, $clickedImage) {
+        const $lightbox = $('#survey-data-mock-lightbox');
+        
+        if ($lightbox.length === 0) {
+            console.error('Lightbox element not found in DOM');
+            return;
+        }
+        
+        // Move lightbox to body to escape stacking context (sidebar z-index issue)
+        if (!$lightbox.parent().is('body')) {
+            $lightbox.appendTo('body');
+        }
+        
+        // Collect all images from the section
+        lightboxImages = [];
+        $sectionItem.find('.survey-data-mock-image-card, .survey-data-mock-image-item').each(function() {
+            const $img = $(this).find('img');
+            const url = $(this).data('image-url') || $img.attr('src');
+            if (url && url.length > 0) {
+                lightboxImages.push(url);
+            }
+        });
+        
+        if (lightboxImages.length === 0) {
+            console.log('No images found in section');
+            return;
+        }
+        
+        // Find clicked image index
+        const $card = $clickedImage.closest('.survey-data-mock-image-card, .survey-data-mock-image-item');
+        const clickedUrl = $card.data('image-url') || $card.find('img').attr('src');
+        currentLightboxIndex = lightboxImages.indexOf(clickedUrl);
+        if (currentLightboxIndex === -1) currentLightboxIndex = 0;
+        
+        // Show lightbox
+        $lightbox.addClass('active');
+        showLightboxImage(currentLightboxIndex);
+        
+        // Prevent body scroll
+        $('body').css('overflow', 'hidden');
+    }
+    
+    // Close lightbox
+    function closeLightbox() {
+        $('#survey-data-mock-lightbox').removeClass('active');
+        $('body').css('overflow', '');
+        lightboxImages = [];
+        currentLightboxIndex = 0;
+    }
+    
+    // Show specific image
+    function showLightboxImage(index) {
+        if (index < 0 || index >= lightboxImages.length) return;
+        
+        currentLightboxIndex = index;
+        const $image = $('#lightbox-image');
+        const $loader = $('.survey-data-mock-lightbox-loader');
+        const imageUrl = lightboxImages[index];
+        
+        // Show loader
+        $loader.addClass('active');
+        $image.css('opacity', '0');
+        
+        // Load image with timeout for error handling
+        const img = new Image();
+        const loadTimeout = setTimeout(function() {
+            // If image takes too long, show anyway and hide loader
+            $image.attr('src', imageUrl);
+            $image.css('opacity', '1');
+            $loader.removeClass('active');
+        }, 3000);
+        
+        img.onload = function() {
+            clearTimeout(loadTimeout);
+            $image.attr('src', imageUrl);
+            $image.css('opacity', '1');
+            $loader.removeClass('active');
+        };
+        
+        img.onerror = function() {
+            clearTimeout(loadTimeout);
+            $image.attr('src', imageUrl);
+            $image.css('opacity', '1');
+            $loader.removeClass('active');
+        };
+        
+        img.src = imageUrl;
+        
+        // Update counter
+        $('#lightbox-current').text(index + 1);
+        $('#lightbox-total').text(lightboxImages.length);
+        
+        // Update nav buttons
+        $('#lightbox-prev').prop('disabled', index === 0);
+        $('#lightbox-next').prop('disabled', index === lightboxImages.length - 1);
+    }
+    
+    // Event handlers - Preview button click
+    $(document).on('click', '.survey-data-mock-image-preview-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+        openLightbox($sectionItem, $(this));
+    });
+    
+    // Click on image thumbnail to preview
+    $(document).on('click', '.survey-data-mock-image-card .survey-data-mock-image-thumb', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+        openLightbox($sectionItem, $(this));
+    });
+    
+    // Lightbox control handlers (use delegation since lightbox may be moved to body)
+    $(document).on('click', '#lightbox-close, .survey-data-mock-lightbox-backdrop', function(e) {
+        e.preventDefault();
+        closeLightbox();
+    });
+    
+    $(document).on('click', '#lightbox-prev', function(e) {
+        e.preventDefault();
+        if (currentLightboxIndex > 0) {
+            showLightboxImage(currentLightboxIndex - 1);
+        }
+    });
+    
+    $(document).on('click', '#lightbox-next', function(e) {
+        e.preventDefault();
+        if (currentLightboxIndex < lightboxImages.length - 1) {
+            showLightboxImage(currentLightboxIndex + 1);
+        }
+    });
+    
+    // Keyboard navigation
+    $(document).on('keydown', function(e) {
+        if (!$('#survey-data-mock-lightbox').hasClass('active')) return;
+        
+        switch(e.key) {
+            case 'Escape':
+                closeLightbox();
+                break;
+            case 'ArrowLeft':
+                if (currentLightboxIndex > 0) showLightboxImage(currentLightboxIndex - 1);
+                break;
+            case 'ArrowRight':
+                if (currentLightboxIndex < lightboxImages.length - 1) showLightboxImage(currentLightboxIndex + 1);
+                break;
+        }
+    });
+    
+    // ============================================
+    // IMAGE DELETE HANDLER (ENHANCED)
+    // ============================================
+    
+    $(document).on('click', '.survey-data-mock-image-card .survey-data-mock-image-delete', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const $card = $(this).closest('.survey-data-mock-image-card');
+        const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+        const photoId = $(this).data('photo-id');
+        const surveyId = $('.survey-data-mock-content').data('survey-id');
+        const sectionId = $sectionItem.data('section-id');
+        const accommodationId = $sectionItem.data('accommodation-id');
+        
+        if (!confirm('Are you sure you want to delete this image?')) return;
+        
+        if (photoId && surveyId) {
+            const assessmentId = sectionId || accommodationId;
+            const deleteUrl = accommodationId 
+                ? `/surveyor/surveys/${surveyId}/accommodation-assessments/${assessmentId}/photos/${photoId}/delete`
+                : `/surveyor/surveys/${surveyId}/assessments/${assessmentId}/photos/${photoId}/delete`;
+            
+            $.ajax({
+                url: deleteUrl,
+                method: 'POST',
+                data: { _token: '{{ csrf_token() }}' },
+                success: function(response) {
+                    if (response.success) {
+                        $card.fadeOut(300, function() {
+                            $(this).remove();
+                            updateImageCount($sectionItem);
+                            
+                            // Hide container if empty
+                            const $container = $sectionItem.find('.survey-data-mock-existing-images');
+                            if ($container.find('.survey-data-mock-image-card').length === 0) {
+                                $container.hide();
+                            }
+                        });
+                        showToast('Image deleted successfully!', 'success');
+                    }
+                },
+                error: function() {
+                    showToast('Failed to delete image.', 'error');
+                }
+            });
+        } else {
+            // Just remove from preview
+            $card.fadeOut(300, function() {
+                $(this).remove();
+                updateImageCount($sectionItem);
+            });
+        }
+    });
+    
+    // Toast notification helper
+    function showToast(message, type) {
+        if (typeof toastr !== 'undefined') {
+            toastr[type](message);
+        } else {
+            console.log(type.toUpperCase() + ':', message);
+        }
+    }
 });
 </script>
 @endpush

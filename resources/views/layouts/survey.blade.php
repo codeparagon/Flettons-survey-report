@@ -82,15 +82,30 @@
     // Aggressively remove all overlays and enable interactions
     $(document).ready(function() {
         function removeAllOverlays() {
-            // Remove all possible overlay elements
-            $('.modal-backdrop, .overlay, .backdrop, .dataTables_processing, div.dt-button-background').remove();
+            // Remove all possible overlay elements (but NOT our modals)
+            $('.modal-backdrop, .overlay, .backdrop, .dataTables_processing, div.dt-button-background')
+                .not('.survey-data-mock-lightbox-backdrop')
+                .remove();
             
-            // Remove modal-open class
-            $('body').removeClass('modal-open');
+            // Remove modal-open class only if our lightbox is not active
+            if (!$('#survey-data-mock-lightbox').hasClass('active') && 
+                !$('#surveyDataMockRatingModal').is(':visible') &&
+                !$('#surveyDataMockCostModal').is(':visible')) {
+                $('body').removeClass('modal-open');
+            }
             
             // Find and remove any invisible full-page overlays by checking z-index
             $('body > *').each(function() {
                 var $el = $(this);
+                
+                // Skip our legitimate modals
+                if ($el.hasClass('survey-data-mock-lightbox') || 
+                    $el.attr('id') === 'survey-data-mock-lightbox' ||
+                    $el.attr('id') === 'surveyDataMockRatingModal' ||
+                    $el.attr('id') === 'surveyDataMockCostModal') {
+                    return;
+                }
+                
                 var zIndex = parseInt($el.css('z-index')) || 0;
                 var position = $el.css('position');
                 
@@ -114,12 +129,14 @@
                 }
             });
             
-            // Force enable pointer events on body and main containers
-            $('body, .survey-layout, .survey-main-content, .survey-content-wrapper').css({
-                'pointer-events': 'auto',
-                'overflow': 'auto',
-                'padding-right': '0'
-            });
+            // Force enable pointer events on body and main containers (only if no modal is open)
+            if (!$('#survey-data-mock-lightbox').hasClass('active')) {
+                $('body, .survey-layout, .survey-main-content, .survey-content-wrapper').css({
+                    'pointer-events': 'auto',
+                    'overflow': 'auto',
+                    'padding-right': '0'
+                });
+            }
             
             // Remove any blur filters
             $('body, .survey-layout, .survey-main-content').css({
@@ -186,6 +203,8 @@
         }
     });
     </script>
+
+    @stack('body-end')
 </body>
 </html>
 

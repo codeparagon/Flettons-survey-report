@@ -22,10 +22,12 @@ class AwsTranscriptionController extends Controller
     public function __construct()
     {
         $credential = AwsCredential::first();
-        $this->AWS_ACCESS_KEY_ID = $credential->access_key_id;
-        $this->AWS_SECRET_ACCESS_KEY = $credential->secret_access_key;
-        $this->AWS_BUCKET = $credential->bucket_name;
-        $this->AWS_DEFAULT_REGION = $credential->region;
+        if ($credential) {
+            $this->AWS_ACCESS_KEY_ID = $credential->access_key_id;
+            $this->AWS_SECRET_ACCESS_KEY = $credential->secret_access_key;
+            $this->AWS_BUCKET = $credential->bucket_name;
+            $this->AWS_DEFAULT_REGION = $credential->region;
+        }
     }
 
     public function showUploadForm()

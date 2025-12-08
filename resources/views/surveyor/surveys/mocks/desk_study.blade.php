@@ -23,7 +23,7 @@
                 <header class="survey-detail-card-header">
                     <h3>Location Overview</h3>
                 </header>
-                <div class="survey-detail-card-body">
+                <div cl ass="survey-detail-card-body">
                     <img src="{{ $deskStudy['map']['image'] }}" alt="Map preview" class="img-fluid rounded" />
                     <dl class="survey-detail-datalist">
                         <div><dt>Longitude</dt><dd>{{ $deskStudy['map']['longitude'] }}</dd></div>

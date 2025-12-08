@@ -199,35 +199,60 @@
                     </div>
 
                     <!-- Images Upload -->
-                    <div class="survey-data-mock-field-group">
-                        <label class="survey-data-mock-field-label">Images</label>
+                    <div class="survey-data-mock-field-group survey-data-mock-images-section">
+                        <label class="survey-data-mock-field-label">
+                            Images
+                            @php $photoCount = count($section['photos'] ?? []); @endphp
+                            @if($photoCount > 0)
+                                <span class="survey-data-mock-image-count" data-image-count>({{ $photoCount }})</span>
+                            @endif
+                        </label>
                         <input type="file" class="survey-data-mock-file-input" multiple accept="image/*" style="display: none;">
-                        <div class="survey-data-mock-images-upload">
-                            <i class="fas fa-cloud-upload-alt survey-data-mock-upload-icon"></i>
-                            <p class="survey-data-mock-upload-text">Drag and Drop Photos or Upload</p>
+                        
+                        <!-- Upload Area -->
+                        <div class="survey-data-mock-upload-dropzone">
+                            <i class="fas fa-cloud-upload-alt survey-data-mock-upload-icon-main"></i>
+                            <p class="survey-data-mock-upload-title">Drop images here</p>
+                            <p class="survey-data-mock-upload-subtitle">or <span class="survey-data-mock-upload-browse">browse</span> to upload</p>
                         </div>
-                        <!-- Image Preview Area -->
-                        <div class="survey-data-mock-images-preview" style="display: none; margin-top: 1rem;">
-                            <div class="survey-data-mock-images-grid"></div>
+                        
+                        <!-- Image Preview Area (for unsaved files) -->
+                        <div class="survey-data-mock-images-preview" style="display: none;">
+                            <div class="survey-data-mock-images-grid-enhanced"></div>
                         </div>
+                        
                         <!-- Existing Images Display -->
                         @if(isset($section['photos']) && is_array($section['photos']) && count($section['photos']) > 0)
-                            <div class="survey-data-mock-existing-images" style="margin-top: 1rem;">
-                                <div class="survey-data-mock-images-grid">
-                                    @foreach($section['photos'] as $photo)
+                            <div class="survey-data-mock-existing-images">
+                                <div class="survey-data-mock-images-grid-enhanced">
+                                    @foreach($section['photos'] as $index => $photo)
                                         @if(is_array($photo) && isset($photo['id']))
-                                            <div class="survey-data-mock-image-item" data-photo-id="{{ $photo['id'] }}">
-                                                @php
-                                                    // Use the URL from the data, or generate from file_path
-                                                    $imageUrl = $photo['url'] ?? '';
-                                                    if (empty($imageUrl) && isset($photo['file_path'])) {
-                                                        $imageUrl = asset('storage/' . ltrim($photo['file_path'], '/'));
-                                                    }
-                                                @endphp
-                                                <img src="{{ $imageUrl }}" alt="Photo" class="survey-data-mock-image-thumbnail" onerror="console.error('Failed to load image: {{ $imageUrl }}'); this.style.display='none';">
-                                                <button type="button" class="survey-data-mock-image-delete" data-photo-id="{{ $photo['id'] }}">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
+                                            @php
+                                                $imageUrl = $photo['url'] ?? '';
+                                                if (empty($imageUrl) && isset($photo['file_path'])) {
+                                                    $imageUrl = asset('storage/' . ltrim($photo['file_path'], '/'));
+                                                }
+                                                // Fallback for S3 URLs
+                                                if (empty($imageUrl) && isset($photo['s3_url'])) {
+                                                    $imageUrl = $photo['s3_url'];
+                                                }
+                                            @endphp
+                                            <div class="survey-data-mock-image-card" data-photo-id="{{ $photo['id'] }}" data-image-url="{{ $imageUrl }}">
+                                                <div class="survey-data-mock-image-wrapper">
+                                                    <img src="{{ $imageUrl }}" alt="" class="survey-data-mock-image-thumb" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                    <div class="survey-data-mock-image-error"><i class="fas fa-image"></i></div>
+                                                    <div class="survey-data-mock-image-overlay">
+                                                        <button type="button" class="survey-data-mock-image-action survey-data-mock-image-preview-btn" title="Preview">
+                                                            <i class="fas fa-expand"></i>
+                                                        </button>
+                                                        <button type="button" class="survey-data-mock-image-action survey-data-mock-image-delete" data-photo-id="{{ $photo['id'] }}" title="Delete">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="survey-data-mock-image-info">
+                                                    <span class="survey-data-mock-image-number">#{{ $index + 1 }}</span>
+                                                </div>
                                             </div>
                                         @endif
                                     @endforeach

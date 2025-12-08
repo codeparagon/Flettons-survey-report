@@ -463,6 +463,18 @@ class SurveyController extends Controller
                     'defects' => [],
                 ];
             }, $defaultComponents);
+        } else {
+            // Ensure component_name is populated for each component
+            $allComponents = $accommodationDataService->getAccommodationComponents();
+            $componentNames = collect($allComponents)->pluck('name', 'key')->toArray();
+            
+            $components = array_map(function($component) use ($componentNames) {
+                // Add component_name if not present
+                if (!isset($component['component_name']) && isset($component['component_key'])) {
+                    $component['component_name'] = $componentNames[$component['component_key']] ?? ucfirst(str_replace('_', ' ', $component['component_key']));
+                }
+                return $component;
+            }, $components);
         }
         
         // Determine accommodation name - use form data if provided, otherwise increment

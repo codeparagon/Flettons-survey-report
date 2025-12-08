@@ -314,7 +314,7 @@
                                        name="sections[]" 
                                        value="{{ $section->id }}" 
                                        id="section_{{ $section->id }}"
-                                       {{ in_array($section->id, old('sections', $surveyLevel->sections->pluck('id')->toArray() ?? [])) ? 'checked' : '' }}>
+                                       {{ in_array($section->id, old('sections', $surveyLevel->sectionDefinitions->pluck('id')->toArray() ?? [])) ? 'checked' : '' }}>
                                 <div class="section-name">{{ $section->display_name }}</div>
                                 <div class="section-description">{{ $section->description }}</div>
                             </div>

@@ -240,7 +240,7 @@
                             <p class="level-description">{{ $level->description }}</p>
                             
                             <div class="sections-list">
-                                @forelse($level->sections as $section)
+                                @forelse($level->sectionDefinitions as $section)
                                     <span class="section-tag">{{ $section->display_name }}</span>
                                 @empty
                                     <span class="text-muted">No sections assigned</span>

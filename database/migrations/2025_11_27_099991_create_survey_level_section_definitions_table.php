@@ -1,0 +1,35 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('survey_level_section_definitions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('survey_level_id')->constrained('survey_levels')->onDelete('cascade');
+            $table->foreignId('section_definition_id')->constrained('survey_section_definitions')->onDelete('cascade');
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->timestamps();
+
+            $table->unique(['survey_level_id', 'section_definition_id'], 'level_section_unique');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('survey_level_section_definitions');
+    }
+};
+
+
+

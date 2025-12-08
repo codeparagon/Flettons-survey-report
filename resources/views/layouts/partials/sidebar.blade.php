@@ -26,22 +26,29 @@
                             </a>
                         </li>
                         
-                        <li class="nav-divider">Survey CMS</li>
+                        <li class="nav-divider">Survey Configuration</li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->is('admin/survey-categories*') ? 'active' : '' }}" href="{{ route('admin.survey-categories.index') }}">
-                                <i class="fa fa-fw fa-tags"></i>Categories
+                            <a class="nav-link {{ request()->is('admin/survey-builder*') ? 'active' : '' }}" href="{{ route('admin.survey-builder.index') }}">
+                                <i class="fa fa-fw fa-magic"></i>Section Builder
+                            </a>
+                        </li>
+                        <!-- <li class="nav-item">
+                            <a class="nav-link {{ request()->is('admin/accommodation-builder*') ? 'active' : '' }}" href="{{ route('admin.accommodation-builder.index') }}">
+                                <i class="fa fa-fw fa-bed"></i>Accommodation Builder
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->is('admin/survey-sections*') ? 'active' : '' }}" href="{{ route('admin.survey-sections.index') }}">
-                                <i class="fa fa-fw fa-list"></i>Sections
+                            <a class="nav-link {{ request()->is('admin/survey-options*') ? 'active' : '' }}" href="{{ route('admin.survey-options.index') }}">
+                                <i class="fa fa-fw fa-sliders-h"></i>Global Options
                             </a>
-                        </li>
+                        </li> -->
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('admin/survey-levels*') ? 'active' : '' }}" href="{{ route('admin.survey-levels.index') }}">
-                                <i class="fa fa-fw fa-sitemap"></i>Levels
+                                <i class="fa fa-fw fa-sitemap""></i>Survey Levels
                             </a>
                         </li>
+                        
+                        <li class="nav-divider">Data Management</li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('admin/survey-section-assessments*') ? 'active' : '' }}" href="{{ route('admin.survey-section-assessments.index') }}">
                                 <i class="fa fa-fw fa-clipboard-check"></i>Assessments
