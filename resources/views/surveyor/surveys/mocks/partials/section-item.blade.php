@@ -67,7 +67,8 @@
 
                     <!-- Location Buttons -->
                     @php
-                        $locationOptions = $optionsMapping['location'] ?? ['Whole Property', 'Right', 'Left', 'Front', 'Rear'];
+                        // Use category-specific location options (global + category + subcategory scoped)
+                        $locationOptions = $optionsMapping[$categoryName]['location'] ?? $optionsMapping['location'] ?? ['Whole Property', 'Right', 'Left', 'Front', 'Rear'];
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Location</label>
@@ -106,7 +107,8 @@
 
                     <!-- Defects Buttons -->
                     @php
-                        $defectOptions = $optionsMapping['defects'] ?? ['Holes', 'Perished', 'Thermal Sag', 'Deflection', 'Rot', 'Moss', 'Lichen', 'Slipped Tiles', 'None'];
+                        // Use category-specific defect options (global + category + subcategory scoped)
+                        $defectOptions = $optionsMapping[$categoryName]['defects'] ?? $optionsMapping['defects'] ?? ['Holes', 'Perished', 'Thermal Sag', 'Deflection', 'Rot', 'Moss', 'Lichen', 'Slipped Tiles', 'None'];
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Defects</label>
@@ -129,7 +131,8 @@
                 <div class="survey-data-mock-form-column survey-data-mock-form-column-right" data-column="right">
                     <!-- Remaining Life Buttons -->
                     @php
-                        $remainingLifeOptions = $optionsMapping['remaining_life'] ?? ['0', '1-5', '6-10', '10+'];
+                        // Use category-specific remaining life options (global + category + subcategory scoped)
+                        $remainingLifeOptions = $optionsMapping[$categoryName]['remaining_life'] ?? $optionsMapping['remaining_life'] ?? ['0', '1-5', '6-10', '10+'];
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Remaining Life (Years)</label>

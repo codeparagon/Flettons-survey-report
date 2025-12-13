@@ -32,6 +32,7 @@
     }
 
     .page-title {
+        color: var(--builder-accent)!important;
         font-size: 22px;
         font-weight: 700;
         margin: 0;

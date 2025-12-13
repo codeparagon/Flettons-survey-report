@@ -10,6 +10,7 @@ use App\Models\SurveyOption;
 use App\Models\SurveyAccommodationType;
 use App\Models\SurveyAccommodationComponent;
 use App\Models\SurveyAccommodationOption;
+use App\Models\SurveyContentSection;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -41,6 +42,7 @@ class RouteServiceProvider extends ServiceProvider
         Route::model('type', SurveyAccommodationType::class);
         Route::model('component', SurveyAccommodationComponent::class);
         Route::model('accommodationOption', SurveyAccommodationOption::class);
+        Route::model('contentSection', SurveyContentSection::class);
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());

@@ -84,6 +84,19 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     // Survey Levels CMS
     Route::post('/survey-levels/{surveyLevel}/toggle-status', [\App\Http\Controllers\Admin\SurveyLevelController::class, 'toggleStatus'])->name('admin.survey-levels.toggle-status');
     
+    // Content Sections CMS
+    Route::resource('content-sections', \App\Http\Controllers\Admin\ContentSectionController::class)->names([
+        'index' => 'admin.content-sections.index',
+        'create' => 'admin.content-sections.create',
+        'store' => 'admin.content-sections.store',
+        'show' => 'admin.content-sections.show',
+        'edit' => 'admin.content-sections.edit',
+        'update' => 'admin.content-sections.update',
+        'destroy' => 'admin.content-sections.destroy',
+    ]);
+    Route::post('/content-sections/{contentSection}/toggle-status', [\App\Http\Controllers\Admin\ContentSectionController::class, 'toggleStatus'])->name('admin.content-sections.toggle-status');
+    Route::get('/api/content-sections/subcategories', [\App\Http\Controllers\Admin\ContentSectionController::class, 'getSubcategories'])->name('admin.content-sections.get-subcategories');
+    
     // Survey Section Assessments CMS
     Route::resource('survey-section-assessments', \App\Http\Controllers\Admin\SurveySectionAssessmentController::class)->only(['index', 'show', 'edit', 'update', 'destroy'])->names([
         'index' => 'admin.survey-section-assessments.index',
