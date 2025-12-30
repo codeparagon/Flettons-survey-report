@@ -102,14 +102,47 @@ class SurveyAccommodationDataService
                 $conditionRating = 'ni';
             }
             
+            // Get accommodation type name with fallback
+            $accommodationTypeName = '';
+            if ($assessment->accommodationType) {
+                $accommodationTypeName = $assessment->accommodationType->display_name;
+            } else {
+                // Fallback to custom_name or a default value if relationship is missing
+                $accommodationTypeName = $assessment->custom_name ?? 'Unknown';
+            }
+            
+            // Generate report content for completed assessments
+            $reportContent = '';
+            $hasReport = false;
+            if ($assessment->is_completed) {
+                try {
+                    // prepareAccommodationChatGPTData uses assessment's componentAssessments, 
+                    // so we only need to pass notes in formData
+                    $chatGPTData = $this->prepareAccommodationChatGPTData($assessment, [
+                        'notes' => $assessment->notes ?? '',
+                    ]);
+                    
+                    $accommodationName = $assessment->custom_name ?? $accommodationTypeName;
+                    $reportContent = $this->chatGPTService->generateAccommodationReport($chatGPTData, $accommodationName);
+                    $hasReport = !empty(trim($reportContent));
+                } catch (\Exception $e) {
+                    Log::error('Failed to generate accommodation report on load', [
+                        'assessment_id' => $assessment->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+            
             return [
                 'id' => $assessment->id,
-                'name' => $assessment->custom_name ?? $assessment->accommodationType->display_name,
+                'name' => $assessment->custom_name ?? $accommodationTypeName,
                 'accommodation_type_id' => $assessment->accommodation_type_id,
-                'accommodation_type_name' => $assessment->accommodationType->display_name ?? '',
+                'accommodation_type_name' => $accommodationTypeName,
                 'condition_rating' => $conditionRating,
                 'notes' => $assessment->notes ?? '',
                 'photos' => $assessment->photos->pluck('id')->toArray(),
+                'report_content' => $reportContent,
+                'has_report' => $hasReport,
                 'components' => $assessment->componentAssessments->map(function($compAssessment) {
                     return [
                         'component_key' => $compAssessment->component->key_name,
@@ -252,7 +285,18 @@ class SurveyAccommodationDataService
                 // Use custom_name from form if provided, otherwise use source name with clone index
                 $assessment->custom_name = !empty($formData['custom_name']) ? $formData['custom_name'] : ($sourceAssessment->custom_name . ' ' . $cloneIndex);
                 $assessment->notes = $sourceAssessment->notes; // Copy notes from source
-                $assessment->condition_rating = $sourceAssessment->condition_rating; // Copy condition rating from source
+                
+                // Use condition_rating from formData if provided, otherwise copy from source
+                if (isset($formData['condition_rating'])) {
+                    $ratingValue = $formData['condition_rating'];
+                    if ($ratingValue === 'ni' || $ratingValue === 'NI') {
+                        $assessment->condition_rating = null;
+                    } else {
+                        $assessment->condition_rating = in_array($ratingValue, ['1', '2', '3']) ? (int)$ratingValue : $sourceAssessment->condition_rating;
+                    }
+                } else {
+                    $assessment->condition_rating = $sourceAssessment->condition_rating; // Copy condition rating from source
+                }
                 $assessment->is_completed = true;
                 $assessment->completed_at = now();
                 $assessment->save();
@@ -313,8 +357,20 @@ class SurveyAccommodationDataService
 
             // Only update these fields if not cloning (clones already have values set above)
             if (!$isClone) {
+                // Map condition_rating from string to integer if provided
+                $conditionRating = null;
+                if (isset($formData['condition_rating'])) {
+                    $ratingValue = $formData['condition_rating'];
+                    if ($ratingValue === 'ni' || $ratingValue === 'NI') {
+                        $conditionRating = null;
+                    } else {
+                        $conditionRating = in_array($ratingValue, ['1', '2', '3']) ? (int)$ratingValue : null;
+                    }
+                }
+                
                 $assessment->custom_name = $formData['custom_name'] ?? $assessment->custom_name ?? $accommodationType->display_name;
                 $assessment->notes = $formData['notes'] ?? null;
+                $assessment->condition_rating = $conditionRating ?? $assessment->condition_rating;
                 $assessment->is_completed = true;
                 $assessment->completed_at = now();
                 $assessment->save();
@@ -383,7 +439,8 @@ class SurveyAccommodationDataService
 
         foreach ($components as $componentData) {
             $componentKey = $componentData['component_key'] ?? null;
-            if (!$componentKey) {
+            // Skip if component_key is missing or empty - allows incomplete component data
+            if (empty($componentKey)) {
                 continue;
             }
 

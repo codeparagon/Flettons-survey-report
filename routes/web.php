@@ -208,6 +208,7 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     Route::post('/surveys/{survey}/assessments/{assessment}/photos/{photo}/delete', [\App\Http\Controllers\Surveyor\SurveyController::class, 'deletePhoto'])->name('surveyor.surveys.delete-photo');
     Route::post('/surveys/{survey}/clone-section-item', [\App\Http\Controllers\Surveyor\SurveyController::class, 'cloneSectionItem'])->name('surveyor.surveys.clone-section-item');
     Route::post('/surveys/{survey}/clone-accommodation-item', [\App\Http\Controllers\Surveyor\SurveyController::class, 'cloneAccommodationItem'])->name('surveyor.surveys.clone-accommodation-item');
+    Route::post('/surveys/{survey}/content-sections/{contentSection}/update', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateContentSection'])->name('surveyor.surveys.content-sections.update');
     Route::get('/surveys/{survey}/media-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'mediaMock'])->name('surveyor.surveys.media.mock');
     Route::get('/surveys/{survey}/transcript-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'transcriptMock'])->name('surveyor.surveys.transcript.mock');
     Route::get('/surveys/{survey}/documents-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'documentsMock'])->name('surveyor.surveys.documents.mock');

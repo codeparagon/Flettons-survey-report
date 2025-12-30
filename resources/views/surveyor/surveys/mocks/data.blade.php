@@ -39,9 +39,28 @@
                                     @foreach($sections as $section)
                                         @include('surveyor.surveys.mocks.partials.section-item', ['section' => $section, 'categoryName' => $categoryName, 'subCategoryName' => $subCategoryName, 'optionsMapping' => $optionsMapping ?? []])
                                     @endforeach
+                                    
+                                    {{-- Content sections linked to this subcategory --}}
+                                    @if(isset($contentSections['by_subcategory'][$categoryName][$subCategoryName]))
+                                        @foreach($contentSections['by_subcategory'][$categoryName][$subCategoryName] as $contentSection)
+                                            @include('surveyor.surveys.mocks.partials.content-section-item', ['contentSection' => $contentSection])
+                                        @endforeach
+                                    @endif
                                 </div>
                             </div>
                         @endforeach
+                        
+                        {{-- Content sections linked to this category (not subcategory) --}}
+                        @if(isset($contentSections['by_category'][$categoryName]) && count($contentSections['by_category'][$categoryName]) > 0)
+                            <div class="survey-data-mock-sub-category">
+                                <h3 class="survey-data-mock-sub-category-title">Content Sections</h3>
+                                <div class="survey-data-mock-sub-category-sections">
+                                    @foreach($contentSections['by_category'][$categoryName] as $contentSection)
+                                        @include('surveyor.surveys.mocks.partials.content-section-item', ['contentSection' => $contentSection])
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </section>
@@ -59,6 +78,24 @@
                     <div class="survey-data-mock-sections" style="gap: 0.75rem;">
                         @foreach($accommodationSections as $accommodation)
                             @include('surveyor.surveys.mocks.partials.accommodation-section-item', ['accommodation' => $accommodation])
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <!-- Standalone Content Sections -->
+        @if(isset($contentSections['standalone']) && count($contentSections['standalone']) > 0)
+            <section class="survey-data-mock-category">
+                <div class="survey-data-mock-category-header" data-category-toggle>
+                    <h2 class="survey-data-mock-category-title">Content Sections</h2>
+                    <i class="fas fa-chevron-down survey-data-mock-category-toggle-icon"></i>
+                </div>
+                
+                <div class="survey-data-mock-category-content collapse show">
+                    <div class="survey-data-mock-sections">
+                        @foreach($contentSections['standalone'] as $contentSection)
+                            @include('surveyor.surveys.mocks.partials.content-section-item', ['contentSection' => $contentSection])
                         @endforeach
                     </div>
                 </div>
@@ -2763,9 +2800,15 @@ $(document).ready(function() {
         return report;
     }
 
-    // Expand/Collapse Section Items
+    // Expand/Collapse Section Items (exclude content sections)
     $('.survey-data-mock-section-header[data-expandable="true"]').on('click', function() {
         const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+        
+        // Skip if this is a content section (handled separately)
+        if ($sectionItem.hasClass('survey-data-mock-content-section-item')) {
+            return;
+        }
+        
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
         const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
@@ -2796,10 +2839,16 @@ $(document).ready(function() {
         }
     });
 
-    // Collapse from title bar
+    // Collapse from title bar (exclude content sections)
     $(document).on('click', '.survey-data-mock-section-title-collapse', function(e) {
         e.stopPropagation();
         const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+        
+        // Skip if this is a content section (handled separately)
+        if ($sectionItem.hasClass('survey-data-mock-content-section-item')) {
+            return;
+        }
+        
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
         const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
@@ -3358,8 +3407,15 @@ $(document).ready(function() {
         initializeSectionStates();
     });
     
-    // Reinitialize when sections expand (for dynamically added content)
+    // Reinitialize when sections expand (for dynamically added content, exclude content sections)
     $(document).on('click', '.survey-data-mock-section-header[data-expandable="true"]', function() {
+        const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+        
+        // Skip if this is a content section
+        if ($sectionItem.hasClass('survey-data-mock-content-section-item')) {
+            return;
+        }
+        
         setTimeout(function() {
             if (isSwiperAvailable()) {
                 initializeCarousels();
@@ -3490,6 +3546,11 @@ $(document).ready(function() {
     
     // Function to update section header with section name and location
     function updateSectionHeader($sectionItem) {
+        // Skip content sections - they have their own title that shouldn't be changed
+        if ($sectionItem.hasClass('survey-data-mock-content-section-item')) {
+            return;
+        }
+        
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const $headerName = $sectionItem.find('.survey-data-mock-section-name');
         const $titleText = $sectionItem.find('.survey-data-mock-section-title-text');
@@ -3510,6 +3571,12 @@ $(document).ready(function() {
     // Initialize button states from mock data
     $('.survey-data-mock-section-item').each(function() {
         const $sectionItem = $(this);
+        
+        // Skip content sections - they don't have button selections
+        if ($sectionItem.hasClass('survey-data-mock-content-section-item')) {
+            return;
+        }
+        
         const sectionId = $sectionItem.data('section-id');
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         
@@ -5731,11 +5798,15 @@ $(document).ready(function() {
             return;
         }
         
+        // Get condition rating
+        const conditionRating = $item.find('.survey-data-mock-condition-badge').data('current-rating') || 'ni';
+        
         // Collect all form data
         const formData = {
             custom_name: accommodationName,
             components: [],
-            notes: $details.find('.survey-data-mock-notes-input').val() || ''
+            notes: $details.find('.survey-data-mock-notes-input').val() || '',
+            condition_rating: conditionRating
         };
         
         // Collect component data from carousel slides
@@ -5772,6 +5843,7 @@ $(document).ready(function() {
         formDataObj.append('accommodation_type_id', finalAccommodationTypeId);
         formDataObj.append('custom_name', formData.custom_name);
         formDataObj.append('notes', formData.notes);
+        formDataObj.append('condition_rating', conditionRating);
         
         // Append components array (even if empty, send empty array)
         formData.components.forEach((component, index) => {
@@ -6543,6 +6615,118 @@ $(document).ready(function() {
             console.log(type.toUpperCase() + ':', message);
         }
     }
+
+    // ============================================
+    // CONTENT SECTIONS FUNCTIONALITY
+    // ============================================
+    
+    // Expand/Collapse Content Sections
+    $(document).on('click', '.survey-data-mock-content-section-item .survey-data-mock-section-header[data-expandable="true"]', function(e) {
+        e.stopPropagation();
+        const $sectionItem = $(this).closest('.survey-data-mock-content-section-item');
+        const $contentDetails = $sectionItem.find('.survey-data-mock-content-section-details');
+        const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
+        const $expandIcon = $sectionItem.find('.survey-data-mock-expand-icon');
+        
+        $sectionItem.toggleClass('expanded');
+        
+        if ($sectionItem.hasClass('expanded')) {
+            $titleBar.slideDown(300);
+            $contentDetails.slideDown(300);
+            $expandIcon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+        } else {
+            $contentDetails.slideUp(300);
+            $titleBar.slideUp(300);
+            $expandIcon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+        }
+    });
+
+    // Collapse from title bar for content sections
+    $(document).on('click', '.survey-data-mock-content-section-item .survey-data-mock-section-title-collapse', function(e) {
+        e.stopPropagation();
+        const $sectionItem = $(this).closest('.survey-data-mock-content-section-item');
+        const $contentDetails = $sectionItem.find('.survey-data-mock-content-section-details');
+        const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
+        const $expandIcon = $sectionItem.find('.survey-data-mock-expand-icon');
+        
+        $sectionItem.removeClass('expanded');
+        $contentDetails.slideUp(300);
+        $titleBar.slideUp(300);
+        $expandIcon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+    });
+
+    // Save Content Section
+    $(document).on('click', '.survey-data-mock-content-section-item [data-action="save-content"]', function(e) {
+        e.stopPropagation();
+        const $button = $(this);
+        const $sectionItem = $button.closest('.survey-data-mock-content-section-item');
+        const contentSectionId = $sectionItem.data('content-section-id');
+        const $textarea = $sectionItem.find('.survey-data-mock-content-textarea');
+        const content = $textarea.val();
+        const surveyId = $('.survey-data-mock-content').data('survey-id');
+        
+        if (!surveyId || !contentSectionId) {
+            alert('Error: Missing survey or content section information. Please refresh the page.');
+            return;
+        }
+
+        if (!content || content.trim() === '') {
+            alert('Please enter some content before saving.');
+            return;
+        }
+
+        // Show loading state
+        const originalHtml = $button.html();
+        $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+
+        $.ajax({
+            url: `/surveyor/surveys/${surveyId}/content-sections/${contentSectionId}/update`,
+            method: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                content: content
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Update the textarea with the saved content
+                    $textarea.val(response.content_section.content);
+                    
+                    // Show success message
+                    showToast('Content saved successfully!', 'success');
+                    
+                    // Mark as saved
+                    $sectionItem.attr('data-saved', 'true');
+                    $sectionItem.attr('data-has-content', 'true');
+                } else {
+                    alert(response.message || 'Error saving content. Please try again.');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Error saving content. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                alert(errorMessage);
+            },
+            complete: function() {
+                // Restore button state
+                $button.prop('disabled', false).html(originalHtml);
+            }
+        });
+    });
+
+    // Lock/Unlock Content Editing
+    $(document).on('click', '.survey-data-mock-content-section-item [data-action="lock"]', function(e) {
+        e.stopPropagation();
+        const $button = $(this);
+        const $sectionItem = $button.closest('.survey-data-mock-content-section-item');
+        const $textarea = $sectionItem.find('.survey-data-mock-content-textarea');
+        const isLocked = $textarea.prop('readonly');
+        
+        $textarea.prop('readonly', !isLocked);
+        $button.find('i').toggleClass('fa-lock fa-unlock');
+        $button.attr('title', isLocked ? 'Lock Editing' : 'Unlock Editing');
+    });
 });
 </script>
 @endpush

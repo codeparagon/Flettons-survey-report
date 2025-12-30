@@ -154,7 +154,123 @@ class SurveyController extends Controller
         // Get options mapping for dynamic options from database
         $optionsMapping = $surveyDataService->getOptionsMapping();
 
-        return view('surveyor.surveys.mocks.data', compact('survey', 'categories', 'accommodationSections', 'optionsMapping'));
+        // Get content sections
+        $contentSections = $this->getContentSectionsForSurvey($survey, $categories);
+
+        return view('surveyor.surveys.mocks.data', compact('survey', 'categories', 'accommodationSections', 'optionsMapping', 'contentSections'));
+    }
+
+    /**
+     * Get content sections for a survey, grouped by their link type.
+     * 
+     * @param Survey $survey
+     * @param array $categories
+     * @return array
+     */
+    protected function getContentSectionsForSurvey(Survey $survey, array $categories): array
+    {
+        $contentSections = [
+            'standalone' => [],
+            'by_category' => [],
+            'by_subcategory' => [],
+        ];
+
+        // Get all active content sections
+        $allContentSections = \App\Models\SurveyContentSection::active()
+            ->ordered()
+            ->with(['category', 'subcategory'])
+            ->get();
+
+        // Get survey level to determine which categories/subcategories are relevant
+        $surveyLevel = $survey->level ?? null;
+        $relevantCategoryIds = [];
+        $relevantSubcategoryIds = [];
+
+        // Extract category and subcategory IDs from the categories array
+        foreach ($categories as $categoryName => $subCategories) {
+            foreach ($subCategories as $subCategoryName => $sections) {
+                // Try to find the actual category/subcategory from database
+                $category = \App\Models\SurveyCategory::where('display_name', $categoryName)->first();
+                $subcategory = \App\Models\SurveySubcategory::where('display_name', $subCategoryName)->first();
+                
+                if ($category) {
+                    $relevantCategoryIds[] = $category->id;
+                }
+                if ($subcategory) {
+                    $relevantSubcategoryIds[] = $subcategory->id;
+                }
+            }
+        }
+
+        foreach ($allContentSections as $contentSection) {
+            if ($contentSection->subcategory_id) {
+                // Subcategory-linked: add to by_subcategory if it matches
+                if (in_array($contentSection->subcategory_id, $relevantSubcategoryIds)) {
+                    $subcategory = $contentSection->subcategory;
+                    $category = $subcategory->category ?? null;
+                    if ($category) {
+                        $categoryName = $category->display_name;
+                        $subcategoryName = $subcategory->display_name;
+                        if (!isset($contentSections['by_subcategory'][$categoryName])) {
+                            $contentSections['by_subcategory'][$categoryName] = [];
+                        }
+                        if (!isset($contentSections['by_subcategory'][$categoryName][$subcategoryName])) {
+                            $contentSections['by_subcategory'][$categoryName][$subcategoryName] = [];
+                        }
+                        $contentSections['by_subcategory'][$categoryName][$subcategoryName][] = $contentSection;
+                    }
+                }
+            } elseif ($contentSection->category_id) {
+                // Category-linked: add to by_category if it matches
+                if (in_array($contentSection->category_id, $relevantCategoryIds)) {
+                    $category = $contentSection->category;
+                    $categoryName = $category->display_name;
+                    if (!isset($contentSections['by_category'][$categoryName])) {
+                        $contentSections['by_category'][$categoryName] = [];
+                    }
+                    $contentSections['by_category'][$categoryName][] = $contentSection;
+                }
+            } else {
+                // Standalone: add to standalone array
+                $contentSections['standalone'][] = $contentSection;
+            }
+        }
+
+        return $contentSections;
+    }
+
+    /**
+     * Update content section content.
+     * 
+     * @param Request $request
+     * @param Survey $survey
+     * @param \App\Models\SurveyContentSection $contentSection
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateContentSection(Request $request, Survey $survey, \App\Models\SurveyContentSection $contentSection)
+    {
+        // Verify surveyor has access to this survey
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'content' => 'required|string',
+        ]);
+
+        $contentSection->update([
+            'content' => $validated['content'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Content section updated successfully.',
+            'content_section' => [
+                'id' => $contentSection->id,
+                'title' => $contentSection->title,
+                'content' => $contentSection->content,
+            ],
+        ]);
     }
 
     public function mediaMock(Survey $survey)
@@ -633,11 +749,12 @@ class SurveyController extends Controller
                 'accommodation_type_id' => 'required|integer|exists:survey_accommodation_types,id',
                 'custom_name' => 'nullable|string|max:150',
                 'components' => 'nullable|array', // Made optional - form can submit even if components are not filled
-                'components.*.component_key' => 'required_with:components|string',
+                'components.*.component_key' => 'nullable|string', // Allow missing or empty component_key - components can be incomplete
                 'components.*.material' => 'nullable|string',
                 'components.*.defects' => 'nullable|array',
-                'components.*.defects.*' => 'string',
+                'components.*.defects.*' => 'nullable|string',
                 'notes' => 'nullable|string',
+                'condition_rating' => 'nullable|string|in:1,2,3,ni',
                 'photos' => 'nullable|array',
                 'photos.*' => 'nullable|image|max:10240', // Max 10MB per image
             ]);

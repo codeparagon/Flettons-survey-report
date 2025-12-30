@@ -1,4 +1,4 @@
-<div class="survey-data-mock-section-item" data-section-id="{{ $accommodation['id'] }}" data-accommodation-id="{{ $accommodation['id'] }}" data-accommodation-type-id="{{ !empty($accommodation['accommodation_type_id']) ? $accommodation['accommodation_type_id'] : '' }}">
+<div class="survey-data-mock-section-item" data-section-id="{{ $accommodation['id'] }}" data-accommodation-id="{{ $accommodation['id'] }}" data-accommodation-type-id="{{ !empty($accommodation['accommodation_type_id']) ? $accommodation['accommodation_type_id'] : '' }}" data-has-report="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}" data-saved="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}">
     <div class="survey-data-mock-section-header" data-expandable="true">
         <div class="survey-data-mock-section-name">
             {{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}

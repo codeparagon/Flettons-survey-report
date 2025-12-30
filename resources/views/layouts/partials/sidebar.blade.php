@@ -29,14 +29,14 @@
                         <li class="nav-divider">Survey Configuration</li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('admin/survey-builder*') ? 'active' : '' }}" href="{{ route('admin.survey-builder.index') }}">
-                                <i class="fa fa-fw fa-magic"></i>Section Builder
+                                <i class="fa fa-fw fa-magic"></i>Sections
                             </a>
                         </li>
-                        <!-- <li class="nav-item">
+                        <li class="nav-item">
                             <a class="nav-link {{ request()->is('admin/accommodation-builder*') ? 'active' : '' }}" href="{{ route('admin.accommodation-builder.index') }}">
-                                <i class="fa fa-fw fa-bed"></i>Accommodation Builder
+                                <i class="fa fa-fw fa-bed"></i>Accommodations
                             </a>
-                        </li>-->
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('admin/survey-options*') ? 'active' : '' }}" href="{{ route('admin.survey-options.index') }}">
                                 <i class="fa fa-fw fa-sliders-h"></i>Global Options
