@@ -200,6 +200,7 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     Route::get('/surveys/{survey}/detail-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'detailMock'])->name('surveyor.surveys.detail.mock');
     Route::get('/surveys/{survey}/desk-study-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'deskStudyMock'])->name('surveyor.surveys.desk-study.mock');
     Route::get('/surveys/{survey}/data-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'dataMock'])->name('surveyor.surveys.data.mock');
+    Route::get('/surveys/{survey}/generate-pdf', [\App\Http\Controllers\Surveyor\SurveyController::class, 'generatePdfReport'])->name('surveyor.surveys.generate-pdf');
     Route::post('/surveys/{survey}/sections/{sectionDefinition}/save', [\App\Http\Controllers\Surveyor\SurveyController::class, 'saveSectionAssessment'])->name('surveyor.surveys.sections.save');
     Route::post('/surveys/{survey}/accommodations/save', [\App\Http\Controllers\Surveyor\SurveyController::class, 'saveAccommodationAssessment'])->name('surveyor.surveys.accommodations.save');
     Route::post('/surveys/{survey}/assessments/{assessment}/condition-rating', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateConditionRating'])->name('surveyor.surveys.assessments.update-condition-rating');

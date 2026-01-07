@@ -101,6 +101,17 @@
                 </div>
             </section>
         @endif
+
+        <!-- Generate PDF Report Button -->
+        <div style="padding: 2rem; text-align: center; border-top: 2px solid rgba(148, 163, 184, 0.2); margin-top: 2rem;">
+            <a href="{{ route('surveyor.surveys.generate-pdf', $survey) }}" 
+               class="survey-data-mock-pdf-button" 
+               id="generate-pdf-button"
+               style="display: inline-flex; align-items: center; gap: 0.75rem; padding: 1rem 2rem; background: #1E3A5F; color: #FFFFFF; border: none; border-radius: 4px; font-size: 16px; font-weight: 400; text-decoration: none; cursor: pointer; transition: all 0.3s ease; font-family: 'Poppins', sans-serif;">
+                <i class="fas fa-file-pdf"></i>
+                <span>Generate PDF Report</span>
+            </a>
+        </div>
     </div>
 </div>
 
@@ -1582,6 +1593,39 @@
 
     .survey-data-mock-action-save:hover {
         background: #0F172A;
+    }
+
+    /* Generate PDF Button */
+    .survey-data-mock-pdf-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 2rem;
+        background: #1E3A5F;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: 400;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .survey-data-mock-pdf-button:hover {
+        background: #2C5282;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .survey-data-mock-pdf-button:active {
+        transform: translateY(0);
+    }
+
+    .survey-data-mock-pdf-button i {
+        font-size: 18px;
     }
 
     /* Report Content Area */

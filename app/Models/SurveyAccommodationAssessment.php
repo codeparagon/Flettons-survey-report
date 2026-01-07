@@ -16,6 +16,7 @@ class SurveyAccommodationAssessment extends Model
         'clone_index',
         'notes',
         'condition_rating',
+        'report_content',
         'is_completed',
         'completed_at',
     ];

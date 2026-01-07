@@ -111,27 +111,9 @@ class SurveyAccommodationDataService
                 $accommodationTypeName = $assessment->custom_name ?? 'Unknown';
             }
             
-            // Generate report content for completed assessments
-            $reportContent = '';
-            $hasReport = false;
-            if ($assessment->is_completed) {
-                try {
-                    // prepareAccommodationChatGPTData uses assessment's componentAssessments, 
-                    // so we only need to pass notes in formData
-                    $chatGPTData = $this->prepareAccommodationChatGPTData($assessment, [
-                        'notes' => $assessment->notes ?? '',
-                    ]);
-                    
-                    $accommodationName = $assessment->custom_name ?? $accommodationTypeName;
-                    $reportContent = $this->chatGPTService->generateAccommodationReport($chatGPTData, $accommodationName);
-                    $hasReport = !empty(trim($reportContent));
-                } catch (\Exception $e) {
-                    Log::error('Failed to generate accommodation report on load', [
-                        'assessment_id' => $assessment->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
+            // Get report content from database (if exists)
+            $reportContent = $assessment->report_content ?? '';
+            $hasReport = !empty(trim($reportContent));
             
             return [
                 'id' => $assessment->id,
@@ -397,6 +379,10 @@ class SurveyAccommodationDataService
             try {
                 $accommodationName = $assessment->custom_name ?? $accommodationType->display_name;
                 $reportContent = $this->chatGPTService->generateAccommodationReport($chatGPTData, $accommodationName);
+                
+                // Save report content to database
+                $assessment->report_content = $reportContent;
+                $assessment->save();
             } catch (\Exception $e) {
                 Log::error('Failed to generate accommodation report content', [
                     'assessment_id' => $assessment->id,

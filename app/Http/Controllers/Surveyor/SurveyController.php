@@ -7,6 +7,7 @@ use App\Models\Survey;
 use App\Models\SurveyNote;
 use App\Models\SurveySectionDefinition;
 use App\Services\SurveyDataService;
+use App\Services\SurveyPdfService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -271,6 +272,41 @@ class SurveyController extends Controller
                 'content' => $contentSection->content,
             ],
         ]);
+    }
+
+    /**
+     * Generate PDF report for a survey.
+     * 
+     * @param Survey $survey
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function generatePdfReport(Survey $survey, Request $request)
+    {
+        // Verify surveyor has access to this survey
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        try {
+            $pdfService = app(SurveyPdfService::class);
+            $pdf = $pdfService->generatePdf($survey);
+            
+            // Generate filename
+            $jobReference = $survey->job_reference ?? 'survey';
+            $date = now()->format('Y-m-d');
+            $filename = "survey-report-{$jobReference}-{$date}.pdf";
+            
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            Log::error('Failed to generate PDF report', [
+                'survey_id' => $survey->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return redirect()->back()->with('error', 'Failed to generate PDF report. Please try again.');
+        }
     }
 
     public function mediaMock(Survey $survey)
