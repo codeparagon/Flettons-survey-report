@@ -12,7 +12,7 @@
                 <span class="survey-data-mock-status-text">{{ $photoCount }}</span>
                 <span class="survey-data-mock-status-separator">|</span>
                 <i class="fas fa-sticky-note survey-data-mock-status-icon"></i>
-                <span class="survey-data-mock-status-text">0/10</span>
+                <span class="survey-data-mock-status-text">{{ $accommodation['completed_components'] ?? 0 }}/{{ $accommodation['total_components'] ?? 0 }}</span>
             </span>
             <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--{{ $accommodation['condition_rating'] ?? 'ni' }}" 
                   data-section-id="{{ $accommodation['id'] }}"

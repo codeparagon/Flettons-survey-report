@@ -7,9 +7,13 @@ use App\Models\SurveyAccommodationType;
 use App\Models\SurveyAccommodationComponent;
 use App\Models\SurveyAccommodationOptionType;
 use App\Models\SurveyAccommodationOption;
+use App\Models\Survey;
+use App\Models\SurveyAccommodationAssessment;
+use App\Models\SurveyAccommodationComponentAssessment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AccommodationBuilderController extends Controller
 {
@@ -18,7 +22,7 @@ class AccommodationBuilderController extends Controller
      */
     public function index()
     {
-        $accommodationTypes = SurveyAccommodationType::orderBy('sort_order')->get();
+        $accommodationTypes = SurveyAccommodationType::with('components')->orderBy('sort_order')->get();
         
         $components = SurveyAccommodationComponent::orderBy('sort_order')->get();
         
@@ -166,6 +170,81 @@ class AccommodationBuilderController extends Controller
         }
         
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Get components for a specific accommodation type.
+     */
+    public function getTypeComponents(SurveyAccommodationType $type)
+    {
+        $type->load('components');
+        
+        $allComponents = SurveyAccommodationComponent::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
+        
+        $assignedComponents = $type->components->keyBy('id');
+        
+        $components = $allComponents->map(function($component) use ($assignedComponents) {
+            $assigned = $assignedComponents->get($component->id);
+            return [
+                'id' => $component->id,
+                'key_name' => $component->key_name,
+                'display_name' => $component->display_name,
+                'is_assigned' => $assigned !== null,
+                'is_required' => $assigned ? (bool) $assigned->pivot->is_required : false,
+                'sort_order' => $assigned ? $assigned->pivot->sort_order : null,
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'components' => $components,
+        ]);
+    }
+
+    /**
+     * Update components for a specific accommodation type.
+     */
+    public function updateTypeComponents(Request $request, SurveyAccommodationType $type)
+    {
+        $validated = $request->validate([
+            'components' => 'required|array',
+            'components.*.component_id' => 'required|integer|exists:survey_accommodation_components,id',
+            'components.*.is_required' => 'nullable|boolean',
+            'components.*.sort_order' => 'nullable|integer|min:0',
+        ]);
+        
+        // Prepare sync data
+        $syncData = [];
+        foreach ($validated['components'] as $index => $componentData) {
+            $componentId = $componentData['component_id'];
+            $syncData[$componentId] = [
+                'is_required' => $componentData['is_required'] ?? false,
+                'sort_order' => $componentData['sort_order'] ?? $index,
+            ];
+        }
+        
+        // Sync components with pivot data
+        $type->components()->sync($syncData);
+        
+        // Reload to get updated data
+        $type->load('components');
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Components updated successfully',
+            'type' => $type,
+            'components' => $type->components->map(function($component) {
+                return [
+                    'id' => $component->id,
+                    'key_name' => $component->key_name,
+                    'display_name' => $component->display_name,
+                    'is_required' => (bool) $component->pivot->is_required,
+                    'sort_order' => $component->pivot->sort_order,
+                ];
+            }),
+        ]);
     }
 
     // ===================
@@ -344,5 +423,6 @@ class AccommodationBuilderController extends Controller
         
         return response()->json(['success' => true]);
     }
+
 }
 

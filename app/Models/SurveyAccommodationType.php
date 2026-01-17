@@ -27,6 +27,19 @@ class SurveyAccommodationType extends Model
     {
         return $this->hasMany(SurveyAccommodationAssessment::class, 'accommodation_type_id');
     }
+
+    public function components()
+    {
+        return $this->belongsToMany(
+            SurveyAccommodationComponent::class,
+            'survey_accommodation_type_components',
+            'accommodation_type_id',
+            'component_id'
+        )
+        ->withPivot('is_required', 'sort_order')
+        ->withTimestamps()
+        ->orderBy('survey_accommodation_type_components.sort_order');
+    }
 }
 
 

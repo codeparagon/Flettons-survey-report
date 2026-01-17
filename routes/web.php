@@ -161,6 +161,8 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     Route::delete('/api/accommodation-types/{type}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'deleteType']);
     Route::post('/api/accommodation-types/reorder', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'reorderTypes']);
     Route::post('/api/accommodation-types/{type}/clone', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'cloneType']);
+    Route::get('/api/accommodation-types/{type}/components', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'getTypeComponents']);
+    Route::post('/api/accommodation-types/{type}/components', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'updateTypeComponents']);
     
     // Accommodation Components API
     Route::post('/api/accommodation-components', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'storeComponent']);
@@ -207,6 +209,8 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     Route::post('/surveys/{survey}/assessments/{assessment}/costs', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateCosts'])->name('surveyor.surveys.assessments.update-costs');
     Route::post('/surveys/{survey}/assessments/{assessment}/photos', [\App\Http\Controllers\Surveyor\SurveyController::class, 'uploadPhotos'])->name('surveyor.surveys.assessments.upload-photos');
     Route::post('/surveys/{survey}/assessments/{assessment}/photos/{photo}/delete', [\App\Http\Controllers\Surveyor\SurveyController::class, 'deletePhoto'])->name('surveyor.surveys.delete-photo');
+    Route::post('/surveys/{survey}/accommodation-assessments/{assessment}/photos', [\App\Http\Controllers\Surveyor\SurveyController::class, 'uploadAccommodationPhotos'])->name('surveyor.surveys.accommodation-assessments.upload-photos');
+    Route::post('/surveys/{survey}/accommodation-assessments/{assessment}/photos/{photo}/delete', [\App\Http\Controllers\Surveyor\SurveyController::class, 'deleteAccommodationPhoto'])->name('surveyor.surveys.delete-accommodation-photo');
     Route::post('/surveys/{survey}/clone-section-item', [\App\Http\Controllers\Surveyor\SurveyController::class, 'cloneSectionItem'])->name('surveyor.surveys.clone-section-item');
     Route::post('/surveys/{survey}/clone-accommodation-item', [\App\Http\Controllers\Surveyor\SurveyController::class, 'cloneAccommodationItem'])->name('surveyor.surveys.clone-accommodation-item');
     Route::post('/surveys/{survey}/content-sections/{contentSection}/update', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateContentSection'])->name('surveyor.surveys.content-sections.update');

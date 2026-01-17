@@ -67,7 +67,7 @@
         @endforeach
 
         <!-- Accommodation Configuration Section -->
-        @if(isset($accommodationSections) && count($accommodationSections) > 0)
+        @if(isset($hasAccommodationTypesWithComponents) && $hasAccommodationTypesWithComponents)
             <section class="survey-data-mock-category">
                 <div class="survey-data-mock-category-header" data-category-toggle>
                     <h2 class="survey-data-mock-category-title">Configuration of Accommodation</h2>
@@ -76,9 +76,11 @@
                 
                 <div class="survey-data-mock-category-content collapse show">
                     <div class="survey-data-mock-sections" style="gap: 0.75rem;">
-                        @foreach($accommodationSections as $accommodation)
-                            @include('surveyor.surveys.mocks.partials.accommodation-section-item', ['accommodation' => $accommodation])
-                        @endforeach
+                        @if(isset($accommodationSections) && count($accommodationSections) > 0)
+                            @foreach($accommodationSections as $accommodation)
+                                @include('surveyor.surveys.mocks.partials.accommodation-section-item', ['accommodation' => $accommodation])
+                            @endforeach
+                        @endif
                     </div>
                 </div>
             </section>
@@ -3595,6 +3597,11 @@ $(document).ready(function() {
             return;
         }
         
+        // Skip accommodation sections - they use accommodation type name from server, not "Select Section"
+        if ($sectionItem.attr('data-accommodation-id') !== undefined) {
+            return;
+        }
+        
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const $headerName = $sectionItem.find('.survey-data-mock-section-name');
         const $titleText = $sectionItem.find('.survey-data-mock-section-title-text');
@@ -6323,9 +6330,28 @@ $(document).ready(function() {
             });
             
             const assessmentId = sectionId || accommodationId;
+            
+            // Validate assessment ID
+            if (!assessmentId || assessmentId === 'undefined' || assessmentId === 'null') {
+                console.error('Invalid assessment ID:', { sectionId, accommodationId, assessmentId });
+                $uploadTitle.text(originalTitle);
+                $dropzone.css('pointer-events', 'auto');
+                showToast('Error: Assessment ID is missing. Please save the accommodation first.', 'error');
+                return;
+            }
+            
             const uploadUrl = accommodationId 
                 ? `/surveyor/surveys/${surveyId}/accommodation-assessments/${assessmentId}/photos`
                 : `/surveyor/surveys/${surveyId}/assessments/${assessmentId}/photos`;
+            
+            console.log('Uploading photos:', { 
+                surveyId, 
+                assessmentId, 
+                accommodationId, 
+                sectionId, 
+                uploadUrl, 
+                fileCount: validFiles.length 
+            });
             
             $.ajax({
                 url: uploadUrl,
@@ -6334,6 +6360,7 @@ $(document).ready(function() {
                 processData: false,
                 contentType: false,
                 success: function(response) {
+                    console.log('Upload success:', response);
                     if (response.photos && response.photos.length > 0) {
                         addPhotosToGrid($sectionItem, response.photos);
                         updateImageCount($sectionItem);
@@ -6344,11 +6371,30 @@ $(document).ready(function() {
                     
                     showToast('Images uploaded successfully!', 'success');
                 },
-                error: function(xhr) {
-                    console.error('Upload failed:', xhr.responseJSON);
+                error: function(xhr, status, error) {
+                    console.error('Upload failed:', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        response: xhr.responseJSON,
+                        error: error,
+                        url: uploadUrl
+                    });
                     $uploadTitle.text(originalTitle);
                     $dropzone.css('pointer-events', 'auto');
-                    showToast('Failed to upload images. Please try again.', 'error');
+                    
+                    let errorMessage = 'Failed to upload images. Please try again.';
+                    if (xhr.status === 404) {
+                        errorMessage = 'Assessment not found. Please save the accommodation first.';
+                    } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.status === 422) {
+                        errorMessage = 'Validation failed. Please check your image files.';
+                    } else if (xhr.status === 500) {
+                        errorMessage = 'Server error. Please try again or contact support.';
+                    }
+                    showToast(errorMessage, 'error');
                 }
             });
         } else {

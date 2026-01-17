@@ -20,6 +20,9 @@
         </div>
     </div>
     <div class="item-actions">
+        <button class="action-btn" title="Manage Components" onclick="openManageComponentsModal({{ $type->id }}, '{{ $type->display_name }}')">
+            <i class="fas fa-cogs"></i>
+        </button>
         <button class="action-btn" title="Clone" onclick="cloneType({{ $type->id }})">
             <i class="fas fa-clone"></i>
         </button>
@@ -31,6 +34,8 @@
         </button>
     </div>
 </div>
+
+
 
 
 

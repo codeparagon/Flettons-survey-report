@@ -17,6 +17,9 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/custom/main.css') }}">
 
+    <!-- Survey Theme CSS -->
+    <link rel="stylesheet" href="{{ asset('css/custom/survey-theme.css') }}">
+
     @stack('styles')
 </head>
 

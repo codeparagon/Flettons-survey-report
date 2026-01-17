@@ -1,6 +1,8 @@
 <div class="dashboard-header">
     <nav class="navbar navbar-expand-lg fixed-top" style="background-color: #1a202c;">
-        <a class="navbar-brand" href="{{ url('/') }}" style="font-weight: bold; font-size: 1.5rem;">SURVAI</a>
+            <a href="{{ route('surveyor.dashboard') }}" class="survey-logo" aria-label="SurvAI dashboard">
+                <img src="{{ asset('images/survai-logo.png') }}" alt="SurvAI" class="survey-logo-img">
+            </a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>

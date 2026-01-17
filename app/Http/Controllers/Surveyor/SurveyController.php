@@ -152,13 +152,20 @@ class SurveyController extends Controller
         $accommodationDataService = app(\App\Services\SurveyAccommodationDataService::class);
         $accommodationSections = $accommodationDataService->getAccommodationConfigurationData($survey, $useMockData);
 
+        // Get accommodation types with components (for form dropdowns)
+        // Only types that have components configured will be available
+        $accommodationTypesWithComponents = $accommodationDataService->getAccommodationTypesWithComponents();
+        
+        // Check if we should show the accommodation section (even if no assessments yet)
+        $hasAccommodationTypesWithComponents = count($accommodationTypesWithComponents) > 0;
+
         // Get options mapping for dynamic options from database
         $optionsMapping = $surveyDataService->getOptionsMapping();
 
         // Get content sections
         $contentSections = $this->getContentSectionsForSurvey($survey, $categories);
 
-        return view('surveyor.surveys.mocks.data', compact('survey', 'categories', 'accommodationSections', 'optionsMapping', 'contentSections'));
+        return view('surveyor.surveys.mocks.data', compact('survey', 'categories', 'accommodationSections', 'accommodationTypesWithComponents', 'hasAccommodationTypesWithComponents', 'optionsMapping', 'contentSections'));
     }
 
     /**
@@ -590,8 +597,13 @@ class SurveyController extends Controller
         $accommodationTypeId = $validated['accommodation_type_id'];
         $formData = $validated['form_data'];
         
-        // Get accommodation type
-        $accommodationType = \App\Models\SurveyAccommodationType::findOrFail($accommodationTypeId);
+        // Get accommodation type and verify it has components configured
+        $accommodationType = \App\Models\SurveyAccommodationType::with('components')->findOrFail($accommodationTypeId);
+        if (!$accommodationType->components || $accommodationType->components->count() === 0) {
+            return response()->json([
+                'error' => 'This accommodation type does not have any components configured. Please configure components in the admin panel first.',
+            ], 422);
+        }
         
         // Count existing accommodations of this type to determine next number
         $existingCount = \App\Models\SurveyAccommodationAssessment::where('survey_id', $survey->id)
@@ -602,28 +614,34 @@ class SurveyController extends Controller
         // Generate new unique ID for the clone
         $newAccommodationId = 'clone_' . time() . '_' . mt_rand(1000, 9999);
         
-        // Get components from form data or use default
+        // Get components from form data or use components linked to this accommodation type
         $components = $formData['components'] ?? [];
         if (empty($components)) {
-            // Get default components for this accommodation type
-            $defaultComponents = $accommodationDataService->getAccommodationComponents();
-            $components = array_map(function($component) {
-                return [
-                    'component_key' => $component['key'],
-                    'component_name' => $component['name'],
-                    'material' => '',
-                    'defects' => [],
-                ];
-            }, $defaultComponents);
+            // Get components linked to this accommodation type (not all components)
+            $accommodationType->load('components');
+            if ($accommodationType->components && $accommodationType->components->count() > 0) {
+                $components = $accommodationType->components->map(function($component) {
+                    return [
+                        'component_key' => $component->key_name,
+                        'component_name' => $component->display_name,
+                        'material' => '',
+                        'defects' => [],
+                    ];
+                })->toArray();
+            } else {
+                // If no components linked, return empty array
+                $components = [];
+            }
         } else {
             // Ensure component_name is populated for each component
-            $allComponents = $accommodationDataService->getAccommodationComponents();
-            $componentNames = collect($allComponents)->pluck('name', 'key')->toArray();
+            $accommodationType->load('components');
+            $componentMap = $accommodationType->components->keyBy('key_name');
             
-            $components = array_map(function($component) use ($componentNames) {
-                // Add component_name if not present
+            $components = array_map(function($component) use ($componentMap) {
+                // Add component_name if not present, using the component from the type
                 if (!isset($component['component_name']) && isset($component['component_key'])) {
-                    $component['component_name'] = $componentNames[$component['component_key']] ?? ucfirst(str_replace('_', ' ', $component['component_key']));
+                    $typeComponent = $componentMap->get($component['component_key']);
+                    $component['component_name'] = $typeComponent ? $typeComponent->display_name : ucfirst(str_replace('_', ' ', $component['component_key']));
                 }
                 return $component;
             }, $components);
@@ -797,6 +815,14 @@ class SurveyController extends Controller
 
             // Get accommodation type
             $accommodationTypeId = $validated['accommodation_type_id'];
+            
+            // Verify that the accommodation type has components configured
+            $accommodationType = \App\Models\SurveyAccommodationType::with('components')->findOrFail($accommodationTypeId);
+            if (!$accommodationType->components || $accommodationType->components->count() === 0) {
+                return response()->json([
+                    'error' => 'This accommodation type does not have any components configured. Please configure components in the admin panel first.',
+                ], 422);
+            }
 
             // Get service
             $service = app(\App\Services\SurveyAccommodationDataService::class);
@@ -1143,6 +1169,199 @@ class SurveyController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('Failed to delete photo', [
+                'survey_id' => $survey->id,
+                'assessment_id' => $assessmentId,
+                'photo_id' => $photoId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to delete photo: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload photos for an accommodation assessment.
+     * 
+     * @param Request $request
+     * @param Survey $survey
+     * @param int $assessmentId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function uploadAccommodationPhotos(Request $request, Survey $survey, $assessment)
+    {
+        // Surveyor can only update assessments for their own surveys
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        try {
+            // Get files - Laravel handles photos[0], photos[1] automatically as an array
+            $photos = $request->file('photos');
+            
+            // If photos is null, try alternative access methods
+            if (!$photos) {
+                // Try getting all files and filter for photos
+                $allFiles = $request->allFiles();
+                $photos = [];
+                
+                // Check if files are in the request with 'photos' key
+                if (isset($allFiles['photos']) && is_array($allFiles['photos'])) {
+                    $photos = array_values($allFiles['photos']);
+                } else {
+                    // Try to find photos in any format
+                    foreach ($allFiles as $key => $file) {
+                        if (strpos($key, 'photos') !== false) {
+                            if (is_array($file)) {
+                                $photos = array_merge($photos, array_values($file));
+                            } else {
+                                $photos[] = $file;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Ensure photos is an array
+            if (!is_array($photos)) {
+                $photos = $photos ? [$photos] : [];
+            }
+            
+            // Filter out null values and ensure we have valid files
+            $photos = array_filter($photos, function($photo) {
+                return $photo !== null && $photo->isValid();
+            });
+            
+            // Re-index array to ensure sequential keys
+            $photos = array_values($photos);
+            
+            if (empty($photos)) {
+                return response()->json([
+                    'error' => 'No valid photos provided. Please ensure you are uploading image files.',
+                ], 422);
+            }
+
+            // Validate each photo
+            foreach ($photos as $index => $photo) {
+                if (!$photo->isValid()) {
+                    return response()->json([
+                        'error' => "Photo at index {$index} is not valid",
+                    ], 422);
+                }
+                if ($photo->getSize() > 10240 * 1024) { // 10MB in bytes
+                    return response()->json([
+                        'error' => "Photo at index {$index} exceeds 10MB limit",
+                    ], 422);
+                }
+                if (!in_array($photo->getMimeType(), ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'])) {
+                    return response()->json([
+                        'error' => "Photo at index {$index} is not a valid image format",
+                    ], 422);
+                }
+            }
+
+            // Convert assessment parameter to integer if it's not already
+            $assessmentId = is_numeric($assessment) ? (int) $assessment : $assessment;
+            
+            // Find the accommodation assessment
+            $assessmentModel = \App\Models\SurveyAccommodationAssessment::where('id', $assessmentId)
+                ->where('survey_id', $survey->id)
+                ->firstOrFail();
+
+            // Get service
+            $service = app(\App\Services\SurveyAccommodationDataService::class);
+            
+            // Save photos - ensure we pass an array
+            $service->saveAccommodationPhotos($assessmentModel, array_values($photos));
+
+            Log::info('Accommodation photos uploaded', [
+                'assessment_id' => $assessmentModel->id,
+                'photos_count' => count($photos),
+            ]);
+
+            // Reload photos to return them
+            $assessmentModel->load('photos');
+            $uploadedPhotos = $assessmentModel->photos->map(function($photo) {
+                return [
+                    'id' => $photo->id,
+                    'file_path' => $photo->file_path,
+                    'file_name' => $photo->file_name,
+                    'url' => asset('storage/' . ltrim($photo->file_path, '/')),
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Photos uploaded successfully',
+                'photos' => $uploadedPhotos,
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'error' => 'Assessment not found',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to upload accommodation photos', [
+                'survey_id' => $survey->id,
+                'assessment_id' => $assessment ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to upload photos: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a photo from an accommodation assessment.
+     * 
+     * @param Request $request
+     * @param Survey $survey
+     * @param int $assessmentId
+     * @param int $photoId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteAccommodationPhoto(Request $request, Survey $survey, int $assessmentId, int $photoId)
+    {
+        // Surveyor can only delete photos for their own surveys
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        try {
+            // Find the accommodation assessment
+            $assessment = \App\Models\SurveyAccommodationAssessment::where('id', $assessmentId)
+                ->where('survey_id', $survey->id)
+                ->firstOrFail();
+
+            // Find the photo
+            $photo = \App\Models\SurveyAccommodationPhoto::where('id', $photoId)
+                ->where('accommodation_assessment_id', $assessment->id)
+                ->firstOrFail();
+
+            // Delete file from storage
+            if (Storage::disk('public')->exists($photo->file_path)) {
+                Storage::disk('public')->delete($photo->file_path);
+            }
+
+            // Delete photo record
+            $photo->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Photo deleted successfully',
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete accommodation photo', [
                 'survey_id' => $survey->id,
                 'assessment_id' => $assessmentId,
                 'photo_id' => $photoId,

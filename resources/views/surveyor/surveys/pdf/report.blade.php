@@ -7,7 +7,7 @@
     <style>
         @page {
             margin-top: 20mm;
-            margin-bottom: 30mm;
+            margin-bottom: 25mm;
             margin-left: 25mm;
             margin-right: 20mm;
             footer: html_pageFooter;
@@ -19,6 +19,7 @@
             margin-bottom: 30mm;
             margin-left: 25mm;
             margin-right: 20mm;
+            footer: html_pageFooter;
         }
 
         body {
@@ -82,11 +83,6 @@
 
         /* Footer */
         .page-footer-wrapper {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
             background-color: #2C2C54;
             color: #FFFFFF;
             font-size: 9pt;
@@ -126,9 +122,17 @@
 
         /* Category Styles */
         .category-section {
-            page-break-before: always;
+            margin-top: 0.8cm;
+            margin-bottom: 0.3cm;
+        }
+
+        .category-section:first-of-type {
             margin-top: 0;
-            margin-bottom: 0.5cm;
+        }
+
+        .category-title-wrapper {
+            page-break-after: avoid;
+            page-break-inside: avoid;
         }
 
         .category-title {
@@ -136,7 +140,7 @@
             font-size: 14pt;
             font-weight: bold;
             color: #000000;
-            margin-bottom: 0.5cm;
+            margin-bottom: 0.3cm;
             margin-top: 0;
         }
 
@@ -147,13 +151,15 @@
             padding: 6px 12px;
             font-size: 12pt;
             font-weight: bold;
-            margin-top: 0.5cm;
-            margin-bottom: 0.3cm;
+            margin-top: 0.3cm;
+            margin-bottom: 0.2cm;
+            line-height: 24px;
+            page-break-after: avoid;
         }
 
         /* Section Styles */
         .section-item {
-            margin-bottom: 0.8cm;
+            margin-bottom: 0.5cm;
             page-break-inside: avoid;
         }
 
@@ -175,9 +181,111 @@
             margin-left: 0.5cm;
         }
 
+        /* Condition Rating Badge */
+        .condition-badge {
+            display: inline-block; 
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #FFFFFF;
+            margin-left: 0.5cm;
+            vertical-align: middle;
+        }
+
+        .condition-badge--1 {
+            background-color: #10B981;
+        }
+
+        .condition-badge--2 {
+            background-color: #F59E0B;
+        }
+
+        .condition-badge--3 {
+            background-color: #EF4444;
+        }
+
+        .condition-badge--ni {
+            background-color: #94A3B8;
+        }
+
+        /* View Images Link */
+        .view-images-link {
+            margin-top: 0.3cm;
+            font-size: 10pt;
+        }
+
+        .view-images-link a {
+            color: #0066CC;
+            text-decoration: underline;
+        }
+
+        /* Survey Images Section */
+        .survey-images-section {
+            page-break-before: always;
+            margin-top: 0;
+            margin-bottom: 0.5cm;
+        }
+
+        .survey-images-title {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14pt;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 0.5cm;
+            margin-top: 0;
+        }
+
+        .image-group {
+            margin-bottom: 1cm;
+            page-break-inside: avoid;
+        }
+
+        .image-group-title {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12pt;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 0.3cm;
+            margin-top: 0.5cm;
+        }
+
+        .image-grid {
+            width: 100%;
+            margin-top: 0.3cm;
+        }
+
+        .image-row {
+            display: block;
+            width: 100%;
+            margin-bottom: 0.5cm;
+            page-break-inside: avoid;
+        }
+
+        .image-item {
+            display: inline-block;
+            vertical-align: top;
+            padding: 0.2cm;
+            width: 48%;
+            box-sizing: border-box;
+        }
+
+        .image-item img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #CCCCCC;
+            display: block;
+        }
+
+        .image-caption {
+            font-size: 9pt;
+            color: #666666;
+            margin-top: 0.2cm;
+            text-align: center;
+        }
+
         /* Report Content */
         .report-content {
-            margin-top: 0.3cm;
+            margin-top: 0.2cm;
             padding: 0;
             background-color: #FFFFFF;
             border: none;
@@ -188,7 +296,7 @@
         }
 
         .report-content p {
-            margin: 0.4cm 0;
+            margin: 0.2cm 0;
             color: #000000;
         }
 
@@ -198,21 +306,21 @@
         }
 
         .report-content ul, .report-content ol {
-            margin: 0.4cm 0;
+            margin: 0.2cm 0;
             padding-left: 1.5cm;
             color: #000000;
         }
 
         /* Form Data Display */
         .form-data {
-            margin-top: 0.3cm;
+            margin-top: 0.2cm;
             padding: 0;
             background-color: #FFFFFF;
             border: none;
         }
 
         .form-data-row {
-            margin: 0.3cm 0;
+            margin: 0.15cm 0;
             display: flex;
         }
 
@@ -279,12 +387,12 @@
 
         /* Content Section Styles */
         .content-section {
-            margin-bottom: 0.8cm;
+            margin-bottom: 0.5cm;
             page-break-inside: avoid;
         }
 
         .content-section-body {
-            margin-top: 0.3cm;
+            margin-top: 0.2cm;
             padding: 0;
             background-color: #FFFFFF;
             border: none;
@@ -296,7 +404,7 @@
 
         /* Accommodation Section */
         .accommodation-section {
-            margin-bottom: 0.8cm;
+            margin-bottom: 0.5cm;
             page-break-inside: avoid;
         }
     </style>
@@ -326,13 +434,13 @@
         @endphp
         
         @foreach($categories as $categoryName => $subCategories)
-            <div class="toc-item toc-category">{{ $mainSectionNumber }}.0 {{ $categoryName }}</div>
+            <div class="toc-item toc-category">{{ $categoryName }}</div>
             @php
                 $subSectionNumber = 1;
             @endphp
             @foreach($subCategories as $subCategoryName => $sections)
                 @if(!empty($subCategoryName))
-                    <div class="toc-item" style="margin-left: 0.5cm;">{{ $mainSectionNumber }}.{{ $subSectionNumber }} {{ $subCategoryName }}</div>
+                    <div class="toc-item" style="margin-left: 0.5cm;">{{ $subCategoryName }}</div>
                     @php $subSectionNumber++; @endphp
                 @endif
                 @foreach($sections as $section)
@@ -347,13 +455,13 @@
         @endforeach
 
         @if(!empty($accommodationSections))
-            <div class="toc-item toc-category" style="margin-top: 0.5cm;">{{ $mainSectionNumber }}.0 Configuration of Accommodation</div>
+            <div class="toc-item toc-category" style="margin-top: 0.5cm;">Configuration of Accommodation</div>
             @php
                 $subSectionNumber = 1;
             @endphp
             @foreach($accommodationSections as $accommodation)
                 <div class="toc-item" style="margin-left: 0.5cm;">
-                    <span>{{ $mainSectionNumber }}.{{ $subSectionNumber }} {{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}</span>
+                    <span>{{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}</span>
                     <span style="float: right;">{{ $pageNumber }}</span>
                 </div>
                 @php 
@@ -365,13 +473,13 @@
         @endif
 
         @if(!empty($contentSections['standalone']))
-            <div class="toc-item toc-category" style="margin-top: 0.5cm;">{{ $mainSectionNumber }}.0 Content Sections</div>
+            <div class="toc-item toc-category" style="margin-top: 0.5cm;">Content Sections</div>
             @php
                 $subSectionNumber = 1;
             @endphp
             @foreach($contentSections['standalone'] as $contentSection)
                 <div class="toc-item" style="margin-left: 0.5cm;">
-                    <span>{{ $mainSectionNumber }}.{{ $subSectionNumber }} {{ $contentSection->title }}</span>
+                    <span>{{ $contentSection->title }}</span>
                     <span style="float: right;">{{ $pageNumber }}</span>
                 </div>
                 @php 
@@ -379,23 +487,41 @@
                     $subSectionNumber++;
                 @endphp
             @endforeach
+            @php $mainSectionNumber++; @endphp
+        @endif
+
+        @if(!empty($surveyImages) && count($surveyImages) > 0)
+            @php
+                $imagesPageNumber = $pageNumber;
+                // Estimate pages for images (roughly 2 images per page)
+                $estimatedImagePages = ceil(count($surveyImages) / 2);
+            @endphp
+            <div class="toc-item toc-category" style="margin-top: 0.5cm;">Survey Images</div>
+            <div class="toc-item" style="margin-left: 0.5cm;">
+                <span><a href="#survey-images-section" style="color: #000000; text-decoration: none;">Survey Images</a></span>
+                <span style="float: right;">{{ $imagesPageNumber }}</span>
+            </div>
         @endif
     </div>
 
     <!-- Regular Sections -->
     @php
         $mainSectionNumber = 1;
+        $firstCategory = true;
     @endphp
     @foreach($categories as $categoryName => $subCategories)
-        <div class="category-section">
-            <h1 class="category-title">{{ $mainSectionNumber }}.0 {{ $categoryName }}</h1>
+        <div class="category-section" style="{{ $firstCategory ? 'margin-top: 0;' : '' }}">
+            <div class="category-title-wrapper">
+                <h1 class="category-title">{{ $categoryName }}</h1>
+            </div>
+            @php $firstCategory = false; @endphp
             
             @php
                 $subSectionNumber = 1;
             @endphp
             @foreach($subCategories as $subCategoryName => $sections)
                 @if(!empty($subCategoryName))
-                    <div class="subsection-bar">{{ $mainSectionNumber }}.{{ $subSectionNumber }} {{ $subCategoryName }}</div>
+                    <div class="subsection-bar">{{ $subCategoryName }}</div>
                     @php $subSectionNumber++; @endphp
                 @endif
 
@@ -406,9 +532,13 @@
                 @foreach($sections as $section)
                     <div class="section-item">
                         <div class="section-header">
-                            <span class="section-name">{{ $mainSectionNumber }}.{{ $currentSubSection }}.{{ $itemNumber }} {{ $section['name'] }}</span>
+                            <span class="section-name">{{ $section['name'] }}</span>
                             @if(!empty($section['condition_rating']))
-                                <span class="condition-text">(Condition Rating: {{ strtoupper($section['condition_rating']) }})</span>
+                                @php
+                                    $rating = strtolower($section['condition_rating']);
+                                    $ratingClass = 'condition-badge--' . ($rating === 'ni' ? 'ni' : $rating);
+                                @endphp
+                                <span class="condition-badge {{ $ratingClass }}"></span>
                             @endif
                         </div>
 
@@ -487,6 +617,15 @@
                                 @endif
                             </div>
                         @endif
+                        @if(!empty($section['photos']) && is_array($section['photos']) && count($section['photos']) > 0)
+                            @php
+                                $sectionId = $section['id'] ?? null;
+                                $anchorId = $sectionId ? 'images-section-' . $sectionId : 'images-section-' . md5($section['name']);
+                            @endphp
+                            <div class="view-images-link">
+                                <a href="#{{ $anchorId }}">View Images</a>
+                            </div>
+                        @endif
                     </div>
                     @php $itemNumber++; @endphp
                 @endforeach
@@ -495,7 +634,7 @@
                 @if(isset($contentSections['by_subcategory'][$categoryName][$subCategoryName]))
                     @foreach($contentSections['by_subcategory'][$categoryName][$subCategoryName] as $contentSection)
                         <div class="content-section">
-                            <div class="subsection-bar">{{ $mainSectionNumber }}.{{ $currentSubSection }}.{{ $itemNumber }} {{ $contentSection->title }}</div>
+                            <div class="subsection-bar">{{ $contentSection->title }}</div>
                             <div class="content-section-body">
                                 {!! nl2br(e($contentSection->content ?? '')) !!}
                             </div>
@@ -512,7 +651,7 @@
                 @endphp
                 @foreach($contentSections['by_category'][$categoryName] as $contentSection)
                     <div class="content-section">
-                        <div class="subsection-bar">{{ $mainSectionNumber }}.{{ $subSectionNumber }} {{ $contentSection->title }}</div>
+                        <div class="subsection-bar">{{ $contentSection->title }}</div>
                         <div class="content-section-body">
                             {!! nl2br(e($contentSection->content ?? '')) !!}
                         </div>
@@ -527,18 +666,25 @@
     <!-- Accommodation Sections -->
     @if(!empty($accommodationSections))
         <div class="category-section">
-            <h1 class="category-title">{{ $mainSectionNumber }}.0 Configuration of Accommodation</h1>
+            <div class="category-title-wrapper">
+                <h1 class="category-title">Configuration of Accommodation</h1>
+            </div>
             
             @php
                 $subSectionNumber = 1;
             @endphp
             @foreach($accommodationSections as $accommodation)
                 <div class="accommodation-section section-item">
-                    <div class="subsection-bar">{{ $mainSectionNumber }}.{{ $subSectionNumber }} {{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}</div>
-                    
-                    @if(!empty($accommodation['condition_rating']))
-                        <div class="condition-text" style="margin-top: 0.2cm;">Condition Rating: {{ strtoupper($accommodation['condition_rating']) }}</div>
-                    @endif
+                    <div class="subsection-bar">
+                        {{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}
+                        @if(!empty($accommodation['condition_rating']))
+                            @php
+                                $rating = strtolower($accommodation['condition_rating']);
+                                $ratingClass = 'condition-badge--' . ($rating === 'ni' ? 'ni' : $rating);
+                            @endphp
+                            <span class="condition-badge {{ $ratingClass }}"></span>
+                        @endif
+                    </div>
 
                     @if(!empty($accommodation['report_content']))
                         <div class="report-content">
@@ -577,6 +723,15 @@
                             @endif
                         </div>
                     @endif
+                    @if(!empty($accommodation['photos']) && is_array($accommodation['photos']) && count($accommodation['photos']) > 0)
+                        @php
+                            $accommodationId = $accommodation['id'] ?? null;
+                            $anchorId = $accommodationId ? 'images-accommodation-' . $accommodationId : 'images-accommodation-' . md5($accommodation['name']);
+                        @endphp
+                        <div class="view-images-link">
+                            <a href="#{{ $anchorId }}">View Images</a>
+                        </div>
+                    @endif
                 </div>
                 @php $subSectionNumber++; @endphp
             @endforeach
@@ -587,19 +742,65 @@
     <!-- Standalone Content Sections -->
     @if(!empty($contentSections['standalone']))
         <div class="category-section">
-            <h1 class="category-title">{{ $mainSectionNumber }}.0 Content Sections</h1>
+            <div class="category-title-wrapper">
+                <h1 class="category-title">Content Sections</h1>
+            </div>
             
             @php
                 $subSectionNumber = 1;
             @endphp
             @foreach($contentSections['standalone'] as $contentSection)
                 <div class="content-section">
-                    <div class="subsection-bar">{{ $mainSectionNumber }}.{{ $subSectionNumber }} {{ $contentSection->title }}</div>
+                    <div class="subsection-bar">{{ $contentSection->title }}</div>
                     <div class="content-section-body">
                         {!! nl2br(e($contentSection->content ?? '')) !!}
                     </div>
                 </div>
                 @php $subSectionNumber++; @endphp
+            @endforeach
+        </div>
+    @endif
+
+    <!-- Survey Images Section -->
+    @if(!empty($surveyImages) && count($surveyImages) > 0)
+        <div class="survey-images-section" id="survey-images-section">
+            <h1 class="survey-images-title">Survey Images</h1>
+            
+            @foreach($surveyImages as $imageGroup)
+                <div class="image-group" id="{{ $imageGroup['anchor_id'] }}">
+                    <div class="image-group-title">{{ $imageGroup['name'] }}</div>
+                    <div class="image-grid">
+                        @php
+                            $photos = $imageGroup['photos'];
+                            $photoCount = count($photos);
+                        @endphp
+                        @for($i = 0; $i < $photoCount; $i += 2)
+                            <div class="image-row">
+                                @for($j = $i; $j < min($i + 2, $photoCount); $j++)
+                                    @php
+                                        $photo = $photos[$j];
+                                        // Handle file path - it's stored relative to storage/app/public
+                                        $filePath = ltrim($photo['file_path'] ?? '', '/');
+                                        $imagePath = storage_path('app/public/' . $filePath);
+                                        // Convert to absolute path with forward slashes for DomPDF compatibility
+                                        $absolutePath = realpath($imagePath) ?: $imagePath;
+                                        $absolutePath = str_replace('\\', '/', $absolutePath);
+                                    @endphp
+                                    <div class="image-item">
+                                        @if(file_exists($imagePath))
+                                            <img src="{{ $absolutePath }}" alt="{{ $photo['file_name'] ?? 'Image' }}">
+                                        @else
+                                            <div style="padding: 1cm; border: 1px solid #CCCCCC; text-align: center; color: #999999;">
+                                                Image not found: {{ $photo['file_name'] ?? 'Unknown' }}
+                                            </div>
+                                        @endif
+                                        <div class="image-caption">{{ $photo['file_name'] ?? 'Image ' . ($j + 1) }}</div>
+                                    </div>
+                                @endfor
+                            </div>
+                        @endfor
+                    </div>
+                </div>
             @endforeach
         </div>
     @endif
@@ -611,17 +812,19 @@
 
     <!-- Page Footer -->
     <htmlpagefooter name="html_pageFooter">
-        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #2C2C54; border-collapse: collapse; margin: 0; padding: 0;">
-            <tr>
-                <td style="padding: 6px 10px; color: #FFFFFF; font-size: 9pt; font-family: Arial, Helvetica, sans-serif; vertical-align: middle;">
-                    <div style="margin: 0; padding: 0; line-height: 1.3;">Flettons Surveyors 20-22 Wenlock Road, London, N1 7GU</div>
-                    <div style="margin: 0; padding: 0; line-height: 1.3;"><strong>E:</strong> info@flettons.com | <strong>T:</strong> 0330 043 4650 | <strong>W:</strong> www.flettons.com</div>
-                </td>
-                <td style="padding: 6px 10px; color: #000000; font-size: 10pt; font-family: Arial, Helvetica, sans-serif; text-align: right; vertical-align: middle; width: 50px; background-color: transparent;">
-                    {PAGENO}
-                </td>
-            </tr>
-        </table>
+        <div style="background-color: #2C2C54; color: #FFFFFF; font-size: 9pt; font-family: Arial, Helvetica, sans-serif; padding: 8px 10px; width: 100%;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0; padding: 0; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 0; color: #FFFFFF; font-size: 9pt; font-family: Arial, Helvetica, sans-serif; vertical-align: middle;">
+                        <div style="margin: 0; padding: 0; line-height: 1.3;">Flettons Surveyors 20-22 Wenlock Road, London, N1 7GU</div>
+                        <div style="margin: 0; padding: 0; line-height: 1.3;"><strong>E:</strong> info@flettons.com | <strong>T:</strong> 0330 043 4650 | <strong>W:</strong> www.flettons.com</div>
+                    </td>
+                    <td style="padding: 0; color: #FFFFFF; font-size: 10pt; font-family: Arial, Helvetica, sans-serif; text-align: right; vertical-align: middle; width: 50px;">
+                        {PAGENO}
+                    </td>
+                </tr>
+            </table>
+        </div>
     </htmlpagefooter>
 </body>
 </html>

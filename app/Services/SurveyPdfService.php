@@ -38,11 +38,65 @@ class SurveyPdfService
         // Get all content sections directly from database (to ensure latest content)
         $contentSections = $this->getContentSectionsForSurvey($survey, $categories);
         
+        // Collect all survey images
+        $surveyImages = $this->collectAllSurveyImages($categories, $accommodationSections);
+        
         return [
             'categories' => $categories,
             'accommodationSections' => $accommodationSections,
             'contentSections' => $contentSections,
+            'surveyImages' => $surveyImages,
         ];
+    }
+
+    /**
+     * Collect all images from sections and accommodations for PDF.
+     * 
+     * @param array $categories
+     * @param array $accommodationSections
+     * @return array
+     */
+    protected function collectAllSurveyImages(array $categories, array $accommodationSections): array
+    {
+        $images = [];
+        
+        // Collect images from regular sections
+        foreach ($categories as $categoryName => $subCategories) {
+            foreach ($subCategories as $subCategoryName => $sections) {
+                foreach ($sections as $section) {
+                    if (!empty($section['photos']) && is_array($section['photos']) && count($section['photos']) > 0) {
+                        $sectionId = $section['id'] ?? null;
+                        $anchorId = $sectionId ? 'images-section-' . $sectionId : 'images-section-' . md5($section['name']);
+                        
+                        $images[] = [
+                            'type' => 'section',
+                            'id' => $sectionId,
+                            'anchor_id' => $anchorId,
+                            'name' => $section['name'] ?? 'Unknown Section',
+                            'photos' => $section['photos'],
+                        ];
+                    }
+                }
+            }
+        }
+        
+        // Collect images from accommodation sections
+        foreach ($accommodationSections as $accommodation) {
+            if (!empty($accommodation['photos']) && is_array($accommodation['photos']) && count($accommodation['photos']) > 0) {
+                $accommodationId = $accommodation['id'] ?? null;
+                $anchorId = $accommodationId ? 'images-accommodation-' . $accommodationId : 'images-accommodation-' . md5($accommodation['name']);
+                
+                $images[] = [
+                    'type' => 'accommodation',
+                    'id' => $accommodationId,
+                    'anchor_id' => $anchorId,
+                    'name' => $accommodation['name'] ?? ($accommodation['accommodation_type_name'] ?? 'Unknown Accommodation'),
+                    'photos' => $accommodation['photos'],
+                ];
+            }
+        }
+        
+        return $images;
     }
 
     /**
@@ -145,6 +199,7 @@ class SurveyPdfService
             'categories' => $data['categories'],
             'accommodationSections' => $data['accommodationSections'],
             'contentSections' => $data['contentSections'],
+            'surveyImages' => $data['surveyImages'],
         ]);
         
         // Set PDF options for UK A4 format

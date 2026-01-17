@@ -165,8 +165,7 @@
                 $('body').removeClass('modal-open');
                 $('body, .survey-layout, .survey-main-content, .survey-content-wrapper').css({
                     'pointer-events': 'auto',
-                    'overflow': 'auto',
-                    'padding-right': '0'
+                    'overflow': 'auto'
                 });
             }
 

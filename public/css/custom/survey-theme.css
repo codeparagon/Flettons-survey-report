@@ -7,7 +7,7 @@
     --survey-border: #E5E7EB;
     --survey-text-dark: #1A202C;
     --survey-text-light: #6B7280;
-    --survey-sidebar-width: 280px;
+    --survey-sidebar-width: 200px;
     --survey-header-height: 70px;
 }
 
@@ -183,7 +183,7 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 }
 
 .survey-logo-img {
-    height: 6em;
+    height: 3em;
     width: auto;
     display: block;
 }
@@ -1168,7 +1168,7 @@ body.modal-open-lite {
 }
 
 .survey-content-wrapper {
-    padding: 1.5rem;
+    padding: 0.8rem;
     max-width: 100%;
     flex: 1;
     overflow-y: auto;

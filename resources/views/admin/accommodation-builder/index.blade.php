@@ -672,6 +672,42 @@
                 <input type="text" class="tag-input" placeholder="Type and press Enter to add..." onkeydown="handleDefectInput(event)">
             </div>
         </div>
+
+        <!-- Configure Accommodation Sections -->
+        <div class="builder-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Configure Accommodation Sections</h2>
+                    <p class="section-subtitle">Configure which components are available for each accommodation type. Only types with components configured will be available in surveys. Use the "Manage Components" button on each type to configure.</p>
+                </div>
+            </div>
+            
+            <div class="item-list" id="accommodationSectionsList" style="margin-top: 20px;">
+                @foreach($accommodationTypes as $type)
+                    <div class="item-card" style="margin-bottom: 12px;">
+                        <div class="item-info" style="flex: 1;">
+                            <div class="item-name">{{ $type->display_name }}</div>
+                            <div class="item-meta">
+                                @if($type->components && $type->components->count() > 0)
+                                    <span style="color: #10b981;">
+                                        <i class="fas fa-check-circle"></i> {{ $type->components->count() }} component(s) configured
+                                    </span>
+                                @else
+                                    <span style="color: #ef4444;">
+                                        <i class="fas fa-exclamation-circle"></i> No components configured
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="action-btn" title="Manage Components" onclick="openManageComponentsModal({{ $type->id }}, '{{ $type->display_name }}')">
+                                <i class="fas fa-cogs"></i> Configure Components
+                            </button>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
     </div>
 
     <!-- Preview Panel -->
@@ -790,6 +826,32 @@
         </div>
     </div>
 </div>
+
+<!-- Manage Components Modal -->
+<div class="builder-modal" id="manageComponentsModal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Manage Components for <span id="manageComponentsTypeName"></span></h3>
+            <button class="modal-close" onclick="closeModal('manageComponentsModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 20px; color: #6b7280;">Select which components should be included in this accommodation type. Mark components as required if they must be filled.</p>
+            <div id="componentsChecklist" style="max-height: 400px; overflow-y: auto;">
+                <div style="text-align: center; padding: 40px; color: #9ca3af;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i>
+                    <p style="margin-top: 10px;">Loading components...</p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-builder btn-builder-secondary" onclick="closeModal('manageComponentsModal')">Cancel</button>
+            <button class="btn-builder btn-builder-primary" onclick="saveTypeComponents()">
+                <i class="fas fa-save"></i> Save Components
+            </button>
+        </div>
+    </div>
+</div>
+
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
@@ -1135,6 +1197,155 @@ function togglePreviewPanel() {
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
+// Component Management for Types
+let currentTypeId = null;
+
+async function openManageComponentsModal(typeId, typeName) {
+    currentTypeId = typeId;
+    document.getElementById('manageComponentsTypeName').textContent = typeName;
+    openModal('manageComponentsModal');
+    
+    // Load components
+    await loadTypeComponents(typeId);
+}
+
+async function loadTypeComponents(typeId) {
+    const checklist = document.getElementById('componentsChecklist');
+    checklist.innerHTML = '<div style="text-align: center; padding: 40px; color: #9ca3af;"><i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i><p style="margin-top: 10px;">Loading components...</p></div>';
+    
+    try {
+        const result = await apiCall(`/admin/api/accommodation-types/${typeId}/components`, 'GET');
+        if (result.success) {
+            renderComponentsChecklist(result.components);
+        } else {
+            checklist.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">Error loading components</div>';
+        }
+    } catch (error) {
+        checklist.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">Error loading components</div>';
+    }
+}
+
+function renderComponentsChecklist(components) {
+    const checklist = document.getElementById('componentsChecklist');
+    
+    if (components.length === 0) {
+        checklist.innerHTML = '<div style="text-align: center; padding: 40px; color: #9ca3af;">No components available</div>';
+        return;
+    }
+    
+    const assignedComponents = components.filter(c => c.is_assigned);
+    const unassignedComponents = components.filter(c => !c.is_assigned);
+    
+    let html = '';
+    
+    // Show assigned components first
+    if (assignedComponents.length > 0) {
+        html += '<div style="margin-bottom: 20px;"><h4 style="margin-bottom: 10px; color: #374151; font-size: 14px; font-weight: 600;">Selected Components</h4>';
+        assignedComponents.forEach((component, index) => {
+            html += createComponentCheckbox(component, index, true);
+        });
+        html += '</div>';
+    }
+    
+    // Show unassigned components
+    if (unassignedComponents.length > 0) {
+        html += '<div><h4 style="margin-bottom: 10px; color: #374151; font-size: 14px; font-weight: 600;">Available Components</h4>';
+        unassignedComponents.forEach((component, index) => {
+            html += createComponentCheckbox(component, assignedComponents.length + index, false);
+        });
+        html += '</div>';
+    }
+    
+    checklist.innerHTML = html;
+}
+
+function createComponentCheckbox(component, sortIndex, isAssigned) {
+    const checkboxId = `component_${component.id}`;
+    const requiredId = `required_${component.id}`;
+    
+    return `
+        <div style="display: flex; align-items: center; padding: 12px; margin-bottom: 8px; background: ${isAssigned ? '#f0fdf4' : '#f9fafb'}; border: 1px solid ${isAssigned ? '#bbf7d0' : '#e5e7eb'}; border-radius: 8px;">
+            <input type="checkbox" 
+                   id="${checkboxId}" 
+                   ${isAssigned ? 'checked' : ''} 
+                   onchange="toggleComponentRequired(${component.id}, this.checked)"
+                   style="margin-right: 12px; width: 18px; height: 18px; cursor: pointer;">
+            <label for="${checkboxId}" style="flex: 1; cursor: pointer; font-weight: ${isAssigned ? '500' : '400'};">
+                ${component.display_name}
+                <span style="color: #6b7280; font-size: 12px; margin-left: 8px;">(${component.key_name})</span>
+            </label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: #6b7280;">
+                    <input type="checkbox" 
+                           id="${requiredId}" 
+                           ${component.is_required ? 'checked' : ''} 
+                           ${!isAssigned ? 'disabled' : ''}
+                           onchange="updateComponentRequired(${component.id}, this.checked)"
+                           style="width: 16px; height: 16px; cursor: ${isAssigned ? 'pointer' : 'not-allowed'};">
+                    Required
+                </label>
+            </div>
+            <input type="hidden" 
+                   id="sort_${component.id}" 
+                   value="${component.sort_order !== null ? component.sort_order : sortIndex}">
+        </div>
+    `;
+}
+
+function toggleComponentRequired(componentId, isChecked) {
+    const requiredCheckbox = document.getElementById(`required_${componentId}`);
+    if (requiredCheckbox) {
+        requiredCheckbox.disabled = !isChecked;
+        if (!isChecked) {
+            requiredCheckbox.checked = false;
+        }
+    }
+}
+
+function updateComponentRequired(componentId, isRequired) {
+    // This is handled in saveTypeComponents
+}
+
+async function saveTypeComponents() {
+    if (!currentTypeId) return;
+    
+    const checklist = document.getElementById('componentsChecklist');
+    const checkboxes = checklist.querySelectorAll('input[type="checkbox"][id^="component_"]');
+    
+    const components = [];
+    checkboxes.forEach((checkbox, index) => {
+        if (checkbox.checked) {
+            const componentId = parseInt(checkbox.id.replace('component_', ''));
+            const requiredCheckbox = document.getElementById(`required_${componentId}`);
+            const sortInput = document.getElementById(`sort_${componentId}`);
+            
+            components.push({
+                component_id: componentId,
+                is_required: requiredCheckbox ? requiredCheckbox.checked : false,
+                sort_order: sortInput ? parseInt(sortInput.value) : index
+            });
+        }
+    });
+    
+    try {
+        const result = await apiCall(`/admin/api/accommodation-types/${currentTypeId}/components`, 'POST', {
+            components: components
+        });
+        
+        if (result.success) {
+            showToast('Components configured successfully. This section will now be available for all surveys.', 'success');
+            closeModal('manageComponentsModal');
+            // Reload page to show updated configuration status
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(result.message || 'Error updating components', 'error');
+        }
+    } catch (error) {
+        showToast('Error updating components', 'error');
+    }
+}
+
+
 // Toast
 function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
@@ -1153,6 +1364,8 @@ function showToast(message, type = 'info') {
 }
 </script>
 @endpush
+
+
 
 
 
