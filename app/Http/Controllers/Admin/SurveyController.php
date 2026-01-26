@@ -14,7 +14,7 @@ class SurveyController extends Controller
     {
         $surveys = Survey::with('surveyor')
             ->orderBy('created_at', 'desc')
-            ->paginate(15);
+            ->get();
             
         return view('admin.surveys.index', compact('surveys'));
     }

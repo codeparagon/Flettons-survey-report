@@ -126,6 +126,18 @@
     background-color: #1a202c !important;
 }
 
+/* Override main content and wrapper backgrounds for consistent dark theme */
+.survey-main-content,
+.survey-content-wrapper {
+    background-color: #1a202c !important;
+    background: #1a202c !important;
+}
+
+/* Ensure layout background is also dark */
+.survey-layout {
+    background: #1a202c !important;
+}
+
 /* Scoped dashboard styling */
 .survai-dashboard { color:#E5E7EB; }
 .survai-dashboard .sd-hero { background:#1a202c; margin-left:-12px; margin-right:-12px; padding:16px; border-radius:8px; }

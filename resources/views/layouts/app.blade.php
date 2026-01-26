@@ -16,24 +16,25 @@
     <link rel="stylesheet" href="{{ asset('newdesign/assets/libs/css/style.css') }}">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/custom/main.css') }}">
-
     <!-- Survey Theme CSS -->
     <link rel="stylesheet" href="{{ asset('css/custom/survey-theme.css') }}">
 
     @stack('styles')
 </head>
+<body class="survey-page">
+    <div class="survey-layout">
+        <!-- Survey Header -->
+        @include('layouts.partials.header')
 
-<body>
-    <div class="dashboard-main-wrapper">
-        <!-- Navbar -->
-        @include('layouts.partials.navbar')
+        <!-- Sidebar Backdrop -->
+        <div class="survey-sidebar-backdrop" id="survey-sidebar-backdrop"></div>
 
-        <!-- Sidebar -->
+        <!-- Survey Sidebar -->
         @include('layouts.partials.sidebar')
 
         <!-- Main Content -->
-        <div class="dashboard-wrapper">
-            <div class="container-fluid dashboard-content">
+        <div class="survey-main-content" id="survey-main-content">
+            <div class="survey-content-wrapper">
                 @if(session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         {{ session('success') }}
@@ -54,10 +55,12 @@
 
                 @yield('content')
             </div>
-
-            <!-- Footer -->
-            @include('layouts.partials.footer')
         </div>
+
+        <!-- Sidebar Open Button -->
+        <button type="button" class="survey-sidebar-open-btn" id="survey-sidebar-open" aria-label="Show sidebar">
+            <i class="fa fa-chevron-right"></i>
+        </button>
     </div>
 
     <!-- jQuery -->
@@ -74,5 +77,116 @@
     <script src="{{ asset('newdesign/assets/libs/js/main-js.js') }}"></script>
 
     @stack('scripts')
+    
+    <script>
+    // Sidebar toggle functionality
+    $(document).ready(function() {
+        const sidebar = $('#survey-sidebar');
+        const sidebarBackdrop = $('#survey-sidebar-backdrop');
+        const sidebarOpenBtn = $('#survey-sidebar-open');
+        const sidebarCollapseBtn = $('#survey-sidebar-collapse');
+        const mainContent = $('#survey-main-content');
+
+        // Function to update sidebar state
+        function updateSidebarState(isCollapsed) {
+            if (isCollapsed) {
+                sidebar.addClass('collapsed');
+                mainContent.addClass('sidebar-collapsed');
+                sidebarOpenBtn.addClass('show');
+                if (window.innerWidth < 769) {
+                    sidebarBackdrop.removeClass('show');
+                }
+            } else {
+                sidebar.removeClass('collapsed');
+                mainContent.removeClass('sidebar-collapsed');
+                sidebarOpenBtn.removeClass('show');
+                if (window.innerWidth < 769) {
+                    sidebarBackdrop.addClass('show');
+                }
+            }
+        }
+
+        // Toggle sidebar collapse
+        if (sidebarCollapseBtn.length) {
+            sidebarCollapseBtn.on('click', function() {
+                const isCollapsed = !sidebar.hasClass('collapsed');
+                updateSidebarState(isCollapsed);
+            });
+        }
+
+        // Open sidebar button
+        if (sidebarOpenBtn.length) {
+            sidebarOpenBtn.on('click', function() {
+                updateSidebarState(false);
+            });
+        }
+
+        // Close sidebar on backdrop click
+        if (sidebarBackdrop.length) {
+            sidebarBackdrop.on('click', function() {
+                updateSidebarState(true);
+            });
+        }
+
+        // Handle window resize
+        $(window).on('resize', function() {
+            if (window.innerWidth >= 769) {
+                sidebarBackdrop.removeClass('show');
+            } else if (!sidebar.hasClass('collapsed')) {
+                sidebarBackdrop.addClass('show');
+            }
+        });
+
+        // Profile dropdown toggle
+        const profileBtn = $('#survey-profile-btn');
+        const profileMenu = $('#survey-profile-menu');
+        
+        if (profileBtn.length && profileMenu.length) {
+            profileBtn.on('click', function(e) {
+                e.stopPropagation();
+                profileMenu.toggleClass('show');
+            });
+
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.survey-profile-dropdown').length) {
+                    profileMenu.removeClass('show');
+                }
+            });
+        }
+
+        // Search functionality
+        const searchInput = $('#survey-header-search');
+        const searchClear = $('#survey-search-clear');
+        
+        if (searchInput.length && searchClear.length) {
+            searchInput.on('input', function() {
+                if ($(this).val().length > 0) {
+                    searchClear.show();
+                } else {
+                    searchClear.hide();
+                }
+            });
+
+            searchClear.on('click', function() {
+                searchInput.val('');
+                $(this).hide();
+            });
+        }
+
+        // Filters toggle (for surveyor)
+        const filtersToggle = $('#survey-filters-toggle');
+        const filtersContainer = $('#survey-filters-container');
+        
+        if (filtersToggle.length && filtersContainer.length) {
+            filtersToggle.on('click', function() {
+                const isExpanded = filtersContainer.hasClass('open');
+                filtersContainer.toggleClass('open');
+                filtersToggle.attr('aria-expanded', !isExpanded);
+            });
+        }
+    });
+    </script>
+
+    @stack('body-end')
 </body>
 </html>

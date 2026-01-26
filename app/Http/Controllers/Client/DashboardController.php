@@ -26,7 +26,9 @@ class DashboardController extends Controller
         $completedSurveys = \App\Models\Survey::where(function($q) use ($clientEmail) {
                 $q->where('email_address', $clientEmail)->orWhere('inf_field_Email', $clientEmail);
             })->where('status', 'completed')->count();
-        $reportsAvailable = 0; // Will be implemented later
+        
+        // Reports available = completed surveys (they can generate PDF reports)
+        $reportsAvailable = $completedSurveys;
         
         // Recent surveys
         $recentSurveys = \App\Models\Survey::where('email_address', $clientEmail)
@@ -36,12 +38,16 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
         
+        // Calculate completion rate
+        $completionRate = $totalSurveys > 0 ? round(($completedSurveys / $totalSurveys) * 100, 1) : 0;
+        
         return view('client.dashboard', compact(
             'totalSurveys',
             'pendingSurveys',
             'completedSurveys',
             'reportsAvailable',
-            'recentSurveys'
+            'recentSurveys',
+            'completionRate'
         ));
     }
 }

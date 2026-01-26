@@ -4,18 +4,59 @@
         <div class="survey-sidebar-section">
             <div class="survey-sidebar-title">MENU</div>
             <nav class="survey-nav">
-                <a href="{{ route('surveyor.surveys.index') }}" class="survey-nav-item {{ request()->is('surveyor/surveys*') ? 'active' : '' }}">
-                    <span class="survey-nav-label">My Reports</span>
-                </a>
-                <a href="{{ route('surveyor.dashboard') }}" class="survey-nav-item {{ request()->is('surveyor/dashboard') ? 'active' : '' }}">
-                    <span class="survey-nav-label">My Performance</span>
-                </a>
-                <a href="javascript:void(0)" class="survey-nav-item survey-nav-disabled">
-                    <span class="survey-nav-label">Account</span>
-                </a>
-                <a href="javascript:void(0)" class="survey-nav-item survey-nav-disabled">
-                    <span class="survey-nav-label">Settings</span>
-                </a>
+                @if(auth()->user()->isSuperAdmin())
+                    <a href="{{ route('admin.dashboard') }}" class="survey-nav-item {{ request()->is('admin/dashboard') ? 'active' : '' }}">
+                        <span class="survey-nav-label">Dashboard</span>
+                    </a>
+                    <a href="{{ route('admin.surveys.index') }}" class="survey-nav-item {{ request()->is('admin/surveys*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">Survey Jobs</span>
+                    </a>
+                    <a href="{{ route('admin.users.index') }}" class="survey-nav-item {{ request()->is('admin/users*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">User Management</span>
+                    </a>
+                    <a href="{{ route('admin.survey-builder.index') }}" class="survey-nav-item {{ request()->is('admin/survey-builder*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">Sections</span>
+                    </a>
+                    <a href="{{ route('admin.accommodation-builder.index') }}" class="survey-nav-item {{ request()->is('admin/accommodation-builder*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">Accommodations</span>
+                    </a>
+                    <a href="{{ route('admin.survey-options.index') }}" class="survey-nav-item {{ request()->is('admin/survey-options*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">Global Options</span>
+                    </a>
+                    <a href="{{ route('admin.survey-levels.index') }}" class="survey-nav-item {{ request()->is('admin/survey-levels*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">Survey Levels</span>
+                    </a>
+                    <a href="{{ route('admin.content-sections.index') }}" class="survey-nav-item {{ request()->is('admin/content-sections*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">Content Sections</span>
+                    </a>
+                    <a href="{{ route('admin.survey-section-assessments.index') }}" class="survey-nav-item {{ request()->is('admin/survey-section-assessments*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">Assessments</span>
+                    </a>
+                @elseif(auth()->user()->isSurveyor())
+                    <a href="{{ route('surveyor.surveys.index') }}" class="survey-nav-item {{ request()->is('surveyor/surveys*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">My Reports</span>
+                    </a>
+                    <a href="{{ route('surveyor.dashboard') }}" class="survey-nav-item {{ request()->is('surveyor/dashboard') ? 'active' : '' }}">
+                        <span class="survey-nav-label">My Performance</span>
+                    </a>
+                    <a href="javascript:void(0)" class="survey-nav-item survey-nav-disabled">
+                        <span class="survey-nav-label">Account</span>
+                    </a>
+                    <a href="javascript:void(0)" class="survey-nav-item survey-nav-disabled">
+                        <span class="survey-nav-label">Settings</span>
+                    </a>
+                @elseif(auth()->user()->isClient())
+                    <a href="{{ route('client.dashboard') }}" class="survey-nav-item {{ request()->is('client/dashboard') ? 'active' : '' }}">
+                        <span class="survey-nav-label">Dashboard</span>
+                    </a>
+                    <a href="{{ route('client.surveys.index') }}" class="survey-nav-item {{ request()->is('client/surveys*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">My Surveys</span>
+                    </a>
+                    <a href="javascript:void(0)" class="survey-nav-item survey-nav-disabled">
+                        <span class="survey-nav-label">Downloads</span>
+                    </a>
+                @endif
+                
                 <a href="{{ route('logout') }}" class="survey-nav-item" onclick="event.preventDefault(); document.getElementById('survey-sidebar-logout-form').submit();">
                     <span class="survey-nav-label">Logout</span>
                 </a>
@@ -55,5 +96,3 @@
         </button>
     </div>
 </div>
-
-

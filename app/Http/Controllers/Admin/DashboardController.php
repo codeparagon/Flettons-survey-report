@@ -34,6 +34,11 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
         
+        // Calculate intelligent metrics
+        $completionRate = $totalSurveys > 0 ? round(($completedSurveys / $totalSurveys) * 100, 1) : 0;
+        $activeSurveyors = \App\Models\User::whereHas('surveys')->count();
+        $unassignedSurveys = \App\Models\Survey::whereNull('surveyor_id')->count();
+        
         return view('admin.dashboard', compact(
             'totalUsers', 
             'activeUsers',
@@ -43,7 +48,10 @@ class DashboardController extends Controller
             'completedSurveys',
             'totalLevels',
             'activeLevels',
-            'recentSurveys'
+            'recentSurveys',
+            'completionRate',
+            'activeSurveyors',
+            'unassignedSurveys'
         ));
     }
 }

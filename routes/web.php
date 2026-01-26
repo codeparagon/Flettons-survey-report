@@ -237,5 +237,7 @@ Route::prefix('client')->middleware(['auth', 'client'])->group(function () {
     // Surveys
     Route::get('/surveys', [\App\Http\Controllers\Client\SurveyController::class, 'index'])->name('client.surveys.index');
     Route::get('/surveys/{survey}', [\App\Http\Controllers\Client\SurveyController::class, 'show'])->name('client.surveys.show');
+    Route::get('/surveys/{survey}/report', [\App\Http\Controllers\Client\SurveyController::class, 'showReport'])->name('client.surveys.report');
+    Route::get('/surveys/{survey}/download-pdf', [\App\Http\Controllers\Client\SurveyController::class, 'downloadPdf'])->name('client.surveys.download-pdf');
 });
 

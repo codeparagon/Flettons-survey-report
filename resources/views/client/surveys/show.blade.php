@@ -84,6 +84,10 @@
                 
                 <hr>
                 
+                <a href="{{ route('client.surveys.report', $survey) }}" class="btn btn-primary btn-block mb-2">
+                    <i class="fas fa-file-alt"></i> View Full Report
+                </a>
+                
                 <a href="{{ route('client.surveys.index') }}" class="btn btn-secondary btn-block">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </a>

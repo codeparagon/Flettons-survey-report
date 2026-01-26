@@ -430,6 +430,31 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
     text-align: center;
 }
 
+/* Sidebar Backdrop */
+.survey-sidebar-backdrop {
+    position: fixed;
+    top: var(--survey-header-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.survey-sidebar-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (min-width: 769px) {
+    .survey-sidebar-backdrop {
+        display: none;
+    }
+}
+
 /* Survey Sidebar */
 .survey-sidebar {
     position: fixed;
@@ -576,6 +601,24 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
+}
+
+.survey-sidebar-section {
+    margin-bottom: 1rem;
+}
+
+.survey-sidebar-section:last-child {
+    margin-bottom: 0;
+}
+
+.survey-sidebar-title {
+    padding: 0.5rem 1rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.5);
+    display: block;
 }
 
 .survey-nav {
