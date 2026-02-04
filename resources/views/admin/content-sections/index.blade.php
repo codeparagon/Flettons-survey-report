@@ -18,6 +18,7 @@
     .sections-container {
         max-width: 1400px;
         margin: 0 auto;
+        padding: 0 1rem 1.5rem;
     }
 
     .page-header {
@@ -25,7 +26,7 @@
         justify-content: space-between !important;
         align-items: center !important;
         margin-bottom: 24px !important;
-        padding: 20px 24px !important;
+        padding: 24px 28px !important;
         background: var(--builder-primary) !important;
         color: white !important;
         border-radius: 12px !important;
@@ -92,7 +93,7 @@
     }
 
     .table-header {
-        padding: 20px 24px;
+        padding: 20px 28px;
         background: var(--builder-bg);
         border-bottom: 1px solid var(--builder-border);
         display: flex;
@@ -121,7 +122,7 @@
     }
 
     th {
-        padding: 12px 16px !important;
+        padding: 14px 20px !important;
         text-align: left !important;
         font-weight: 600 !important;
         font-size: 12px !important;
@@ -131,7 +132,7 @@
     }
 
     td {
-        padding: 16px !important;
+        padding: 16px 20px !important;
         border-bottom: 1px solid var(--builder-border) !important;
         font-size: 14px !important;
         color: #374151 !important;
@@ -171,8 +172,15 @@
     }
 
     .btn-group {
-        display: flex;
-        gap: 6px;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        align-items: center !important;
+    }
+
+    .btn-group .btn,
+    .btn-group form {
+        margin: 0 !important;
     }
 
     .btn {
@@ -252,6 +260,11 @@
 
     .text-muted {
         color: #6b7280 !important;
+    }
+
+    .pagination-wrapper {
+        padding: 20px 28px;
+        border-top: 1px solid var(--builder-border);
     }
 
     .empty-state {
@@ -406,7 +419,7 @@
             </table>
         </div>
         @if($sections->hasPages())
-            <div style="padding: 20px 24px; border-top: 1px solid var(--builder-border);">
+            <div class="pagination-wrapper">
                 {{ $sections->links() }}
             </div>
         @endif

@@ -18,14 +18,17 @@
     .wizard-container {
         max-width: 900px;
         margin: 0 auto;
+        padding: 0 1rem 1.5rem;
     }
 
     .page-header {
         display: flex !important;
         justify-content: space-between !important;
         align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 16px !important;
         margin-bottom: 24px !important;
-        padding: 20px 24px !important;
+        padding: 24px 28px !important;
         background: var(--builder-primary) !important;
         color: white !important;
         border-radius: 12px !important;
@@ -61,7 +64,7 @@
 
     .wizard-step {
         flex: 1;
-        padding: 16px 20px;
+        padding: 18px 24px;
         text-align: center;
         cursor: pointer;
         border-right: 1px solid var(--builder-border);
@@ -107,7 +110,7 @@
     }
 
     .wizard-content {
-        padding: 32px;
+        padding: 32px 36px;
     }
 
     .wizard-step-panel {
@@ -210,7 +213,7 @@
     }
 
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 24px;
     }
 
     .form-checkbox {
@@ -286,9 +289,25 @@
     .wizard-footer {
         display: flex;
         justify-content: space-between;
-        padding: 20px 32px;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 24px 32px;
         border-top: 1px solid var(--builder-border);
         background: var(--builder-bg);
+    }
+
+    .wizard-footer .wizard-footer-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .wizard-footer .wizard-footer-right {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
     }
 
     .btn-builder {
@@ -371,6 +390,68 @@
 
     .is-invalid {
         border-color: var(--builder-danger) !important;
+    }
+
+    /* Checkbox Group for Level Selection */
+    .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 8px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 18px;
+        border: 2px solid var(--builder-border);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+        font-weight: 500;
+        background: white;
+        position: relative;
+    }
+
+    .checkbox-item::before {
+        content: '';
+        width: 18px;
+        height: 18px;
+        border: 2px solid #d1d5db;
+        border-radius: 4px;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .checkbox-item:hover {
+        border-color: var(--builder-primary);
+        background: #f9fafb;
+    }
+
+    .checkbox-item:hover::before {
+        border-color: var(--builder-primary);
+    }
+
+    .checkbox-item.selected {
+        background: var(--builder-primary);
+        border-color: var(--builder-primary);
+        color: var(--builder-accent);
+        font-weight: 600;
+    }
+
+    .checkbox-item.selected::before {
+        background: var(--builder-accent);
+        border-color: var(--builder-accent);
+        background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%231a202c' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+        background-size: 14px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .checkbox-item input {
+        display: none;
     }
 </style>
 @endpush
@@ -532,6 +613,24 @@
                             <span>Active (section will be visible)</span>
                         </label>
                     </div>
+
+                    @if(isset($levels) && $levels->count() > 0)
+                    <div class="form-group">
+                        <label class="form-label">Assign to Survey Levels</label>
+                        <div class="checkbox-group" id="levelBoxes">
+                            @foreach($levels as $level)
+                            <label class="checkbox-item {{ in_array($level->id, $selectedLevels ?? []) ? 'selected' : '' }}" onclick="toggleCheckbox(this)">
+                                <input type="checkbox" 
+                                       name="levels[]" 
+                                       value="{{ $level->id }}" 
+                                       {{ in_array($level->id, $selectedLevels ?? []) ? 'checked' : '' }}>
+                                {{ $level->display_name }}
+                            </label>
+                            @endforeach
+                        </div>
+                        <div class="form-help-text">Select which survey levels should include this content section.</div>
+                    </div>
+                    @endif
                 </div>
 
                 <!-- Step 2: Content -->
@@ -553,7 +652,7 @@
             </div>
 
             <div class="wizard-footer">
-                <div>
+                <div class="wizard-footer-left">
                     <button type="button" 
                             class="btn-builder btn-builder-cancel" 
                             id="prevBtn" 
@@ -562,7 +661,7 @@
                         <i class="fas fa-arrow-left"></i> Previous
                     </button>
                 </div>
-                <div>
+                <div class="wizard-footer-right">
                     <a href="{{ route('admin.content-sections.index') }}" class="btn-builder btn-builder-cancel">
                         Cancel
                     </a>
@@ -772,6 +871,19 @@ document.querySelectorAll('.wizard-step').forEach((step, index) => {
         }
     });
 });
+
+// Toggle checkbox
+function toggleCheckbox(element) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+        if (checkbox.checked) {
+            element.classList.add('selected');
+        } else {
+            element.classList.remove('selected');
+        }
+    }
+}
 </script>
 @endpush
 

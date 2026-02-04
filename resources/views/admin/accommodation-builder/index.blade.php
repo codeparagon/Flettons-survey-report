@@ -26,7 +26,36 @@
         background: white;
         border-radius: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 150px);
         overflow: hidden;
+    }
+    
+    .builder-main-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+    }
+    
+    /* Custom Scrollbar Styling */
+    .builder-main-content::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .builder-main-content::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    .builder-main-content::-webkit-scrollbar-thumb {
+        background: #cbd5e0;
+        border-radius: 4px;
+    }
+    
+    .builder-main-content::-webkit-scrollbar-thumb:hover {
+        background: #a0aec0;
     }
 
     .builder-preview {
@@ -48,12 +77,17 @@
         border-bottom: 1px solid var(--builder-border);
         background: var(--builder-primary);
         color: white;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
     }
 
     .builder-title {
         font-size: 20px;
         font-weight: 700;
         margin: 0;
+        color: white!important;
     }
 
     .builder-actions {
@@ -139,6 +173,8 @@
         border: 1px solid var(--builder-border);
         border-radius: 8px;
         transition: all 0.2s;
+        gap: 12px;
+        overflow: hidden;
     }
 
     .item-card:hover {
@@ -199,6 +235,8 @@
         gap: 6px;
         opacity: 0;
         transition: opacity 0.2s;
+        flex-shrink: 0;
+        align-items: center;
     }
 
     .item-card:hover .item-actions {
@@ -206,17 +244,27 @@
     }
 
     .action-btn {
-        width: 32px;
+        min-width: 32px;
         height: 32px;
+        padding: 0 12px;
         border-radius: 6px;
         border: none;
         cursor: pointer;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
+        gap: 6px;
         transition: all 0.2s;
         background: white;
         color: #6b7280;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .action-btn i {
+        flex-shrink: 0;
     }
 
     .action-btn:hover {
@@ -227,6 +275,13 @@
     .action-btn.delete:hover {
         background: var(--builder-danger);
         color: white;
+    }
+    
+    /* Text-only action button variant */
+    .action-btn.text-btn {
+        padding: 8px 16px;
+        height: auto;
+        min-height: 32px;
     }
 
     /* Materials/Defects Tags */
@@ -461,6 +516,7 @@
         font-size: 18px;
         font-weight: 600;
         margin: 0;
+        color: white!important;
     }
 
     .modal-close {
@@ -516,6 +572,74 @@
         outline: none;
         border-color: var(--builder-accent);
         box-shadow: 0 0 0 3px rgba(193, 236, 74, 0.2);
+    }
+
+    .form-hint {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 6px;
+    }
+
+    /* Checkbox Group for Level Selection */
+    .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 8px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 18px;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+        font-weight: 500;
+        background: white;
+        position: relative;
+    }
+
+    .checkbox-item::before {
+        content: '';
+        width: 18px;
+        height: 18px;
+        border: 2px solid #d1d5db;
+        border-radius: 4px;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .checkbox-item:hover {
+        border-color: var(--builder-primary);
+        background: #f9fafb;
+    }
+
+    .checkbox-item:hover::before {
+        border-color: var(--builder-primary);
+    }
+
+    .checkbox-item.selected {
+        background: var(--builder-primary);
+        border-color: var(--builder-primary);
+        color: var(--builder-accent);
+        font-weight: 600;
+    }
+
+    .checkbox-item.selected::before {
+        background: var(--builder-accent);
+        border-color: var(--builder-accent);
+        background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%231a202c' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+        background-size: 14px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .checkbox-item input {
+        display: none;
     }
 
     /* Toast */
@@ -589,6 +713,23 @@
             display: none;
         }
     }
+    
+    @media (max-width: 768px) {
+        .item-card {
+            flex-wrap: wrap;
+        }
+        
+        .item-actions {
+            width: 100%;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+        
+        .action-btn.text-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>
 @endpush
 
@@ -608,6 +749,8 @@
             </div>
         </div>
 
+        <!-- Scrollable Content Area -->
+        <div class="builder-main-content">
         <!-- Accommodation Types Section -->
         <div class="builder-section">
             <div class="section-header">
@@ -700,13 +843,14 @@
                             </div>
                         </div>
                         <div class="item-actions">
-                            <button class="action-btn" title="Manage Components" onclick="openManageComponentsModal({{ $type->id }}, '{{ $type->display_name }}')">
-                                <i class="fas fa-cogs"></i> Configure Components
+                            <button class="action-btn text-btn" title="Manage Components" onclick="openManageComponentsModal({{ $type->id }}, '{{ $type->display_name }}')">
+                                <i class="fas fa-cogs"></i> <span>Configure Components</span>
                             </button>
                         </div>
                     </div>
                 @endforeach
             </div>
+        </div>
         </div>
     </div>
 
@@ -788,12 +932,65 @@
                     <label class="form-label">System Key (auto-generated)</label>
                     <input type="text" class="form-input" name="key_name" readonly placeholder="Will be generated">
                 </div>
+                @if(isset($levels) && $levels->count() > 0)
+                <div class="form-group">
+                    <label class="form-label">Assign to Survey Levels</label>
+                    <div class="checkbox-group" id="addTypeLevelBoxes">
+                        @foreach($levels as $level)
+                        <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                            <input type="checkbox" name="levels[]" value="{{ $level->id }}">
+                            {{ $level->display_name }}
+                        </label>
+                        @endforeach
+                    </div>
+                    <p class="form-hint">Select which survey levels should include this accommodation type.</p>
+                </div>
+                @endif
             </form>
         </div>
         <div class="modal-footer">
             <button class="btn-builder btn-builder-secondary" onclick="closeModal('addTypeModal')">Cancel</button>
             <button class="btn-builder btn-builder-primary" onclick="saveType()">
                 <i class="fas fa-plus"></i> Add Type
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Type Modal -->
+<div class="builder-modal" id="editTypeModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Edit Accommodation Type</h3>
+            <button class="modal-close" onclick="closeModal('editTypeModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editTypeForm">
+                <input type="hidden" name="type_id" id="editTypeId">
+                <div class="form-group">
+                    <label class="form-label">Display Name *</label>
+                    <input type="text" class="form-input" name="display_name" id="editTypeDisplayName" required placeholder="e.g., Bedroom">
+                </div>
+                @if(isset($levels) && $levels->count() > 0)
+                <div class="form-group">
+                    <label class="form-label">Assign to Survey Levels</label>
+                    <div class="checkbox-group" id="editTypeLevelBoxes">
+                        @foreach($levels as $level)
+                        <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                            <input type="checkbox" name="levels[]" value="{{ $level->id }}" data-level-id="{{ $level->id }}">
+                            {{ $level->display_name }}
+                        </label>
+                        @endforeach
+                    </div>
+                    <p class="form-hint">Select which survey levels should include this accommodation type.</p>
+                </div>
+                @endif
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-builder btn-builder-secondary" onclick="closeModal('editTypeModal')">Cancel</button>
+            <button class="btn-builder btn-builder-primary" onclick="updateType()">
+                <i class="fas fa-save"></i> Update Type
             </button>
         </div>
     </div>
@@ -920,9 +1117,18 @@ function openModal(modalId) {
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
-    const form = document.querySelector('#' + modalId + ' form');
-    if (form) form.reset();
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+        const form = modal.querySelector('form');
+        if (form) {
+            form.reset();
+            // Reset checkbox visual states
+            modal.querySelectorAll('.checkbox-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+    }
 }
 
 function openAddTypeModal() {
@@ -954,29 +1160,188 @@ async function apiCall(url, method = 'GET', data = null) {
         options.body = JSON.stringify(data);
     }
     
-    const response = await fetch(url, options);
-    return response.json();
+    try {
+        const response = await fetch(url, options);
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('API call error:', error);
+        throw error;
+    }
+}
+
+// Toggle checkbox
+function toggleCheckbox(element) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+        if (checkbox.checked) {
+            element.classList.add('selected');
+        } else {
+            element.classList.remove('selected');
+        }
+    }
+}
+
+// Open edit type modal
+async function openEditTypeModal(typeId) {
+    try {
+        const result = await apiCall(`/admin/api/accommodation-types/${typeId}`, 'GET');
+        if (result.success) {
+            const editTypeIdInput = document.getElementById('editTypeId');
+            const editTypeDisplayNameInput = document.getElementById('editTypeDisplayName');
+            
+            if (!editTypeIdInput || !editTypeDisplayNameInput) {
+                showToast('Edit form fields not found', 'error');
+                return;
+            }
+            
+            editTypeIdInput.value = result.type.id;
+            editTypeDisplayNameInput.value = result.type.display_name || '';
+            
+            // Reset all checkboxes
+            document.querySelectorAll('#editTypeLevelBoxes .checkbox-item').forEach(item => {
+                item.classList.remove('selected');
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                if (checkbox) checkbox.checked = false;
+            });
+            
+            // Set selected levels
+            if (result.levels && Array.isArray(result.levels) && result.levels.length > 0) {
+                result.levels.forEach(levelId => {
+                    const checkbox = document.querySelector(`#editTypeLevelBoxes input[value="${levelId}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        const checkboxItem = checkbox.closest('.checkbox-item');
+                        if (checkboxItem) {
+                            checkboxItem.classList.add('selected');
+                        }
+                    }
+                });
+            }
+            
+            openModal('editTypeModal');
+        } else {
+            showToast(result.message || 'Error loading type', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading type:', error);
+        showToast('Error loading type: ' + (error.message || 'Unknown error'), 'error');
+    }
+}
+
+// Update Type
+async function updateType() {
+    const form = document.getElementById('editTypeForm');
+    if (!form) {
+        showToast('Form not found', 'error');
+        return;
+    }
+    
+    const typeIdInput = form.querySelector('input[name="type_id"]');
+    if (!typeIdInput || !typeIdInput.value) {
+        showToast('Type ID is missing', 'error');
+        return;
+    }
+    
+    const typeId = typeIdInput.value;
+    
+    const displayNameInput = form.querySelector('input[name="display_name"]');
+    if (!displayNameInput) {
+        showToast('Display name field not found', 'error');
+        return;
+    }
+    
+    const displayName = displayNameInput.value.trim();
+    if (!displayName) {
+        showToast('Display name is required', 'error');
+        displayNameInput.focus();
+        return;
+    }
+    
+    // Build data object
+    const data = {
+        display_name: displayName,
+    };
+    
+    // Collect selected levels
+    const levelCheckboxes = form.querySelectorAll('input[name="levels[]"]:checked');
+    data.levels = Array.from(levelCheckboxes).map(cb => parseInt(cb.value));
+    
+    try {
+        const result = await apiCall(`/admin/api/accommodation-types/${typeId}`, 'PUT', data);
+        if (result.success) {
+            showToast('Accommodation type updated', 'success');
+            closeModal('editTypeModal');
+            // Reload page to show updated data
+            setTimeout(() => location.reload(), 500);
+        } else {
+            showToast(result.message || 'Error updating type', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating type:', error);
+        showToast('Error updating type: ' + (error.message || 'Unknown error'), 'error');
+    }
 }
 
 // Save Type
 async function saveType() {
     const form = document.getElementById('addTypeForm');
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
-    data.key_name = data.display_name;
+    if (!form) {
+        showToast('Form not found', 'error');
+        return;
+    }
+    
+    // Validate required fields
+    const displayNameInput = form.querySelector('input[name="display_name"]');
+    if (!displayNameInput) {
+        showToast('Display name field not found', 'error');
+        return;
+    }
+    
+    const displayName = displayNameInput.value.trim();
+    if (!displayName) {
+        showToast('Display name is required', 'error');
+        displayNameInput.focus();
+        return;
+    }
+    
+    // Build data object
+    const data = {
+        key_name: displayName, // Will be slugified on server
+        display_name: displayName,
+    };
+    
+    // Add sort_order if provided
+    const sortOrderInput = form.querySelector('input[name="sort_order"]');
+    if (sortOrderInput && sortOrderInput.value) {
+        data.sort_order = parseInt(sortOrderInput.value);
+    }
+    
+    // Collect selected levels
+    const levelCheckboxes = form.querySelectorAll('input[name="levels[]"]:checked');
+    if (levelCheckboxes.length > 0) {
+        data.levels = Array.from(levelCheckboxes).map(cb => parseInt(cb.value));
+    }
     
     try {
         const result = await apiCall('/admin/api/accommodation-types', 'POST', data);
         if (result.success) {
             showToast('Accommodation type created', 'success');
             closeModal('addTypeModal');
-            document.getElementById('typesList').insertAdjacentHTML('beforeend', result.html);
-            initSortables();
+            // Reload page to show updated data
+            setTimeout(() => location.reload(), 500);
         } else {
             showToast(result.message || 'Error creating type', 'error');
         }
     } catch (error) {
-        showToast('Error creating type', 'error');
+        console.error('Error creating type:', error);
+        showToast('Error creating type: ' + (error.message || 'Unknown error'), 'error');
     }
 }
 

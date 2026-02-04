@@ -16,14 +16,14 @@ class SurveyCategorySeeder extends Seeder
             [
                 'name' => 'exterior',
                 'display_name' => 'Exterior',
-                'icon' => 'fa-home',
+                'icon' => 'fa fa-home',
                 'sort_order' => 1,
                 'is_active' => true,
             ],
             [
                 'name' => 'interior',
                 'display_name' => 'Interior',
-                'icon' => 'fa-door-open',
+                'icon' => 'fa fa-door-open',
                 'sort_order' => 2,
                 'is_active' => true,
             ],

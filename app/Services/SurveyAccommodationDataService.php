@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Survey;
+use App\Models\SurveyLevel;
 use App\Models\SurveyAccommodationComponent;
 use App\Models\SurveyAccommodationOptionType;
 use App\Models\SurveyAccommodationOption;
@@ -134,19 +135,90 @@ class SurveyAccommodationDataService
      * @param Survey $survey
      * @return array
      */
+    /**
+     * Find SurveyLevel by matching survey level value.
+     * Handles formats like "Level 1", "level_1", "Level 1 - Condition Report", etc.
+     */
+    protected function findSurveyLevelByValue($levelValue)
+    {
+        if (empty($levelValue)) {
+            return null;
+        }
+        
+        // Try exact match on name first
+        $level = SurveyLevel::where('name', $levelValue)->first();
+        if ($level) {
+            return $level;
+        }
+        
+        // Try exact match on display_name
+        $level = SurveyLevel::where('display_name', $levelValue)->first();
+        if ($level) {
+            return $level;
+        }
+        
+        // Try to extract level number and match (e.g., "Level 1" -> "level_1")
+        // Extract number from "Level 1", "level_1", "Level 1 - Condition Report", etc.
+        if (preg_match('/level[_\s]*(\d+)/i', $levelValue, $matches)) {
+            $levelNumber = $matches[1];
+            $normalizedName = 'level_' . $levelNumber;
+            $level = SurveyLevel::where('name', $normalizedName)->first();
+            if ($level) {
+                return $level;
+            }
+        }
+        
+        return null;
+    }
+
     protected function getRealAccommodationData(Survey $survey): array
     {
-        // Get all accommodation types with components configured
-        $configuredTypes = SurveyAccommodationType::where('is_active', true)
-            ->with(['components' => function($query) {
-                $query->where('is_active', true)
-                      ->orderBy('survey_accommodation_type_components.sort_order');
-            }])
-            ->orderBy('sort_order')
-            ->get()
-            ->filter(function($type) {
-                return $type->components && $type->components->count() > 0;
-            });
+        // Get accommodation types based on survey level
+        // If survey has no level set (null/empty), show all types for backward compatibility
+        // If survey has a level set, only show types assigned to that level
+        
+        if (empty($survey->level)) {
+            // No level set - show all active types with components (backward compatibility for old surveys)
+            $configuredTypes = SurveyAccommodationType::where('is_active', true)
+                ->with(['components' => function($query) {
+                    $query->where('is_active', true)
+                          ->orderBy('survey_accommodation_type_components.sort_order');
+                }])
+                ->orderBy('sort_order')
+                ->get()
+                ->filter(function($type) {
+                    return $type->components && $type->components->count() > 0;
+                });
+        } else {
+            // Level is set - only show types assigned to this level
+            $surveyLevel = $this->findSurveyLevelByValue($survey->level);
+            
+            if (!$surveyLevel) {
+                // Level doesn't exist in database - return empty
+                $configuredTypes = collect();
+            } else {
+                // Level exists - get assigned accommodation types
+                $accommodationTypeIds = $surveyLevel->accommodationTypes()->pluck('survey_accommodation_types.id')->unique();
+                
+                if ($accommodationTypeIds->isEmpty()) {
+                    // Level exists but has no accommodation types assigned - return empty
+                    $configuredTypes = collect();
+                } else {
+                    // Level exists and has accommodation types - return only those types
+                    $configuredTypes = SurveyAccommodationType::whereIn('id', $accommodationTypeIds)
+                        ->where('is_active', true)
+                        ->with(['components' => function($query) {
+                            $query->where('is_active', true)
+                                  ->orderBy('survey_accommodation_type_components.sort_order');
+                        }])
+                        ->orderBy('sort_order')
+                        ->get()
+                        ->filter(function($type) {
+                            return $type->components && $type->components->count() > 0;
+                        });
+                }
+            }
+        }
         
         if ($configuredTypes->isEmpty()) {
             return [];

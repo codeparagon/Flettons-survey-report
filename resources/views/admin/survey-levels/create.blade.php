@@ -301,10 +301,10 @@
                     </div>
                 </div>
 
-                <!-- Section Assignment -->
+                <!-- Regular Section Assignment -->
                 <div class="form-section">
-                    <h4 class="section-title">Assign Sections</h4>
-                    <p class="text-muted">Select the sections that should be included in this survey level. You can drag to reorder them.</p>
+                    <h4 class="section-title">Assign Regular Sections</h4>
+                    <p class="text-muted">Select the regular sections that should be included in this survey level.</p>
                     
                     <div class="sections-grid">
                         @foreach($sections as $section)
@@ -315,7 +315,55 @@
                                        id="section_{{ $section->id }}"
                                        {{ in_array($section->id, old('sections', [])) ? 'checked' : '' }}>
                                 <div class="section-name">{{ $section->display_name }}</div>
-                                <div class="section-description">{{ $section->description }}</div>
+                                <div class="section-description">{{ $section->subcategory->category->display_name ?? 'No Category' }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Accommodation Types Assignment -->
+                <div class="form-section">
+                    <h4 class="section-title">Assign Accommodation Types</h4>
+                    <p class="text-muted">Select the accommodation types that should be included in this survey level.</p>
+                    
+                    <div class="sections-grid">
+                        @foreach($accommodationTypes as $type)
+                            <div class="section-item" onclick="toggleAccommodationType({{ $type->id }})">
+                                <input type="checkbox" 
+                                       name="accommodation_types[]" 
+                                       value="{{ $type->id }}" 
+                                       id="accommodation_type_{{ $type->id }}"
+                                       {{ in_array($type->id, old('accommodation_types', [])) ? 'checked' : '' }}>
+                                <div class="section-name">{{ $type->display_name }}</div>
+                                <div class="section-description">{{ $type->key_name }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Content Sections Assignment -->
+                <div class="form-section">
+                    <h4 class="section-title">Assign Content Sections</h4>
+                    <p class="text-muted">Select the content sections that should be included in this survey level.</p>
+                    
+                    <div class="sections-grid">
+                        @foreach($contentSections as $contentSection)
+                            <div class="section-item" onclick="toggleContentSection({{ $contentSection->id }})">
+                                <input type="checkbox" 
+                                       name="content_sections[]" 
+                                       value="{{ $contentSection->id }}" 
+                                       id="content_section_{{ $contentSection->id }}"
+                                       {{ in_array($contentSection->id, old('content_sections', [])) ? 'checked' : '' }}>
+                                <div class="section-name">{{ $contentSection->title }}</div>
+                                <div class="section-description">
+                                    @if($contentSection->subcategory)
+                                        {{ $contentSection->subcategory->display_name }}
+                                    @elseif($contentSection->category)
+                                        {{ $contentSection->category->display_name }}
+                                    @else
+                                        Standalone
+                                    @endif
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -351,9 +399,41 @@ function toggleSection(sectionId) {
     }
 }
 
+function toggleAccommodationType(typeId) {
+    const checkbox = document.getElementById('accommodation_type_' + typeId);
+    const item = checkbox.closest('.section-item');
+    
+    checkbox.checked = !checkbox.checked;
+    
+    if (checkbox.checked) {
+        item.classList.add('selected');
+    } else {
+        item.classList.remove('selected');
+    }
+}
+
+function toggleContentSection(sectionId) {
+    const checkbox = document.getElementById('content_section_' + sectionId);
+    const item = checkbox.closest('.section-item');
+    
+    checkbox.checked = !checkbox.checked;
+    
+    if (checkbox.checked) {
+        item.classList.add('selected');
+    } else {
+        item.classList.remove('selected');
+    }
+}
+
 // Initialize selected state on page load
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('input[name="sections[]"]:checked').forEach(function(checkbox) {
+        checkbox.closest('.section-item').classList.add('selected');
+    });
+    document.querySelectorAll('input[name="accommodation_types[]"]:checked').forEach(function(checkbox) {
+        checkbox.closest('.section-item').classList.add('selected');
+    });
+    document.querySelectorAll('input[name="content_sections[]"]:checked').forEach(function(checkbox) {
         checkbox.closest('.section-item').classList.add('selected');
     });
 });

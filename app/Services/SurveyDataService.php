@@ -7,6 +7,7 @@ use App\Models\SurveySectionAssessment;
 use App\Models\SurveyCategory;
 use App\Models\SurveySubcategory;
 use App\Models\SurveySectionDefinition;
+use App\Models\SurveyLevel;
 use App\Models\SurveyOptionType;
 use App\Models\SurveyOption;
 use App\Models\SurveySectionCost;
@@ -45,13 +46,78 @@ class SurveyDataService
      * @param Survey $survey
      * @return array
      */
+    /**
+     * Find SurveyLevel by matching survey level value.
+     * Handles formats like "Level 1", "level_1", "Level 1 - Condition Report", etc.
+     */
+    protected function findSurveyLevelByValue($levelValue)
+    {
+        if (empty($levelValue)) {
+            return null;
+        }
+        
+        // Try exact match on name first
+        $level = SurveyLevel::where('name', $levelValue)->first();
+        if ($level) {
+            return $level;
+        }
+        
+        // Try exact match on display_name
+        $level = SurveyLevel::where('display_name', $levelValue)->first();
+        if ($level) {
+            return $level;
+        }
+        
+        // Try to extract level number and match (e.g., "Level 1" -> "level_1")
+        // Extract number from "Level 1", "level_1", "Level 1 - Condition Report", etc.
+        if (preg_match('/level[_\s]*(\d+)/i', $levelValue, $matches)) {
+            $levelNumber = $matches[1];
+            $normalizedName = 'level_' . $levelNumber;
+            $level = SurveyLevel::where('name', $normalizedName)->first();
+            if ($level) {
+                return $level;
+            }
+        }
+        
+        return null;
+    }
+
     protected function getRealGroupedData(Survey $survey): array
     {
-        // Get all section definitions with their relationships
-        $sectionDefinitions = SurveySectionDefinition::with(['subcategory.category'])
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get();
+        // Get section definitions based on survey level
+        // If survey has no level set (null/empty), show all sections for backward compatibility
+        // If survey has a level set, only show sections assigned to that level
+        
+        if (empty($survey->level)) {
+            // No level set - show all active sections (backward compatibility for old surveys)
+            $sectionDefinitions = SurveySectionDefinition::with(['subcategory.category'])
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get();
+        } else {
+            // Level is set - only show sections assigned to this level
+            $surveyLevel = $this->findSurveyLevelByValue($survey->level);
+            
+            if (!$surveyLevel) {
+                // Level doesn't exist in database - return empty
+                $sectionDefinitions = collect();
+            } else {
+                // Level exists - get assigned sections
+                $sectionDefinitionIds = $surveyLevel->sectionDefinitions()->pluck('survey_section_definitions.id')->unique();
+                
+                if ($sectionDefinitionIds->isEmpty()) {
+                    // Level exists but has no sections assigned - return empty
+                    $sectionDefinitions = collect();
+                } else {
+                    // Level exists and has sections - return only those sections
+                    $sectionDefinitions = SurveySectionDefinition::with(['subcategory.category'])
+                        ->whereIn('id', $sectionDefinitionIds)
+                        ->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->get();
+                }
+            }
+        }
         
         // Load existing assessments for this survey
         $assessments = SurveySectionAssessment::where('survey_id', $survey->id)

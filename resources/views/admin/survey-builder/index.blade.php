@@ -28,6 +28,7 @@
         display: flex;
         align-items: center;
         gap: 14px;
+        color: white!important;
     }
     
     .page-header-builder h1 i {
@@ -104,9 +105,10 @@
         font-size: 18px;
     }
     
-    .stat-icon.categories { background: #fef3c7; color: #d97706; }
-    .stat-icon.subcategories { background: #e0e7ff; color: #4f46e5; }
-    .stat-icon.sections { background: #dcfce7; color: #16a34a; }
+    .stat-icon.categories, .stat-icon.subcategories , .stat-icon.sections {
+        background: #eef2ff;
+        color: #374151;
+    }
     
     .stat-info h4 {
         font-size: 22px;

@@ -42,10 +42,10 @@
 @section('content')
     <!-- Surveys Table Section -->
     <div class="survey-table-section">
-        <x-datatable id="surveysTable" :columns="['Address', 'Level', 'Status', 'Survey Date', 'Due Date', 'Surveyor', 'Job Reference']" :search="false" :filter="false" :clickableRows="true"
+        <x-datatable id="surveysTable" :columns="['Address', 'Level', 'Status', 'Survey Date', 'Due Date', 'Surveyor', 'Job Reference', 'Actions']" :search="false" :filter="false" :clickableRows="true"
             rowDataAttribute="data-href">
             @forelse($surveys as $survey)
-                <tr class="clickable-row" data-href="{{ route('client.surveys.show', $survey->id) }}">
+                <tr class="clickable-row" data-href="{{ route('client.surveys.report', $survey) }}">
                     <td>{{ Str::limit($survey->full_address ?? $survey->property_address_full, 60) }}{{ $survey->postcode ? ', ' . $survey->postcode : '' }}</td>
                     <td>
                         <span class="survey-level">{{ $survey->level ?? 'N/A' }}</span>
@@ -69,10 +69,15 @@
                     <td>{{ $survey->due_date ? $survey->due_date->format('d/m/Y') : '' }}</td>
                     <td>{{ $survey->surveyor->name ?? 'Unassigned' }}</td>
                     <td>{{ $survey->job_reference ?? '' }}</td>
+                    <td class="text-center">
+                        <a href="{{ route('client.surveys.show', $survey) }}" class="survey-row-action" title="View survey details" aria-label="View survey details">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center py-5 no-data">No surveys found. Submit a survey application from our website.</td>
+                    <td colspan="8" class="text-center py-5 no-data">No surveys found. Submit a survey application from our website.</td>
                 </tr>
             @endforelse
         </x-datatable>
@@ -132,6 +137,23 @@
         .no-data {
             font-size: 1rem;
             color: #6B7280;
+        }
+
+        /* Actions column – prevent row click when clicking the link */
+        .survey-row-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            color: #1A202C;
+            background: #f1f5f9;
+            transition: background 0.15s, color 0.15s;
+        }
+        .survey-row-action:hover {
+            background: #C1EC4A;
+            color: #1A202C;
         }
 </style>
 @endpush

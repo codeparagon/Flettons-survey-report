@@ -6,7 +6,17 @@
         <input type="checkbox" class="custom-check item-check" data-type="category" data-id="{{ $category->id }}" onclick="event.stopPropagation(); updateBulkBtns()">
         <i class="fas fa-chevron-down cat-toggle"></i>
         <div class="cat-icon">
-            <i class="{{ $category->icon ?? 'fas fa-folder' }}"></i>
+            @php
+                $iconClass = $category->icon ?? 'fa fa-folder';
+                // Check if icon class contains Pro-only duotone prefix (fad)
+                // Fallback to solid (fas) version if duotone icon is detected
+                // Note: far (regular) and fal (light) are available in FA6 free, but fad (duotone) is Pro-only
+                if (preg_match('/\bfad\s+fa-/', $iconClass)) {
+                    // Convert duotone Pro icon to solid free equivalent
+                    $iconClass = preg_replace('/\bfad\s+/', 'fas ', $iconClass);
+                }
+            @endphp
+            <i class="{{ $iconClass }}"></i>
         </div>
         <div class="cat-info">
             <div class="cat-name" 

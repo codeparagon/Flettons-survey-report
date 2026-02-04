@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Survey;
+use App\Models\SurveyLevel;
 use App\Models\SurveyContentSection;
 use App\Models\SurveyCategory;
 use App\Models\SurveySubcategory;
@@ -100,6 +101,42 @@ class SurveyPdfService
     }
 
     /**
+     * Find SurveyLevel by matching survey level value.
+     * Handles formats like "Level 1", "level_1", "Level 1 - Condition Report", etc.
+     */
+    protected function findSurveyLevelByValue($levelValue)
+    {
+        if (empty($levelValue)) {
+            return null;
+        }
+        
+        // Try exact match on name first
+        $level = SurveyLevel::where('name', $levelValue)->first();
+        if ($level) {
+            return $level;
+        }
+        
+        // Try exact match on display_name
+        $level = SurveyLevel::where('display_name', $levelValue)->first();
+        if ($level) {
+            return $level;
+        }
+        
+        // Try to extract level number and match (e.g., "Level 1" -> "level_1")
+        // Extract number from "Level 1", "level_1", "Level 1 - Condition Report", etc.
+        if (preg_match('/level[_\s]*(\d+)/i', $levelValue, $matches)) {
+            $levelNumber = $matches[1];
+            $normalizedName = 'level_' . $levelNumber;
+            $level = SurveyLevel::where('name', $normalizedName)->first();
+            if ($level) {
+                return $level;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
      * Get content sections for a survey, grouped by their link type.
      * This matches the controller's logic but fetches fresh data.
      * 
@@ -115,14 +152,43 @@ class SurveyPdfService
             'by_subcategory' => [],
         ];
 
-        // Get all active content sections directly from database (fresh query)
-        $allContentSections = SurveyContentSection::active()
-            ->ordered()
-            ->with(['category', 'subcategory'])
-            ->get();
+        // Get content sections based on survey level
+        // If survey has no level set (null/empty), show all sections for backward compatibility
+        // If survey has a level set, only show sections assigned to that level
+        
+        if (empty($survey->level)) {
+            // No level set - show all active content sections (backward compatibility for old surveys)
+            $allContentSections = SurveyContentSection::active()
+                ->ordered()
+                ->with(['category', 'subcategory'])
+                ->get();
+        } else {
+            // Level is set - only show sections assigned to this level
+            $surveyLevel = $this->findSurveyLevelByValue($survey->level);
+            
+            if (!$surveyLevel) {
+                // Level doesn't exist in database - return empty
+                $allContentSections = collect();
+            } else {
+                // Level exists - get assigned content sections
+                $contentSectionIds = $surveyLevel->contentSections()->pluck('survey_content_sections.id')->unique();
+                
+                if ($contentSectionIds->isEmpty()) {
+                    // Level exists but has no content sections assigned - return empty
+                    $allContentSections = collect();
+                } else {
+                    // Level exists and has content sections - return only those sections
+                    $allContentSections = SurveyContentSection::whereIn('id', $contentSectionIds)
+                        ->active()
+                        ->ordered()
+                        ->with(['category', 'subcategory'])
+                        ->get();
+                }
+            }
+        }
 
-        // Get survey level to determine which categories/subcategories are relevant
-        $surveyLevel = $survey->level ?? null;
+        // Get survey level name to determine which categories/subcategories are relevant
+        $surveyLevelName = $survey->level ?? null;
         $relevantCategoryIds = [];
         $relevantSubcategoryIds = [];
 

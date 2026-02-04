@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\SurveyContentSection;
 use App\Models\SurveyCategory;
 use App\Models\SurveySubcategory;
+use App\Models\SurveyLevel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ContentSectionController extends Controller
 {
@@ -29,11 +31,14 @@ class ContentSectionController extends Controller
     {
         $categories = SurveyCategory::active()->ordered()->get();
         $subcategories = SurveySubcategory::active()->ordered()->with('category')->get();
+        $levels = SurveyLevel::active()->ordered()->get();
         
         return view('admin.content-sections.wizard', [
             'section' => null,
             'categories' => $categories,
             'subcategories' => $subcategories,
+            'levels' => $levels,
+            'selectedLevels' => [],
             'linkType' => 'standalone',
             'tagsString' => '',
         ]);
@@ -53,6 +58,8 @@ class ContentSectionController extends Controller
             'tags' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'is_active' => 'boolean',
+            'levels' => 'nullable|array',
+            'levels.*' => 'integer|exists:survey_levels,id',
         ]);
 
         // Process tags (convert comma-separated string to array)
@@ -81,8 +88,25 @@ class ContentSectionController extends Controller
 
         // Remove link_type from validated data (not a database field)
         unset($validated['link_type']);
+        
+        // Extract levels before creating section
+        $levels = $validated['levels'] ?? [];
+        unset($validated['levels']);
 
-        SurveyContentSection::create($validated);
+        $section = SurveyContentSection::create($validated);
+        
+        // Attach to levels
+        if (!empty($levels)) {
+            foreach ($levels as $index => $levelId) {
+                DB::table('survey_level_content_sections')->insert([
+                    'survey_level_id' => $levelId,
+                    'content_section_id' => $section->id,
+                    'sort_order' => $index,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
 
         return redirect()->route('admin.content-sections.index')
             ->with('success', 'Content section created successfully.');
@@ -93,7 +117,7 @@ class ContentSectionController extends Controller
      */
     public function show(SurveyContentSection $contentSection)
     {
-        $contentSection->load(['category', 'subcategory']);
+        $contentSection->load(['category', 'subcategory', 'levels']);
         
         return view('admin.content-sections.show', compact('contentSection'));
     }
@@ -105,6 +129,13 @@ class ContentSectionController extends Controller
     {
         $categories = SurveyCategory::active()->ordered()->get();
         $subcategories = SurveySubcategory::active()->ordered()->with('category')->get();
+        $levels = SurveyLevel::active()->ordered()->get();
+        
+        // Get assigned level IDs
+        $selectedLevels = DB::table('survey_level_content_sections')
+            ->where('content_section_id', $contentSection->id)
+            ->pluck('survey_level_id')
+            ->toArray();
         
         // Determine link_type
         $linkType = 'standalone';
@@ -121,6 +152,8 @@ class ContentSectionController extends Controller
             'section' => $contentSection,
             'categories' => $categories,
             'subcategories' => $subcategories,
+            'levels' => $levels,
+            'selectedLevels' => $selectedLevels,
             'linkType' => $linkType,
             'tagsString' => $tagsString,
         ]);
@@ -140,6 +173,8 @@ class ContentSectionController extends Controller
             'tags' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'is_active' => 'boolean',
+            'levels' => 'nullable|array',
+            'levels.*' => 'integer|exists:survey_levels,id',
         ]);
 
         // Process tags (convert comma-separated string to array)
@@ -162,8 +197,29 @@ class ContentSectionController extends Controller
 
         // Remove link_type from validated data (not a database field)
         unset($validated['link_type']);
+        
+        // Extract levels before updating section
+        $levels = $validated['levels'] ?? [];
+        unset($validated['levels']);
 
         $contentSection->update($validated);
+        
+        // Update level associations
+        DB::table('survey_level_content_sections')
+            ->where('content_section_id', $contentSection->id)
+            ->delete();
+        
+        if (!empty($levels)) {
+            foreach ($levels as $index => $levelId) {
+                DB::table('survey_level_content_sections')->insert([
+                    'survey_level_id' => $levelId,
+                    'content_section_id' => $contentSection->id,
+                    'sort_order' => $index,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
 
         return redirect()->route('admin.content-sections.index')
             ->with('success', 'Content section updated successfully.');

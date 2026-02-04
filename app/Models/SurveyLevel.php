@@ -37,6 +37,34 @@ class SurveyLevel extends Model
     }
 
     /**
+     * Get all accommodation types for this level.
+     */
+    public function accommodationTypes()
+    {
+        return $this->belongsToMany(
+            SurveyAccommodationType::class,
+            'survey_level_accommodation_types',
+            'survey_level_id',
+            'accommodation_type_id'
+        )->withPivot('sort_order')
+         ->orderBy('survey_level_accommodation_types.sort_order');
+    }
+
+    /**
+     * Get all content sections for this level.
+     */
+    public function contentSections()
+    {
+        return $this->belongsToMany(
+            SurveyContentSection::class,
+            'survey_level_content_sections',
+            'survey_level_id',
+            'content_section_id'
+        )->withPivot('sort_order')
+         ->orderBy('survey_level_content_sections.sort_order');
+    }
+
+    /**
      * Get all surveys for this level.
      */
     public function surveys()

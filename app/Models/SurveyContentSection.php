@@ -82,4 +82,17 @@ class SurveyContentSection extends Model
     {
         return $query->where('subcategory_id', $subcategoryId);
     }
+
+    /**
+     * Get all survey levels this content section is assigned to.
+     */
+    public function levels()
+    {
+        return $this->belongsToMany(
+            SurveyLevel::class,
+            'survey_level_content_sections',
+            'content_section_id',
+            'survey_level_id'
+        )->withPivot('sort_order');
+    }
 }

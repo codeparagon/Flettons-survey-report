@@ -40,6 +40,35 @@ class SurveyAccommodationType extends Model
         ->withTimestamps()
         ->orderBy('survey_accommodation_type_components.sort_order');
     }
+
+    /**
+     * Get all survey levels this accommodation type is assigned to.
+     */
+    public function levels()
+    {
+        return $this->belongsToMany(
+            SurveyLevel::class,
+            'survey_level_accommodation_types',
+            'accommodation_type_id',
+            'survey_level_id'
+        )->withPivot('sort_order');
+    }
+
+    /**
+     * Scope for active accommodation types.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope for ordered accommodation types.
+     */
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('sort_order')->orderBy('display_name');
+    }
 }
 
 

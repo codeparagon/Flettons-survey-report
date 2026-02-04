@@ -106,7 +106,7 @@
                 
                 <hr>
                 
-                @if(!$survey->surveyor_id)
+                <!-- @if(!$survey->surveyor_id)
                 <a href="{{ route('admin.surveys.edit', $survey->id) }}" class="btn btn-warning btn-block mb-2">
                     <i class="fas fa-user-plus"></i> Assign Survey to Surveyor
                 </a>
@@ -114,7 +114,7 @@
                 <a href="{{ route('admin.survey.sections', $survey) }}" class="btn btn-success btn-block mb-2">
                     <i class="fas fa-clipboard-list"></i> View Survey Sections
                 </a>
-                @endif
+                @endif -->
                 
                 <a href="{{ route('admin.surveys.edit', $survey->id) }}" class="btn btn-primary btn-block">
                     <i class="fas fa-edit"></i> Edit Survey

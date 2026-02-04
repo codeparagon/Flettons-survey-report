@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SurveyLevel;
 use App\Models\SurveySectionDefinition;
+use App\Models\SurveyAccommodationType;
+use App\Models\SurveyContentSection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SurveyLevelController extends Controller
 {
@@ -25,8 +28,10 @@ class SurveyLevelController extends Controller
     public function create()
     {
         $sections = SurveySectionDefinition::active()->ordered()->with('subcategory.category')->get();
+        $accommodationTypes = SurveyAccommodationType::active()->ordered()->get();
+        $contentSections = SurveyContentSection::active()->ordered()->get();
         
-        return view('admin.survey-levels.create', compact('sections'));
+        return view('admin.survey-levels.create', compact('sections', 'accommodationTypes', 'contentSections'));
     }
 
     /**
@@ -42,6 +47,10 @@ class SurveyLevelController extends Controller
             'is_active' => 'boolean',
             'sections' => 'nullable|array',
             'sections.*' => 'exists:survey_section_definitions,id',
+            'accommodation_types' => 'nullable|array',
+            'accommodation_types.*' => 'exists:survey_accommodation_types,id',
+            'content_sections' => 'nullable|array',
+            'content_sections.*' => 'exists:survey_content_sections,id',
         ]);
 
         $level = SurveyLevel::create($validated);
@@ -54,6 +63,32 @@ class SurveyLevelController extends Controller
             }
             $level->sectionDefinitions()->attach($sectionsWithOrder);
         }
+        
+        // Attach accommodation types if provided
+        if (isset($validated['accommodation_types'])) {
+            foreach ($validated['accommodation_types'] as $index => $typeId) {
+                DB::table('survey_level_accommodation_types')->insert([
+                    'survey_level_id' => $level->id,
+                    'accommodation_type_id' => $typeId,
+                    'sort_order' => $index,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+        
+        // Attach content sections if provided
+        if (isset($validated['content_sections'])) {
+            foreach ($validated['content_sections'] as $index => $sectionId) {
+                DB::table('survey_level_content_sections')->insert([
+                    'survey_level_id' => $level->id,
+                    'content_section_id' => $sectionId,
+                    'sort_order' => $index,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
 
         return redirect()->route('admin.survey-levels.index')
             ->with('success', 'Survey level created successfully.');
@@ -64,7 +99,12 @@ class SurveyLevelController extends Controller
      */
     public function show(SurveyLevel $surveyLevel)
     {
-        $surveyLevel->load(['sectionDefinitions.subcategory.category', 'surveys']);
+        $surveyLevel->load([
+            'sectionDefinitions.subcategory.category', 
+            'accommodationTypes',
+            'contentSections',
+            'surveys'
+        ]);
         
         return view('admin.survey-levels.show', compact('surveyLevel'));
     }
@@ -77,7 +117,21 @@ class SurveyLevelController extends Controller
         $sections = SurveySectionDefinition::active()->ordered()->with('subcategory.category')->get();
         $selectedSections = $surveyLevel->sectionDefinitions->pluck('id')->toArray();
         
-        return view('admin.survey-levels.edit', compact('surveyLevel', 'sections', 'selectedSections'));
+        $accommodationTypes = SurveyAccommodationType::active()->ordered()->get();
+        $selectedAccommodationTypes = $surveyLevel->accommodationTypes->pluck('id')->toArray();
+        
+        $contentSections = SurveyContentSection::active()->ordered()->get();
+        $selectedContentSections = $surveyLevel->contentSections->pluck('id')->toArray();
+        
+        return view('admin.survey-levels.edit', compact(
+            'surveyLevel', 
+            'sections', 
+            'selectedSections',
+            'accommodationTypes',
+            'selectedAccommodationTypes',
+            'contentSections',
+            'selectedContentSections'
+        ));
     }
 
     /**
@@ -93,6 +147,10 @@ class SurveyLevelController extends Controller
             'is_active' => 'boolean',
             'sections' => 'nullable|array',
             'sections.*' => 'exists:survey_section_definitions,id',
+            'accommodation_types' => 'nullable|array',
+            'accommodation_types.*' => 'exists:survey_accommodation_types,id',
+            'content_sections' => 'nullable|array',
+            'content_sections.*' => 'exists:survey_content_sections,id',
         ]);
 
         $surveyLevel->update($validated);
@@ -106,6 +164,38 @@ class SurveyLevelController extends Controller
             $surveyLevel->sectionDefinitions()->sync($sectionsWithOrder);
         } else {
             $surveyLevel->sectionDefinitions()->detach();
+        }
+        
+        // Update accommodation types
+        DB::table('survey_level_accommodation_types')
+            ->where('survey_level_id', $surveyLevel->id)
+            ->delete();
+        if (isset($validated['accommodation_types'])) {
+            foreach ($validated['accommodation_types'] as $index => $typeId) {
+                DB::table('survey_level_accommodation_types')->insert([
+                    'survey_level_id' => $surveyLevel->id,
+                    'accommodation_type_id' => $typeId,
+                    'sort_order' => $index,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+        
+        // Update content sections
+        DB::table('survey_level_content_sections')
+            ->where('survey_level_id', $surveyLevel->id)
+            ->delete();
+        if (isset($validated['content_sections'])) {
+            foreach ($validated['content_sections'] as $index => $sectionId) {
+                DB::table('survey_level_content_sections')->insert([
+                    'survey_level_id' => $surveyLevel->id,
+                    'content_section_id' => $sectionId,
+                    'sort_order' => $index,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
 
         return redirect()->route('admin.survey-levels.index')
@@ -123,8 +213,14 @@ class SurveyLevelController extends Controller
                 ->with('error', 'Cannot delete level that has surveys. Please reassign surveys first.');
         }
 
-        // Detach sections first
+        // Detach sections, accommodation types, and content sections first
         $surveyLevel->sectionDefinitions()->detach();
+        DB::table('survey_level_accommodation_types')
+            ->where('survey_level_id', $surveyLevel->id)
+            ->delete();
+        DB::table('survey_level_content_sections')
+            ->where('survey_level_id', $surveyLevel->id)
+            ->delete();
         
         $surveyLevel->delete();
 

@@ -7,6 +7,7 @@ use App\Models\SurveyAccommodationType;
 use App\Models\SurveyAccommodationComponent;
 use App\Models\SurveyAccommodationOptionType;
 use App\Models\SurveyAccommodationOption;
+use App\Models\SurveyLevel;
 use App\Models\Survey;
 use App\Models\SurveyAccommodationAssessment;
 use App\Models\SurveyAccommodationComponentAssessment;
@@ -63,12 +64,16 @@ class AccommodationBuilderController extends Controller
                 ->get();
         }
         
+        // Get survey levels for level selection
+        $levels = SurveyLevel::active()->ordered()->get();
+        
         return view('admin.accommodation-builder.index', compact(
             'accommodationTypes',
             'components',
             'optionTypes',
             'materialsByComponent',
-            'globalDefects'
+            'globalDefects',
+            'levels'
         ));
     }
 
@@ -85,6 +90,8 @@ class AccommodationBuilderController extends Controller
             'key_name' => 'required|string|max:50',
             'display_name' => 'required|string|max:100',
             'sort_order' => 'nullable|integer|min:0',
+            'levels' => 'nullable|array',
+            'levels.*' => 'integer|exists:survey_levels,id',
         ]);
         
         $validated['key_name'] = Str::slug($validated['key_name'], '_');
@@ -92,6 +99,19 @@ class AccommodationBuilderController extends Controller
         $validated['is_active'] = true;
         
         $type = SurveyAccommodationType::create($validated);
+        
+        // Attach to levels
+        if (!empty($validated['levels'])) {
+            foreach ($validated['levels'] as $index => $levelId) {
+                DB::table('survey_level_accommodation_types')->insert([
+                    'survey_level_id' => $levelId,
+                    'accommodation_type_id' => $type->id,
+                    'sort_order' => $index,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
         
         return response()->json([
             'success' => true,
@@ -109,13 +129,49 @@ class AccommodationBuilderController extends Controller
             'display_name' => 'sometimes|string|max:100',
             'sort_order' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
+            'levels' => 'nullable|array',
+            'levels.*' => 'integer|exists:survey_levels,id',
         ]);
         
         $type->update($validated);
         
+        // Update level associations
+        if ($request->has('levels')) {
+            DB::table('survey_level_accommodation_types')
+                ->where('accommodation_type_id', $type->id)
+                ->delete();
+            
+            foreach ($request->input('levels', []) as $index => $levelId) {
+                DB::table('survey_level_accommodation_types')->insert([
+                    'survey_level_id' => $levelId,
+                    'accommodation_type_id' => $type->id,
+                    'sort_order' => $index,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+        
         return response()->json([
             'success' => true,
             'type' => $type
+        ]);
+    }
+
+    /**
+     * Get an accommodation type with assigned levels.
+     */
+    public function getType(SurveyAccommodationType $type)
+    {
+        $levelIds = DB::table('survey_level_accommodation_types')
+            ->where('accommodation_type_id', $type->id)
+            ->pluck('survey_level_id')
+            ->toArray();
+        
+        return response()->json([
+            'success' => true,
+            'type' => $type,
+            'levels' => $levelIds
         ]);
     }
 
@@ -132,6 +188,11 @@ class AccommodationBuilderController extends Controller
             ], 400);
         }
         
+        // Delete level associations
+        DB::table('survey_level_accommodation_types')
+            ->where('accommodation_type_id', $type->id)
+            ->delete();
+        
         $type->delete();
         
         return response()->json(['success' => true]);
@@ -147,6 +208,21 @@ class AccommodationBuilderController extends Controller
         $newType->display_name = $type->display_name . ' (Copy)';
         $newType->sort_order = SurveyAccommodationType::max('sort_order') + 1;
         $newType->save();
+        
+        // Copy level associations
+        $levelAssociations = DB::table('survey_level_accommodation_types')
+            ->where('accommodation_type_id', $type->id)
+            ->get();
+        
+        foreach ($levelAssociations as $assoc) {
+            DB::table('survey_level_accommodation_types')->insert([
+                'survey_level_id' => $assoc->survey_level_id,
+                'accommodation_type_id' => $newType->id,
+                'sort_order' => $assoc->sort_order,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
         
         return response()->json([
             'success' => true,

@@ -55,6 +55,7 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     // Survey Management
     Route::get('/surveys', [\App\Http\Controllers\Admin\SurveyController::class, 'index'])->name('admin.surveys.index');
     Route::get('/surveys/{survey}', [\App\Http\Controllers\Admin\SurveyController::class, 'show'])->name('admin.surveys.show');
+    Route::get('/surveys/{survey}/sections', [\App\Http\Controllers\Admin\SurveyController::class, 'sections'])->name('admin.survey.sections');
     Route::get('/surveys/{survey}/edit', [\App\Http\Controllers\Admin\SurveyController::class, 'edit'])->name('admin.surveys.edit');
     Route::put('/surveys/{survey}', [\App\Http\Controllers\Admin\SurveyController::class, 'update'])->name('admin.surveys.update');
     
@@ -157,6 +158,7 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     
     // Accommodation Types API
     Route::post('/api/accommodation-types', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'storeType']);
+    Route::get('/api/accommodation-types/{type}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'getType']);
     Route::put('/api/accommodation-types/{type}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'updateType']);
     Route::delete('/api/accommodation-types/{type}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'deleteType']);
     Route::post('/api/accommodation-types/reorder', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'reorderTypes']);

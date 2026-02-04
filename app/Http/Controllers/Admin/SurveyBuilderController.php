@@ -7,6 +7,8 @@ use App\Models\SurveyCategory;
 use App\Models\SurveySubcategory;
 use App\Models\SurveySectionDefinition;
 use App\Models\SurveyLevel;
+use App\Models\SurveyOptionType;
+use App\Models\SurveyOption;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -490,7 +492,37 @@ class SurveyBuilderController extends Controller
             ]);
         }
         
-        $html = view('admin.survey-builder.partials.preview-content', compact('section'))->render();
+        // Load option types with their options
+        $optionTypes = SurveyOptionType::with(['options' => function($query) use ($section) {
+            $query->where('is_active', true)
+                ->where(function($q) use ($section) {
+                    // Global options
+                    $q->where('scope_type', 'global');
+                    
+                    // Category-scoped options (if subcategory exists)
+                    if ($section->subcategory && $section->subcategory->category_id) {
+                        $q->orWhere(function($q2) use ($section) {
+                            $q2->where('scope_type', 'category')
+                               ->where('scope_id', $section->subcategory->category_id);
+                        });
+                    }
+                    
+                    // Subcategory-scoped options (if subcategory exists)
+                    if ($section->subcategory_id) {
+                        $q->orWhere(function($q3) use ($section) {
+                            $q3->where('scope_type', 'subcategory')
+                               ->where('scope_id', $section->subcategory_id);
+                        });
+                    }
+                })
+                ->orderBy('sort_order');
+        }])
+        ->where('is_active', true)
+        ->orderBy('sort_order')
+        ->get()
+        ->keyBy('key_name');
+        
+        $html = view('admin.survey-builder.partials.preview-content', compact('section', 'optionTypes'))->render();
         
         return response()->json(['html' => $html]);
     }

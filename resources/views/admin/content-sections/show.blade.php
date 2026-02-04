@@ -17,17 +17,27 @@
     .section-container {
         max-width: 1000px;
         margin: 0 auto;
+        padding: 0 1rem 1.5rem;
     }
 
     .page-header {
         display: flex !important;
         justify-content: space-between !important;
         align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 16px !important;
         margin-bottom: 24px !important;
-        padding: 20px 24px !important;
+        padding: 24px 28px !important;
         background: var(--builder-primary) !important;
         color: white !important;
         border-radius: 12px !important;
+    }
+
+    .page-header-actions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 12px !important;
+        align-items: center !important;
     }
 
     .page-title {
@@ -81,7 +91,7 @@
     }
 
     .section-header {
-        padding: 20px 24px !important;
+        padding: 20px 28px !important;
         background: var(--builder-bg) !important;
         border-bottom: 1px solid var(--builder-border) !important;
     }
@@ -92,15 +102,15 @@
     }
 
     .section-body {
-        padding: 24px;
+        padding: 28px;
     }
 
     .section-meta {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
+        gap: 20px;
         margin-bottom: 24px;
-        padding: 16px;
+        padding: 20px;
         background: var(--builder-bg);
         border-radius: 8px;
     }
@@ -154,7 +164,7 @@
     }
 
     .content-display {
-        padding: 20px;
+        padding: 24px;
         background: var(--builder-bg);
         border-radius: 8px;
         border: 1px solid var(--builder-border);
@@ -181,7 +191,7 @@
                 Content Section Details
             </h1>
         </div>
-        <div>
+        <div class="page-header-actions">
             <a href="{{ route('admin.content-sections.index') }}" class="btn-builder btn-builder-secondary">
                 <i class="fas fa-arrow-left"></i> Back to List
             </a>

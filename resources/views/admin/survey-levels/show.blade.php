@@ -159,7 +159,15 @@
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-value">{{ $surveyLevel->sectionDefinitions->count() }}</div>
-                        <div class="info-label">Total Sections</div>
+                        <div class="info-label">Regular Sections</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">{{ $surveyLevel->accommodationTypes->count() }}</div>
+                        <div class="info-label">Accommodation Types</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">{{ $surveyLevel->contentSections->count() }}</div>
+                        <div class="info-label">Content Sections</div>
                     </div>
                     <div class="info-item">
                         <div class="info-value">{{ $surveyLevel->sort_order }}</div>
@@ -180,9 +188,9 @@
                 </div>
             </div>
 
-            <!-- Assigned Sections -->
+            <!-- Assigned Regular Sections -->
             <div class="info-card">
-                <h4 class="info-title">Assigned Sections</h4>
+                <h4 class="info-title">Assigned Regular Sections</h4>
                 @if($surveyLevel->sectionDefinitions->count() > 0)
                     <div class="sections-grid">
                         @foreach($surveyLevel->sectionDefinitions as $section)
@@ -191,7 +199,7 @@
                                     <i class="{{ $section->subcategory->category->icon ?? 'fas fa-clipboard-list' }}"></i>
                                 </div>
                                 <div class="section-name">{{ $section->display_name }}</div>
-                                <div class="section-description">{{ $section->description }}</div>
+                                <div class="section-description">{{ $section->name }}</div>
                                 <div class="section-category">{{ $section->subcategory->category->display_name ?? 'No Category' }}</div>
                             </div>
                         @endforeach
@@ -199,11 +207,66 @@
                 @else
                     <div class="text-center py-5">
                         <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No Sections Assigned</h5>
-                        <p class="text-muted">This survey level doesn't have any sections assigned to it.</p>
-                        <a href="{{ route('admin.survey-levels.edit', $surveyLevel) }}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Add Sections
-                        </a>
+                        <h5 class="text-muted">No Regular Sections Assigned</h5>
+                        <p class="text-muted">This survey level doesn't have any regular sections assigned to it.</p>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Assigned Accommodation Types -->
+            <div class="info-card">
+                <h4 class="info-title">Assigned Accommodation Types</h4>
+                @if($surveyLevel->accommodationTypes->count() > 0)
+                    <div class="sections-grid">
+                        @foreach($surveyLevel->accommodationTypes as $type)
+                            <div class="section-card">
+                                <div class="section-icon">
+                                    <i class="fas fa-door-open"></i>
+                                </div>
+                                <div class="section-name">{{ $type->display_name }}</div>
+                                <div class="section-description">{{ $type->key_name }}</div>
+                                <div class="section-category">Accommodation</div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-5">
+                        <i class="fas fa-bed fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Accommodation Types Assigned</h5>
+                        <p class="text-muted">This survey level doesn't have any accommodation types assigned to it.</p>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Assigned Content Sections -->
+            <div class="info-card">
+                <h4 class="info-title">Assigned Content Sections</h4>
+                @if($surveyLevel->contentSections->count() > 0)
+                    <div class="sections-grid">
+                        @foreach($surveyLevel->contentSections as $contentSection)
+                            <div class="section-card">
+                                <div class="section-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="section-name">{{ $contentSection->title }}</div>
+                                <div class="section-description">{{ \Illuminate\Support\Str::limit($contentSection->content, 50) }}</div>
+                                <div class="section-category">
+                                    @if($contentSection->subcategory)
+                                        {{ $contentSection->subcategory->display_name }}
+                                    @elseif($contentSection->category)
+                                        {{ $contentSection->category->display_name }}
+                                    @else
+                                        Standalone
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Content Sections Assigned</h5>
+                        <p class="text-muted">This survey level doesn't have any content sections assigned to it.</p>
                     </div>
                 @endif
             </div>

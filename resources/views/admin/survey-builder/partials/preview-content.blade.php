@@ -13,57 +13,31 @@
     </div>
     @endif
     
-    @if(isset($optionTypes['location']) && $optionTypes['location']->options->count() > 0)
+    @if(isset($optionTypes) && $optionTypes->count() > 0)
+        @foreach($optionTypes as $keyName => $optionType)
+            @if($optionType->options && $optionType->options->count() > 0)
+            <div class="preview-field">
+                <div class="preview-label">{{ $optionType->label }}</div>
+                <div class="preview-options">
+                    @foreach($optionType->options as $option)
+                    <span class="preview-opt">{{ $option->value }}</span>
+                    @endforeach
+                </div>
+            </div>
+            @else
+            <div class="preview-field">
+                <div class="preview-label">{{ $optionType->label }}</div>
+                <div class="preview-options">
+                    <span class="preview-opt" style="background: #f3f4f6; color: #9ca3af; font-style: italic;">No options available</span>
+                </div>
+            </div>
+            @endif
+        @endforeach
+    @else
     <div class="preview-field">
-        <div class="preview-label">Location</div>
-        <div class="preview-options">
-            @foreach($optionTypes['location']->options as $option)
-            <span class="preview-opt">{{ $option->value }}</span>
-            @endforeach
-        </div>
-    </div>
-    @endif
-    
-    @if(isset($optionTypes['structure']) && $optionTypes['structure']->options->count() > 0)
-    <div class="preview-field">
-        <div class="preview-label">Structure</div>
-        <div class="preview-options">
-            @foreach($optionTypes['structure']->options as $option)
-            <span class="preview-opt">{{ $option->value }}</span>
-            @endforeach
-        </div>
-    </div>
-    @endif
-    
-    @if(isset($optionTypes['material']) && $optionTypes['material']->options->count() > 0)
-    <div class="preview-field">
-        <div class="preview-label">Material</div>
-        <div class="preview-options">
-            @foreach($optionTypes['material']->options as $option)
-            <span class="preview-opt">{{ $option->value }}</span>
-            @endforeach
-        </div>
-    </div>
-    @endif
-    
-    @if(isset($optionTypes['defects']) && $optionTypes['defects']->options->count() > 0)
-    <div class="preview-field">
-        <div class="preview-label">Defects</div>
-        <div class="preview-options">
-            @foreach($optionTypes['defects']->options as $option)
-            <span class="preview-opt">{{ $option->value }}</span>
-            @endforeach
-        </div>
-    </div>
-    @endif
-    
-    @if(isset($optionTypes['remaining_life']) && $optionTypes['remaining_life']->options->count() > 0)
-    <div class="preview-field">
-        <div class="preview-label">Remaining Life</div>
-        <div class="preview-options">
-            @foreach($optionTypes['remaining_life']->options as $option)
-            <span class="preview-opt">{{ $option->value }}</span>
-            @endforeach
+        <div class="preview-label" style="color: #9ca3af;">Available Options</div>
+        <div style="background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; color: #6b7280; font-size: 13px;">
+            No options configured. Configure options in <a href="{{ route('admin.survey-options.index') }}" style="color: #1a202c; text-decoration: underline;">Global Options</a>.
         </div>
     </div>
     @endif

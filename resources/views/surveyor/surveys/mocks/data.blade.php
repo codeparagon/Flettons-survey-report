@@ -6398,15 +6398,25 @@ $(document).ready(function() {
                 }
             });
         } else {
-            // Preview mode (not saved yet)
+            // Preview mode (not saved yet) - store files for form submit
+            const selectedFiles = $sectionItem.data('selectedFiles') || [];
+            validFiles.forEach(file => {
+                const isDuplicate = selectedFiles.some(f => f.name === file.name && f.size === file.size);
+                if (!isDuplicate) {
+                    selectedFiles.push(file);
+                }
+            });
+            $sectionItem.data('selectedFiles', selectedFiles);
+            
             const $previewArea = $sectionItem.find('.survey-data-mock-images-preview');
             const $previewGrid = $previewArea.find('.survey-data-mock-images-grid-enhanced');
             
-            validFiles.forEach((file, index) => {
+            validFiles.forEach((file) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const $card = createImageCard(e.target.result, null, index);
-                    $card.attr('data-file-index', index);
+                    const fileIndex = selectedFiles.findIndex(f => f.name === file.name && f.size === file.size);
+                    const $card = createImageCard(e.target.result, null, fileIndex);
+                    $card.attr('data-file-index', fileIndex);
                     $previewGrid.append($card);
                 };
                 reader.readAsDataURL(file);
@@ -6689,7 +6699,17 @@ $(document).ready(function() {
                 }
             });
         } else {
-            // Just remove from preview
+            // Remove from preview and from selectedFiles (for unsaved sections)
+            const fileIndex = $card.data('file-index');
+            if (typeof fileIndex === 'number' && fileIndex >= 0) {
+                const selectedFiles = $sectionItem.data('selectedFiles') || [];
+                selectedFiles.splice(fileIndex, 1);
+                $sectionItem.data('selectedFiles', selectedFiles);
+                // Update data-file-index on remaining preview cards in survey-data-mock-images-preview
+                $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-image-card').each(function(idx) {
+                    $(this).attr('data-file-index', idx);
+                });
+            }
             $card.fadeOut(300, function() {
                 $(this).remove();
                 updateImageCount($sectionItem);
