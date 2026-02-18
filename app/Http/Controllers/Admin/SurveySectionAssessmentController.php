@@ -15,7 +15,7 @@ class SurveySectionAssessmentController extends Controller
      */
     public function index()
     {
-        $assessments = SurveySectionAssessment::with(['survey', 'sectionDefinition.subcategory.category'])
+        $assessments = SurveySectionAssessment::with(['survey', 'sectionDefinition.subcategory.category', 'photos'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
         
@@ -48,7 +48,7 @@ class SurveySectionAssessmentController extends Controller
     public function update(Request $request, SurveySectionAssessment $assessment)
     {
         $validated = $request->validate([
-            'condition_rating' => 'nullable|integer|in:1,2,3',
+            'condition_rating' => 'nullable|integer|in:1,2,3,4',
             'notes' => 'nullable|string|max:2000',
             'is_completed' => 'boolean',
         ]);
@@ -64,24 +64,34 @@ class SurveySectionAssessmentController extends Controller
      */
     public function destroy(SurveySectionAssessment $assessment)
     {
-        // Delete associated photos
-        foreach ($assessment->photos as $photo) {
-            if (\Storage::disk('public')->exists($photo->file_path)) {
-                \Storage::disk('public')->delete($photo->file_path);
+        try {
+            // Load photos relationship if not already loaded
+            if (!$assessment->relationLoaded('photos')) {
+                $assessment->load('photos');
             }
-            $photo->delete();
+
+            // Delete associated photos
+            foreach ($assessment->photos as $photo) {
+                if ($photo->file_path && \Storage::disk('public')->exists($photo->file_path)) {
+                    \Storage::disk('public')->delete($photo->file_path);
+                }
+                $photo->delete();
+            }
+
+            // Delete costs
+            $assessment->costs()->delete();
+            
+            // Detach defects
+            $assessment->defects()->detach();
+
+            $assessment->delete();
+
+            return redirect()->route('admin.survey-section-assessments.index')
+                ->with('success', 'Assessment deleted successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('admin.survey-section-assessments.index')
+                ->with('error', 'Error deleting assessment: ' . $e->getMessage());
         }
-
-        // Delete costs
-        $assessment->costs()->delete();
-        
-        // Detach defects
-        $assessment->defects()->detach();
-
-        $assessment->delete();
-
-        return redirect()->route('admin.survey-section-assessments.index')
-            ->with('success', 'Assessment deleted successfully.');
     }
 
     /**
@@ -89,12 +99,15 @@ class SurveySectionAssessmentController extends Controller
      */
     public function toggleCompletion(SurveySectionAssessment $assessment)
     {
+        $isCompleted = !$assessment->is_completed;
+        
         $assessment->update([
-            'is_completed' => !$assessment->is_completed,
-            'completed_at' => $assessment->is_completed ? null : now(),
+            'is_completed' => $isCompleted,
+            'completed_at' => $isCompleted ? now() : null,
+            'completed_by' => $isCompleted ? auth()->id() : null,
         ]);
 
-        $status = $assessment->is_completed ? 'marked as incomplete' : 'marked as complete';
+        $status = $isCompleted ? 'marked as complete' : 'marked as incomplete';
         
         return redirect()->back()
             ->with('success', "Assessment {$status} successfully.");

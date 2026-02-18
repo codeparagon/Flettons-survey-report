@@ -75,6 +75,40 @@ class UserService
     {
         return $this->userRepository->find($id);
     }
+
+    /**
+     * Activate a user.
+     *
+     * @param int $id
+     * @return User
+     */
+    public function activateUser(int $id): User
+    {
+        return $this->userRepository->update($id, ['status' => 'active']);
+    }
+
+    /**
+     * Deactivate a user.
+     *
+     * @param int $id
+     * @return User
+     */
+    public function deactivateUser(int $id): User
+    {
+        return $this->userRepository->update($id, ['status' => 'inactive']);
+    }
+
+    /**
+     * Reset user password.
+     *
+     * @param int $id
+     * @param string $password
+     * @return User
+     */
+    public function resetUserPassword(int $id, string $password): User
+    {
+        return $this->userRepository->update($id, ['password' => Hash::make($password)]);
+    }
 }
 
 

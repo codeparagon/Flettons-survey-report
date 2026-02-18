@@ -31,6 +31,17 @@ class UserRepository extends BaseRepository
     {
         return $this->model->where('status', 'active')->get();
     }
+
+    /**
+     * Get paginated records with role relationship.
+     *
+     * @param int $perPage
+     * @return \Illuminate\Pagination\LengthAwarePaginator
+     */
+    public function paginate(int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        return $this->model->with('role')->paginate($perPage);
+    }
 }
 
 

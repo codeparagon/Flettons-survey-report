@@ -237,3 +237,81 @@ h2.pageheader-title {
 .card-header h6 {
     font-weight: 300 !important;
 }
+
+/* ============================================
+   Gap Utility Classes - Project Wide
+   ============================================ */
+
+/* Gap utilities for flexbox and grid layouts */
+.gap-0 { gap: 0 !important; }
+.gap-1 { gap: 0.25rem !important; }
+.gap-2 { gap: 0.5rem !important; }
+.gap-3 { gap: 1rem !important; }
+.gap-4 { gap: 1.5rem !important; }
+.gap-5 { gap: 3rem !important; }
+
+/* Row gap utilities */
+.gap-row-0 { row-gap: 0 !important; }
+.gap-row-1 { row-gap: 0.25rem !important; }
+.gap-row-2 { row-gap: 0.5rem !important; }
+.gap-row-3 { row-gap: 1rem !important; }
+.gap-row-4 { row-gap: 1.5rem !important; }
+.gap-row-5 { row-gap: 3rem !important; }
+
+/* Column gap utilities */
+.gap-column-0 { column-gap: 0 !important; }
+.gap-column-1 { column-gap: 0.25rem !important; }
+.gap-column-2 { column-gap: 0.5rem !important; }
+.gap-column-3 { column-gap: 1rem !important; }
+.gap-column-4 { column-gap: 1.5rem !important; }
+.gap-column-5 { column-gap: 3rem !important; }
+
+/* Responsive gap utilities - Small devices (landscape phones, 576px and up) */
+@media (min-width: 576px) {
+    .gap-sm-0 { gap: 0 !important; }
+    .gap-sm-1 { gap: 0.25rem !important; }
+    .gap-sm-2 { gap: 0.5rem !important; }
+    .gap-sm-3 { gap: 1rem !important; }
+    .gap-sm-4 { gap: 1.5rem !important; }
+    .gap-sm-5 { gap: 3rem !important; }
+}
+
+/* Responsive gap utilities - Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+    .gap-md-0 { gap: 0 !important; }
+    .gap-md-1 { gap: 0.25rem !important; }
+    .gap-md-2 { gap: 0.5rem !important; }
+    .gap-md-3 { gap: 1rem !important; }
+    .gap-md-4 { gap: 1.5rem !important; }
+    .gap-md-5 { gap: 3rem !important; }
+}
+
+/* Responsive gap utilities - Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    .gap-lg-0 { gap: 0 !important; }
+    .gap-lg-1 { gap: 0.25rem !important; }
+    .gap-lg-2 { gap: 0.5rem !important; }
+    .gap-lg-3 { gap: 1rem !important; }
+    .gap-lg-4 { gap: 1.5rem !important; }
+    .gap-lg-5 { gap: 3rem !important; }
+}
+
+/* Responsive gap utilities - Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+    .gap-xl-0 { gap: 0 !important; }
+    .gap-xl-1 { gap: 0.25rem !important; }
+    .gap-xl-2 { gap: 0.5rem !important; }
+    .gap-xl-3 { gap: 1rem !important; }
+    .gap-xl-4 { gap: 1.5rem !important; }
+    .gap-xl-5 { gap: 3rem !important; }
+}
+
+/* Responsive gap utilities - XXL devices (larger desktops, 1400px and up) */
+@media (min-width: 1400px) {
+    .gap-xxl-0 { gap: 0 !important; }
+    .gap-xxl-1 { gap: 0.25rem !important; }
+    .gap-xxl-2 { gap: 0.5rem !important; }
+    .gap-xxl-3 { gap: 1rem !important; }
+    .gap-xxl-4 { gap: 1.5rem !important; }
+    .gap-xxl-5 { gap: 3rem !important; }
+}

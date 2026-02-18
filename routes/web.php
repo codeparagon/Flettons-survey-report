@@ -47,10 +47,18 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
         'index' => 'admin.users.index',
         'create' => 'admin.users.create',
         'store' => 'admin.users.store',
+        'show' => 'admin.users.show',
         'edit' => 'admin.users.edit',
         'update' => 'admin.users.update',
         'destroy' => 'admin.users.destroy',
     ]);
+    
+    // Additional User Management Routes
+    Route::patch('/users/{user}/activate', [UserController::class, 'activate'])->name('admin.users.activate');
+    Route::patch('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('admin.users.deactivate');
+    Route::get('/users/{user}/impersonate', [UserController::class, 'impersonate'])->name('admin.users.impersonate');
+    Route::get('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('admin.users.reset-password');
+    Route::get('/users/{user}/activity', [UserController::class, 'activity'])->name('admin.users.activity');
     
     // Survey Management
     Route::get('/surveys', [\App\Http\Controllers\Admin\SurveyController::class, 'index'])->name('admin.surveys.index');
@@ -99,13 +107,16 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     Route::get('/api/content-sections/subcategories', [\App\Http\Controllers\Admin\ContentSectionController::class, 'getSubcategories'])->name('admin.content-sections.get-subcategories');
     
     // Survey Section Assessments CMS
-    Route::resource('survey-section-assessments', \App\Http\Controllers\Admin\SurveySectionAssessmentController::class)->only(['index', 'show', 'edit', 'update', 'destroy'])->names([
-        'index' => 'admin.survey-section-assessments.index',
-        'show' => 'admin.survey-section-assessments.show',
-        'edit' => 'admin.survey-section-assessments.edit',
-        'update' => 'admin.survey-section-assessments.update',
-        'destroy' => 'admin.survey-section-assessments.destroy',
-    ]);
+    Route::resource('survey-section-assessments', \App\Http\Controllers\Admin\SurveySectionAssessmentController::class)
+        ->only(['index', 'show', 'edit', 'update', 'destroy'])
+        ->parameters(['survey-section-assessments' => 'assessment'])
+        ->names([
+            'index' => 'admin.survey-section-assessments.index',
+            'show' => 'admin.survey-section-assessments.show',
+            'edit' => 'admin.survey-section-assessments.edit',
+            'update' => 'admin.survey-section-assessments.update',
+            'destroy' => 'admin.survey-section-assessments.destroy',
+        ]);
     Route::post('/survey-section-assessments/{assessment}/toggle-completion', [\App\Http\Controllers\Admin\SurveySectionAssessmentController::class, 'toggleCompletion'])->name('admin.survey-section-assessments.toggle-completion');
     Route::delete('/survey-section-assessments/{assessment}/delete-photo', [\App\Http\Controllers\Admin\SurveySectionAssessmentController::class, 'deletePhoto'])->name('admin.survey-section-assessments.delete-photo');
     

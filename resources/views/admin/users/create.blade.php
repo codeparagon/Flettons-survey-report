@@ -5,30 +5,33 @@
 @section('content')
 <div class="row">
     <div class="col-xl-12">
-        <div class="page-header">
-            <h2 class="pageheader-title">Create New User</h2>
-            <div class="page-breadcrumb">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}" class="breadcrumb-link">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('admin.users.index') }}" class="breadcrumb-link">Users</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Create</li>
-                    </ol>
-                </nav>
-            </div>
+        <div class="users-form-hero">
+            <h1 class="users-form-hero-title">Create New User</h1>
+            <p class="users-form-hero-subtitle">Add a new user to the system</p>
+            <nav aria-label="breadcrumb" class="users-form-breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.users.index') }}">Users</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Create</li>
+                </ol>
+            </nav>
         </div>
     </div>
 </div>
 
 <div class="row">
     <div class="col-xl-8 offset-xl-2">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">User Details</h5>
+        <div class="users-form-card">
+            <div class="users-form-card-header">
+                <div class="users-form-card-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h2 class="users-form-card-title">User Details</h2>
             </div>
-            <div class="card-body">
+            <div class="users-form-card-body">
                 @if($errors->any())
-                    <div class="alert alert-danger">
+                    <div class="users-form-alert">
+                        <i class="fas fa-exclamation-circle"></i>
                         <ul class="mb-0">
                             @foreach($errors->all() as $error)
                                 <li>{{ $error }}</li>
@@ -37,23 +40,23 @@
                     </div>
                 @endif
 
-                <form action="{{ route('admin.users.store') }}" method="POST">
+                <form action="{{ route('admin.users.store') }}" method="POST" class="users-form">
                     @csrf
                     
-                    <div class="form-group">
-                        <label for="name">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="name" name="name" value="{{ old('name') }}" required>
+                    <div class="users-form-group">
+                        <label for="name">Full Name <span class="required">*</span></label>
+                        <input type="text" class="users-form-input" id="name" name="name" value="{{ old('name') }}" placeholder="Enter full name" required>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="email">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control" id="email" name="email" value="{{ old('email') }}" required>
+                    <div class="users-form-group">
+                        <label for="email">Email Address <span class="required">*</span></label>
+                        <input type="email" class="users-form-input" id="email" name="email" value="{{ old('email') }}" placeholder="user@example.com" required>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="role_id">Role <span class="text-danger">*</span></label>
-                        <select class="form-control" id="role_id" name="role_id" required>
-                            <option value="">Select Role</option>
+                    <div class="users-form-group">
+                        <label for="role_id">Role <span class="required">*</span></label>
+                        <select class="users-form-input" id="role_id" name="role_id" required>
+                            <option value="">Select role</option>
                             @foreach($roles as $role)
                                 <option value="{{ $role->id }}" {{ old('role_id') == $role->id ? 'selected' : '' }}>
                                     {{ $role->display_name }}
@@ -62,23 +65,23 @@
                         </select>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="password">Password <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                        <small class="form-text text-muted">Minimum 8 characters</small>
+                    <div class="users-form-row">
+                        <div class="users-form-group">
+                            <label for="password">Password <span class="required">*</span></label>
+                            <input type="password" class="users-form-input" id="password" name="password" placeholder="Min 8 characters" required>
+                        </div>
+                        <div class="users-form-group">
+                            <label for="password_confirmation">Confirm Password <span class="required">*</span></label>
+                            <input type="password" class="users-form-input" id="password_confirmation" name="password_confirmation" placeholder="Re-enter password" required>
+                        </div>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="password_confirmation">Confirm Password <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary">
+                    <div class="users-form-actions">
+                        <button type="submit" class="users-form-btn users-form-btn-primary">
                             <i class="fas fa-save"></i> Create User
                         </button>
-                        <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Cancel
+                        <a href="{{ route('admin.users.index') }}" class="users-form-btn users-form-btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Cancel
                         </a>
                     </div>
                 </form>
@@ -88,60 +91,124 @@
 </div>
 @endsection
 
-@section('styles')
+@push('styles')
 <style>
-/* SurvAI Branding for Buttons and Badges - High Specificity */
-.card-body .btn-primary,
-.btn-primary,
-a.btn-primary,
-button.btn-primary {
-    background-color: #C1EC4A !important;
-    border-color: #C1EC4A !important;
-    color: #1A202C !important;
-    font-weight: 600 !important;
-    padding: 12px 20px !important;
-    border-radius: 6px !important;
-    display: inline-block !important;
-    text-decoration: none !important;
-    box-shadow: none !important;
-}
+/* —— Users Form: Aesthetic Design —— */
+.users-form-hero { margin-bottom: 2rem; padding: 1.5rem 0 0.5rem; }
+.users-form-hero-title { font-size: 1.75rem; font-weight: 600; color: #1A202C; margin: 0 0 0.5rem 0; }
+.users-form-hero-subtitle { font-size: 0.9375rem; color: #64748B; margin: 0 0 1rem 0; }
+.users-form-breadcrumb { margin-top: 0.75rem; padding-top: 0.75rem; }
+.users-form-breadcrumb .breadcrumb-item a { color: #64748B; }
+.users-form-breadcrumb .breadcrumb-item.active { color: #1A202C; }
 
-.card-body .btn-primary:hover,
-.btn-primary:hover,
-a.btn-primary:hover,
-button.btn-primary:hover {
-    background-color: #B0D93F !important;
-    border-color: #B0D93F !important;
-    color: #1A202C !important;
-    text-decoration: none !important;
-    box-shadow: none !important;
+.users-form-card {
+    background: #FFF;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+    border: 1px solid #E2E8F0;
+    overflow: hidden;
 }
-
-.card-body .btn-secondary,
-.btn-secondary,
-a.btn-secondary,
-button.btn-secondary {
-    background-color: #1A202C !important;
-    border-color: #1A202C !important;
-    color: #C1EC4A !important;
-    font-weight: 600 !important;
-    padding: 12px 20px !important;
-    border-radius: 6px !important;
-    display: inline-block !important;
-    text-decoration: none !important;
-    box-shadow: none !important;
+.users-form-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem 1.75rem;
+    background: linear-gradient(180deg, #FAFBFC 0%, #FFF 100%);
+    border-bottom: 1px solid #E2E8F0;
 }
+.users-form-card-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1A202C 0%, #2D3748 100%);
+    color: #C1EC4A;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem;
+}
+.users-form-card-title { font-size: 1.125rem; font-weight: 600; color: #1A202C; margin: 0; }
+.users-form-card-body { padding: 2rem 1.75rem; }
 
-.card-body .btn-secondary:hover,
-.btn-secondary:hover,
-a.btn-secondary:hover,
-button.btn-secondary:hover {
-    background-color: #2D3748 !important;
-    border-color: #2D3748 !important;
-    color: #C1EC4A !important;
-    text-decoration: none !important;
-    box-shadow: none !important;
+.users-form-alert {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 12px;
+    color: #DC2626;
+}
+.users-form-alert i { flex-shrink: 0; margin-top: 2px; }
+.users-form-alert ul { margin: 0; padding-left: 1.25rem; }
+
+.users-form-group { margin-bottom: 1.5rem; }
+.users-form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+.users-form-group .required { color: #DC2626; }
+.users-form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.9375rem;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    background: #FFF;
+    color: #1A202C;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.users-form-input:focus {
+    outline: none;
+    border-color: #C1EC4A;
+    box-shadow: 0 0 0 3px rgba(193, 236, 74, 0.15);
+}
+.users-form-input::placeholder { color: #94A3B8; }
+
+.users-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 576px) { .users-form-row { grid-template-columns: 1fr; } }
+
+.users-form-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid #E2E8F0;
+}
+.users-form-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.users-form-btn-primary {
+    background: #C1EC4A;
+    color: #1A202C;
+    border-color: #C1EC4A;
+}
+.users-form-btn-primary:hover {
+    background: #A8D83A;
+    border-color: #A8D83A;
+    transform: translateY(-1px);
+}
+.users-form-btn-secondary {
+    background: #1A202C;
+    color: #C1EC4A;
+    border-color: #1A202C;
+}
+.users-form-btn-secondary:hover {
+    background: #2D3748;
+    border-color: #2D3748;
+    color: #C1EC4A;
+    transform: translateY(-1px);
 }
 </style>
-@endsection
-
+@endpush

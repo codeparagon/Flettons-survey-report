@@ -25,6 +25,7 @@ class SurveySectionAssessment extends Model
         'clone_index',
         'is_completed',
         'completed_at',
+        'completed_by',
     ];
 
     protected $casts = [
