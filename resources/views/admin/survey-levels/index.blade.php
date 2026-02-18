@@ -256,16 +256,10 @@
                                    class="btn-action btn-edit">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
-                                <form action="{{ route('admin.survey-levels.destroy', $level) }}" 
-                                      method="POST" 
-                                      class="d-inline"
-                                      onsubmit="return confirm('Are you sure you want to delete this survey level?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn-action btn-delete">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                </form>
+                                <a href="{{ route('admin.survey-levels.confirm-delete', $level) }}" 
+                                   class="btn-action btn-delete">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a>
                             </div>
                         </div>
                     </div>

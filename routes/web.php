@@ -68,6 +68,7 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     Route::put('/surveys/{survey}', [\App\Http\Controllers\Admin\SurveyController::class, 'update'])->name('admin.surveys.update');
     
     // Survey Levels Management
+    Route::get('/survey-levels/{surveyLevel}/delete', [\App\Http\Controllers\Admin\SurveyLevelController::class, 'confirmDelete'])->name('admin.survey-levels.confirm-delete');
     Route::resource('survey-levels', \App\Http\Controllers\Admin\SurveyLevelController::class)->names([
         'index' => 'admin.survey-levels.index',
         'create' => 'admin.survey-levels.create',

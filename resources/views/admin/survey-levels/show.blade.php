@@ -138,6 +138,9 @@
                     <a href="{{ route('admin.survey-levels.edit', $surveyLevel) }}" class="btn btn-primary">
                         <i class="fas fa-edit"></i> Edit Level
                     </a>
+                    <a href="{{ route('admin.survey-levels.confirm-delete', $surveyLevel) }}" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete Level
+                    </a>
                     <a href="{{ route('admin.survey-levels.index') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Back to Levels
                     </a>

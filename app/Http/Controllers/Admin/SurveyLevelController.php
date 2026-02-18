@@ -203,6 +203,21 @@ class SurveyLevelController extends Controller
     }
 
     /**
+     * Show the confirmation page before deleting a survey level.
+     */
+    public function confirmDelete(SurveyLevel $surveyLevel)
+    {
+        $surveyLevel->load([
+            'sectionDefinitions.subcategory.category',
+            'accommodationTypes',
+            'contentSections',
+            'surveys'
+        ]);
+
+        return view('admin.survey-levels.delete', compact('surveyLevel'));
+    }
+
+    /**
      * Remove the specified survey level.
      */
     public function destroy(SurveyLevel $surveyLevel)
