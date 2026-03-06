@@ -21,7 +21,7 @@
 
     @stack('styles')
 </head>
-<body class="survey-page @if(request()->is('admin/surveys*')) surveys-page-sidebar-open @endif">
+<body class="survey-page">
     <div class="survey-layout">
         <!-- Survey Header -->
         @include('layouts.survey.partials.header')
@@ -79,25 +79,78 @@
     @stack('scripts')
     
     <script>
-    // Keep sidebar open on admin surveys pages (run early so sidebar is open before other scripts)
-    (function() {
-        if (!document.body.classList.contains('surveys-page-sidebar-open')) return;
-        function ensureSidebarOpen() {
-            var sidebar = document.getElementById('survey-sidebar');
-            var backdrop = document.getElementById('survey-sidebar-backdrop');
-            var mainContent = document.getElementById('survey-main-content');
-            var openBtn = document.getElementById('survey-sidebar-open');
-            if (sidebar) { sidebar.classList.remove('collapsed'); }
-            if (mainContent) { mainContent.classList.remove('sidebar-collapsed'); }
-            if (backdrop) { backdrop.classList.add('show'); }
-            if (openBtn) { openBtn.classList.remove('show'); }
+    // Sidebar toggle functionality (same as app layout – allows collapse on admin surveys page)
+    $(document).ready(function() {
+        const sidebar = $('#survey-sidebar');
+        const sidebarBackdrop = $('#survey-sidebar-backdrop');
+        const sidebarOpenBtn = $('#survey-sidebar-open');
+        const headerMenuBtn = $('#survey-header-menu-btn');
+        const sidebarCollapseBtn = $('#survey-sidebar-collapse');
+        const mainContent = $('#survey-main-content');
+
+        function updateSidebarState(isCollapsed) {
+            if (isCollapsed) {
+                sidebar.addClass('collapsed');
+                mainContent.addClass('sidebar-collapsed');
+                sidebarOpenBtn.addClass('show');
+                headerMenuBtn.removeClass('active');
+                if (window.innerWidth < 1025) {
+                    sidebarBackdrop.removeClass('show');
+                }
+            } else {
+                sidebar.removeClass('collapsed');
+                mainContent.removeClass('sidebar-collapsed');
+                sidebarOpenBtn.removeClass('show');
+                headerMenuBtn.addClass('active');
+                if (window.innerWidth < 1025) {
+                    sidebarBackdrop.addClass('show');
+                }
+            }
         }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', ensureSidebarOpen);
-        } else {
-            ensureSidebarOpen();
+
+        if (window.innerWidth < 1025) {
+            sidebar.addClass('collapsed');
+            mainContent.addClass('sidebar-collapsed');
+            sidebarOpenBtn.addClass('show');
         }
-    })();
+
+        if (sidebarCollapseBtn.length) {
+            sidebarCollapseBtn.on('click', function() {
+                const isCollapsed = !sidebar.hasClass('collapsed');
+                updateSidebarState(isCollapsed);
+            });
+        }
+        function openSidebar() {
+            updateSidebarState(false);
+        }
+        if (sidebarOpenBtn.length) {
+            sidebarOpenBtn.on('click', openSidebar);
+        }
+        if (headerMenuBtn.length) {
+            headerMenuBtn.on('click', function() {
+                if (sidebar.hasClass('collapsed')) {
+                    openSidebar();
+                } else {
+                    updateSidebarState(true);
+                }
+            });
+        }
+        if (sidebarBackdrop.length) {
+            sidebarBackdrop.on('click', function() {
+                updateSidebarState(true);
+            });
+        }
+        $(window).on('resize', function() {
+            if (window.innerWidth >= 1025) {
+                sidebarBackdrop.removeClass('show');
+                headerMenuBtn.removeClass('active');
+            } else if (!sidebar.hasClass('collapsed')) {
+                sidebarBackdrop.addClass('show');
+                headerMenuBtn.addClass('active');
+            }
+        });
+        window.surveyLayoutOpenSidebar = openSidebar;
+    });
     // Aggressively remove all overlays and enable interactions
     $(document).ready(function() {
         function removeAllOverlays() {

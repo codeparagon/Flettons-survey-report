@@ -1240,6 +1240,31 @@ body.modal-open-lite {
 
 /* Responsive */
 @media (max-width: 1024px) {
+    /* Allow full page scroll on mobile so all content is visible (e.g. admin survey show page) */
+    body.survey-page {
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        height: auto !important;
+        min-height: 100vh;
+        max-height: none !important;
+    }
+    .survey-layout {
+        height: auto !important;
+        min-height: 100vh;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    /* On tablets/mobile use natural page height so long tables can scroll fully */
+    .survey-main-content {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .survey-content-wrapper {
+        overflow-y: visible;
+    }
+
     .survey-sidebar {
         width: 280px;
         transform: translateX(-100%);
@@ -1382,15 +1407,27 @@ body.modal-open-lite {
 
 /* Responsive: all survey-layout pages (admin surveys, surveyor, client) */
 @media (max-width: 1024px) {
+    /* Prevent extra right margin from horizontal overflow on mobile */
+    body.survey-page {
+        overflow-x: hidden;
+        max-width: 100%;
+    }
+    .survey-layout {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
     .survey-main-content {
         margin-left: 0 !important;
+        margin-right: 0 !important;
         width: 100%;
+        max-width: 100%;
     }
     .survey-content-wrapper {
         padding-left: 0.75rem;
         padding-right: 0.75rem;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
     }
     .survey-layout .datatable-container,
     .survey-layout .table-responsive {
@@ -1400,6 +1437,7 @@ body.modal-open-lite {
         margin-right: -0.75rem;
         padding-left: 0.75rem;
         padding-right: 0.75rem;
+        box-sizing: content-box;
     }
     .survey-layout .datatable-table {
         min-width: 600px;
@@ -1432,7 +1470,8 @@ body.modal-open-lite {
 
 @media (max-width: 480px) {
     .survey-content-wrapper {
-        padding: 0.5rem 0.35rem;
+        padding: 0.5rem 0.35rem 0.5rem 0.35rem;
+        padding-right: 0;
     }
     .survey-layout .datatable-table {
         min-width: 520px;

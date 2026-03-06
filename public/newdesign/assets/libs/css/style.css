@@ -4590,7 +4590,7 @@ Pills vertical
 .table thead th,
 .table th {
     color: var(--ink);
-    font-family: 'Circular Std Medium';
+    font-family: var(--font-family-base);
 }
 
 .table-bordered {

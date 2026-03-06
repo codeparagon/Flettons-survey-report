@@ -2,6 +2,16 @@
 
 @section('title', 'Survey Details')
 
+@push('styles')
+<style>
+    /* Ensure consistent font family on this survey detail page */
+    body.survey-page .dashboard-content,
+    body.survey-page .dashboard-content * {
+        font-family: var(--font-family-base) !important;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="row">
     <div class="col-xl-12">
