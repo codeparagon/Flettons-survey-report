@@ -99,45 +99,70 @@
 
     <script>
         $(document).ready(function() {
-            // Sidebar collapse toggle - using jQuery for consistency
             var $sidebar = $('#survey-sidebar');
             var $mainContent = $('#survey-main-content');
             var $sidebarOpenBtn = $('#survey-sidebar-open');
+            var $sidebarBackdrop = $('#survey-sidebar-backdrop');
+            var $headerMenuBtn = $('#survey-header-menu-btn');
 
-            if ($sidebar.hasClass('collapsed') && $sidebarOpenBtn.length) {
-                $sidebarOpenBtn.addClass('show');
-            }
-
-            var updateSidebarCollapseUI = function(isCollapsed) {
-                var $btn = $('#survey-sidebar-collapse');
-                var $icon = $btn.find('i');
+            function updateSidebarState(isCollapsed) {
                 if (isCollapsed) {
-                    $icon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
+                    $sidebar.addClass('collapsed');
+                    $mainContent.addClass('sidebar-collapsed');
+                    $sidebarOpenBtn.addClass('show');
+                    $headerMenuBtn.removeClass('active');
+                    $sidebarBackdrop.removeClass('show');
                 } else {
-                    $icon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
-                }
-            };
-
-            // Use jQuery delegated event for sidebar collapse button
-            $(document).on('click', '#survey-sidebar-collapse', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                var isCollapsed = $sidebar.toggleClass('collapsed').hasClass('collapsed');
-                $mainContent.toggleClass('sidebar-collapsed', isCollapsed);
-                $sidebarOpenBtn.toggleClass('show', isCollapsed);
-                updateSidebarCollapseUI(isCollapsed);
-                return false;
-            });
-
-            // Sidebar open button
-            $(document).on('click', '#survey-sidebar-open', function(e) {
-                e.stopPropagation();
-                if ($sidebar.hasClass('collapsed')) {
                     $sidebar.removeClass('collapsed');
                     $mainContent.removeClass('sidebar-collapsed');
                     $sidebarOpenBtn.removeClass('show');
-                    updateSidebarCollapseUI(false);
+                    $headerMenuBtn.addClass('active');
+                    $sidebarBackdrop.addClass('show');
+                }
+                var $icon = $('#survey-sidebar-collapse').find('i');
+                $icon.toggleClass('fa-chevron-left', !isCollapsed).toggleClass('fa-chevron-right', isCollapsed);
+            }
+
+            // On mobile/tablet: start with sidebar collapsed so open button and menu are visible
+            if (window.innerWidth < 1025) {
+                $sidebar.addClass('collapsed');
+                $mainContent.addClass('sidebar-collapsed');
+                $sidebarOpenBtn.addClass('show');
+            }
+
+            // Sidebar collapse button (inside sidebar)
+            $(document).on('click', '#survey-sidebar-collapse', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                updateSidebarState(true);
+                return false;
+            });
+
+            // Sidebar open button (floating) and header hamburger
+            $(document).on('click', '#survey-sidebar-open', function(e) {
+                e.stopPropagation();
+                updateSidebarState(false);
+            });
+            $(document).on('click', '#survey-header-menu-btn', function(e) {
+                e.stopPropagation();
+                if ($sidebar.hasClass('collapsed')) {
+                    updateSidebarState(false);
+                } else {
+                    updateSidebarState(true);
+                }
+            });
+
+            // Backdrop click closes sidebar
+            $sidebarBackdrop.on('click', function() {
+                updateSidebarState(true);
+            });
+
+            $(window).on('resize', function() {
+                if (window.innerWidth >= 1025) {
+                    $sidebarBackdrop.removeClass('show');
+                    $headerMenuBtn.removeClass('active');
+                } else if (!$sidebar.hasClass('collapsed')) {
+                    $sidebarBackdrop.addClass('show');
                 }
             });
 

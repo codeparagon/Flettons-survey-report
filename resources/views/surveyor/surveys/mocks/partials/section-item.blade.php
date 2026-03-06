@@ -233,7 +233,7 @@
                                             @php
                                                 $imageUrl = $photo['url'] ?? '';
                                                 if (empty($imageUrl) && isset($photo['file_path'])) {
-                                                    $imageUrl = asset('storage/' . ltrim($photo['file_path'], '/'));
+                                                    $imageUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($photo['file_path']);
                                                 }
                                                 // Fallback for S3 URLs
                                                 if (empty($imageUrl) && isset($photo['s3_url'])) {

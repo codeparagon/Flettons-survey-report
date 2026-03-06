@@ -4,12 +4,12 @@
 
 @section('content')
 <div class="row">
-    <div class="col-xl-12">
-        <div class="page-header">
+    <div class="col-12">
+        <div class="page-header assessment-show-header">
             <h2 class="pageheader-title">Assessment #{{ $assessment->id }}</h2>
             <div class="page-breadcrumb">
                 <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
+                    <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.survey-section-assessments.index') }}">Survey Section Assessments</a></li>
                         <li class="breadcrumb-item active">Assessment #{{ $assessment->id }}</li>
@@ -20,16 +20,17 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-xl-8">
-        <div class="card">
+<div class="row assessment-show-row">
+    <div class="col-12 col-xl-8 order-2 order-xl-1">
+        <div class="card assessment-details-card">
             <div class="card-header">
                 <h5 class="mb-0">Assessment Details</h5>
             </div>
             <div class="card-body">
-                <table class="table table-borderless">
+                <div class="table-responsive">
+                <table class="table table-borderless assessment-details-table">
                     <tr>
-                        <th width="200">Survey:</th>
+                        <th class="assessment-detail-label">Survey:</th>
                         <td>
                             <a href="{{ route('admin.surveys.show', $assessment->survey) }}" class="text-primary">
                                 Survey #{{ $assessment->survey->id }}
@@ -104,6 +105,7 @@
                         <td>{{ $assessment->updated_at->format('M d, Y H:i') }}</td>
                     </tr>
                 </table>
+                </div>
             </div>
         </div>
 
@@ -113,9 +115,9 @@
                 <h5 class="mb-0">Photos ({{ $assessment->photos->count() }})</h5>
             </div>
             <div class="card-body">
-                <div class="row">
+                <div class="row assessment-photos-row">
                     @foreach($assessment->photos as $photo)
-                        <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="col-6 col-md-4 col-lg-4 mb-3">
                             @if($photo->file_path && \Storage::disk('public')->exists($photo->file_path))
                                 <img src="{{ asset('storage/' . $photo->file_path) }}" alt="Photo" class="img-fluid img-thumbnail" style="max-height: 200px; object-fit: cover;">
                             @else
@@ -134,7 +136,8 @@
                 <h5 class="mb-0">Costs</h5>
             </div>
             <div class="card-body">
-                <table class="table table-striped">
+                <div class="table-responsive">
+                <table class="table table-striped assessment-costs-table">
                     <thead>
                         <tr>
                             <th>Description</th>
@@ -150,6 +153,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
         @endif
@@ -170,8 +174,8 @@
         @endif
     </div>
 
-    <div class="col-xl-4">
-        <div class="card">
+    <div class="col-12 col-xl-4 order-1 order-xl-2">
+        <div class="card assessment-actions-card">
             <div class="card-header">
                 <h5 class="mb-0">Quick Actions</h5>
             </div>
@@ -201,3 +205,91 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+.assessment-show-header .breadcrumb {
+    padding: 0;
+    background: transparent;
+}
+
+.assessment-detail-label {
+    width: 160px;
+    min-width: 160px;
+}
+
+.assessment-details-table th {
+    vertical-align: top;
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+}
+
+.assessment-photos-row .img-thumbnail {
+    width: 100%;
+    min-height: 120px;
+    max-height: 200px;
+    object-fit: cover;
+}
+
+@media (max-width: 768px) {
+    .assessment-show-header {
+        padding: 1rem 1.25rem !important;
+    }
+
+    .assessment-show-header .pageheader-title {
+        font-size: 1.25rem;
+    }
+
+    .assessment-details-card .card-body,
+    .assessment-actions-card .card-body {
+        padding: 1rem;
+    }
+
+    .assessment-details-table tr {
+        display: block;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 0.5rem 0;
+    }
+
+    .assessment-details-table th,
+    .assessment-details-table td {
+        display: block;
+        width: 100%;
+        padding: 0.2rem 0;
+        border: none;
+    }
+
+    .assessment-details-table th {
+        width: 100%;
+        min-width: 0;
+        font-size: 0.8rem;
+        color: #6b7280;
+        text-transform: none;
+    }
+
+    .assessment-details-table td {
+        padding-bottom: 0.5rem;
+    }
+
+    .assessment-actions-card .btn-block {
+        width: 100%;
+    }
+
+    .assessment-photos-row .col-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+@media (max-width: 576px) {
+    .assessment-show-header .pageheader-title {
+        font-size: 1.1rem;
+    }
+
+    .assessment-photos-row .col-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+</style>
+@endpush

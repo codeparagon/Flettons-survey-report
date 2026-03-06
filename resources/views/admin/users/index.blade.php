@@ -49,6 +49,7 @@
                 </div>
             </div>
             <div class="users-card-body">
+                <div class="users-table-wrapper">
                 <x-datatable 
                     id="usersTable" 
                     :columns="['Name', 'Email', 'Role', 'Status', 'Created', 'Actions']" 
@@ -84,7 +85,7 @@
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     @if($user->status === 'active')
-                                        <form action="{{ route('admin.users.deactivate', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to deactivate this user?');">
+                                        <form action="{{ route('admin.users.deactivate', $user->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Are you sure you want to deactivate this user?');">
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit" class="users-action" title="Deactivate">
@@ -92,7 +93,7 @@
                                             </button>
                                         </form>
                                     @else
-                                        <form action="{{ route('admin.users.activate', $user->id) }}" method="POST" class="d-inline">
+                                        <form action="{{ route('admin.users.activate', $user->id) }}" method="POST" class="d-inline mb-0">
                                             @csrf
                                             @method('PATCH')
                                             <button type="submit" class="users-action" title="Activate">
@@ -100,7 +101,7 @@
                                             </button>
                                         </form>
                                     @endif
-                                    <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.');">
+                                    <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="users-action users-action-danger" title="Delete">
@@ -116,6 +117,7 @@
                         </tr>
                     @endforelse
                 </x-datatable>
+                </div>
             </div>
         </div>
     </div>
@@ -280,6 +282,42 @@
     padding: 1rem 1.25rem;
 }
 
+.users-card-body .panel-content {
+    padding: 1rem 1.25rem;
+}
+
+.users-card-body .search-input {
+    font-size: 0.85rem;
+    padding: 0.7rem 2.75rem 0.7rem 0.85rem;
+    border-radius: 10px;
+}
+
+.users-card-body .search-clear-btn {
+    font-size: 0.8rem;
+}
+
+.users-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.users-table-wrapper table {
+    width: 100%;
+    min-width: 720px;
+}
+
+.users-card-body table thead th {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.users-card-body .dataTables_info,
+.users-card-body .dataTables_paginate,
+.users-card-body .dataTables_length {
+    font-size: 0.78rem;
+}
+
 .users-card-body .datatable-container {
     padding: 0 !important;
     margin: 0;
@@ -293,7 +331,7 @@
 /* Table rows */
 .users-row td {
     vertical-align: middle;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     padding: 0.75rem 0.75rem;
 }
 
@@ -303,14 +341,14 @@
 
 /* Name */
 .users-name {
-    font-size: 0.93rem;
+    font-size: 0.88rem;
     font-weight: 600;
     color: var(--users-dark);
     margin-bottom: 0.15rem;
 }
 
 .users-meta {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--users-muted);
 }
 
@@ -322,7 +360,7 @@
     border-radius: 999px;
     background: var(--users-surface-soft);
     color: var(--users-dark);
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 500;
     border: 1px solid rgba(148, 163, 184, 0.4);
 }
@@ -334,7 +372,7 @@
     gap: 0.35rem;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 500;
 }
 
@@ -423,7 +461,7 @@
     }
 
     .users-row td {
-        padding: 0.625rem 0.5rem;
+        padding: 0.55rem 0.45rem;
     }
 
     .users-btn-add {
@@ -449,6 +487,75 @@
     .users-search-btn {
         width: 100%;
         justify-content: center;
+    }
+    
+    .users-card-body .panel-content {
+        padding: 0.875rem 0.9rem;
+    }
+    
+    .users-card-body .search-input {
+        font-size: 0.8rem;
+        padding: 0.6rem 2.5rem 0.6rem 0.8rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .users-hero-title {
+        font-size: 1.3rem;
+    }
+    
+    .users-hero-subtitle {
+        font-size: 0.8rem;
+    }
+    
+    .users-card-title {
+        font-size: 0.95rem;
+    }
+    
+    .users-row td {
+        font-size: 0.76rem;
+    }
+    
+    /* Make email column lighter and smaller on mobile */
+    .users-card-body table tbody td:nth-child(2) {
+        font-size: 0.7rem;
+        word-break: break-all;
+    }
+    
+    .users-name {
+        font-size: 0.82rem;
+    }
+    
+    .users-meta {
+        font-size: 0.7rem;
+    }
+    
+    .users-role,
+    .users-status {
+        font-size: 0.7rem;
+    }
+    
+    .users-actions {
+        gap: 0.2rem;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+    
+    .users-action {
+        width: 24px;
+        height: 24px;
+        font-size: 0.7rem;
+        flex: 0 0 auto;
+    }
+    
+    .users-card-body table thead th {
+        font-size: 0.78rem;
+    }
+    
+    /* Hide Created column on very small screens to reduce horizontal scroll */
+    .users-card-body table thead th:nth-child(5),
+    .users-card-body table tbody td:nth-child(5) {
+        display: none;
     }
 }
 

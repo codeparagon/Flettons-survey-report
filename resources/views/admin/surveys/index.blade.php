@@ -133,13 +133,112 @@
         .no-data {
             font-size: 1rem;
             color: #6B7280;
-}
+        }
+
+        /* Keep sidebar open on this page (mobile) – sidebar visible, backdrop non-blocking so content is clickable */
+        @media (max-width: 1024px) {
+            body.surveys-page-sidebar-open .survey-sidebar {
+                transform: translateX(0) !important;
+            }
+            body.surveys-page-sidebar-open .survey-sidebar-backdrop {
+                opacity: 0 !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
+            body.surveys-page-sidebar-open .survey-sidebar-open-btn {
+                display: none !important;
+            }
+            body.surveys-page-sidebar-open .survey-main-content {
+                margin-left: 280px !important;
+            }
+        }
+        @media (max-width: 640px) {
+            body.surveys-page-sidebar-open .survey-main-content {
+                margin-left: 0 !important;
+            }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .survey-table-section {
+                padding: 0;
+                overflow: visible;
+                min-height: 0;
+            }
+            .survey-table-section .datatable-container {
+                padding: 0.75rem !important;
+            }
+            .survey-table-section .table-wrapper {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -0.75rem;
+                padding: 0 0.75rem;
+            }
+            .survey-table-section .datatable-table {
+                font-size: 0.8125rem;
+                min-width: 720px;
+            }
+            .survey-table-section .datatable-table th,
+            .survey-table-section .datatable-table td {
+                padding: 0.5rem 0.4rem !important;
+                white-space: nowrap;
+            }
+            .survey-table-section .datatable-table th:nth-child(1),
+            .survey-table-section .datatable-table td:nth-child(1) {
+                max-width: 140px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .dataTables_wrapper .bottom-wrapper {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+                margin-top: 1rem !important;
+                padding-top: 1rem !important;
+            }
+            .dataTables_wrapper .dataTables_length,
+            .dataTables_wrapper .dataTables_info {
+                justify-content: center;
+            }
+            .dataTables_wrapper .dataTables_paginate {
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 0.25rem;
+            }
+            .dataTables_wrapper .dataTables_paginate .paginate_button {
+                padding: 0.4rem 0.6rem !important;
+                font-size: 0.8125rem !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .survey-table-section .datatable-container {
+                padding: 0.5rem !important;
+            }
+            .survey-table-section .datatable-table {
+                min-width: 640px;
+            }
+        }
 </style>
 @endpush
 
 @push('scripts')
 <script>
         $(document).ready(function() {
+            // Keep sidebar open on this page (admin surveys)
+            var sidebar = document.getElementById('survey-sidebar');
+            var backdrop = document.getElementById('survey-sidebar-backdrop');
+            var mainContent = document.getElementById('survey-main-content');
+            var sidebarOpenBtn = document.getElementById('survey-sidebar-open');
+            if (document.body.classList.contains('surveys-page-sidebar-open')) {
+                if (sidebar) sidebar.classList.remove('collapsed');
+                if (mainContent) mainContent.classList.remove('sidebar-collapsed');
+                if (backdrop) backdrop.classList.add('show');
+                if (sidebarOpenBtn) sidebarOpenBtn.classList.remove('show');
+            }
+
             // Header search functionality
             const headerSearchInput = document.getElementById('survey-header-search');
             const headerSearchClear = document.getElementById('survey-search-clear');
@@ -249,6 +348,8 @@
 
             if (sidebarCollapseBtn && sidebar && mainContent) {
                 sidebarCollapseBtn.addEventListener('click', function() {
+                    // Keep sidebar open on admin surveys page – do not allow closing
+                    if (document.body.classList.contains('surveys-page-sidebar-open')) return;
                     const isCollapsed = sidebar.classList.toggle('collapsed');
                     mainContent.classList.toggle('sidebar-collapsed', isCollapsed);
                     if (sidebarOpenBtn) {
@@ -270,10 +371,11 @@
                 });
             }
 
-            // Sidebar backdrop click handler
+            // Sidebar backdrop click handler (do not close when sidebar is kept open)
             const sidebarBackdrop = document.getElementById('survey-sidebar-backdrop');
             if (sidebarBackdrop && sidebar && mainContent) {
                 sidebarBackdrop.addEventListener('click', function() {
+                    if (document.body.classList.contains('surveys-page-sidebar-open')) return;
                     sidebar.classList.add('collapsed');
                     mainContent.classList.add('sidebar-collapsed');
                     if (sidebarOpenBtn) {

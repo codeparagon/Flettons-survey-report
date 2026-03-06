@@ -212,6 +212,58 @@
         color: #ef4444;
         border-left: 4px solid #ef4444;
     }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .page-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .page-title {
+            font-size: 22px;
+        }
+        
+        .btn-primary-large {
+            width: 100%;
+            justify-content: center;
+            font-size: 15px;
+            padding: 12px 18px;
+        }
+        
+        .level-card {
+            padding: 18px 16px;
+        }
+        
+        .level-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        
+        .level-title {
+            font-size: 18px;
+        }
+        
+        .level-badge {
+            align-self: flex-start;
+        }
+        
+        .level-description {
+            font-size: 14px;
+        }
+        
+        .level-actions {
+            flex-direction: column;
+        }
+        
+        .level-actions .btn-action {
+            width: 100%;
+            justify-content: center;
+            text-align: center;
+        }
+    }
 </style>
 @endpush
 

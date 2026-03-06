@@ -343,7 +343,7 @@ $(document).ready(function() {
         "ordering": {{ $ordering ? 'true' : 'false' }},
         "info": {{ $info ? 'true' : 'false' }},
         "responsive": {{ $responsive ? 'true' : 'false' }},
-        "scrollX": false,
+        "scrollX": true,
         "pageLength": {{ $pageLength }},
         "lengthMenu": [itemsPerPageArray, itemsPerPageLabels],
         "order": [[0, "asc"]],

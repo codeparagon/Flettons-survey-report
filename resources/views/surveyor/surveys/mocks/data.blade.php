@@ -105,11 +105,10 @@
         @endif
 
         <!-- Generate PDF Report Button -->
-        <div style="padding: 2rem; text-align: center; border-top: 2px solid rgba(148, 163, 184, 0.2); margin-top: 2rem;">
+        <div class="survey-data-mock-pdf-section">
             <a href="{{ route('surveyor.surveys.generate-pdf', $survey) }}" 
                class="survey-data-mock-pdf-button" 
-               id="generate-pdf-button"
-               style="display: inline-flex; align-items: center; gap: 0.75rem; padding: 1rem 2rem; background: #1E3A5F; color: #FFFFFF; border: none; border-radius: 4px; font-size: 16px; font-weight: 400; text-decoration: none; cursor: pointer; transition: all 0.3s ease; font-family: 'Poppins', sans-serif;">
+               id="generate-pdf-button">
                 <i class="fas fa-file-pdf"></i>
                 <span>Generate PDF Report</span>
             </a>
@@ -247,10 +246,17 @@
         font-style: normal !important;
     }
 
+    /* Consistent spacing - use throughout the page */
+    .survey-data-mock-content {
+        --survey-data-mock-x: 1.5rem;
+        --survey-data-mock-y: 1rem;
+        --survey-data-mock-block: 2rem;
+    }
+
     /* Header Bar */
     .survey-data-mock-header-bar {
         background: #1E293B;
-        padding: 1rem 1.5rem;
+        padding: var(--survey-data-mock-y) var(--survey-data-mock-x);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -320,18 +326,19 @@
 
     /* Main Body */
     .survey-data-mock-body {
-        padding: 2rem 0;
+        padding: var(--survey-data-mock-block) var(--survey-data-mock-x-0);
         min-height: calc(100vh - 120px);
         height: auto;
         flex: 1;
         display: flex;
         flex-direction: column;
         overflow: visible;
+        padding-top: var(--survey-data-mock-y);
     }
 
     /* Category Section */
     .survey-data-mock-category {
-        margin-bottom: 2rem;
+        margin-bottom: var(--survey-data-mock-block);
         background: transparent;
         overflow: visible;
         width: 100%;
@@ -344,7 +351,7 @@
     /* Category Header - Collapsible */
     .survey-data-mock-category-header {
         background: #1E293B;
-        padding: 1.25rem 1.5rem;
+        padding: 1.25rem var(--survey-data-mock-x);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -424,8 +431,7 @@
     .survey-data-mock-sections {
         display: flex;
         flex-direction: column;
-        /* gap: 1rem; */
-        padding-top: 1rem;
+        padding-top: var(--survey-data-mock-y);
         flex: 1;
         min-height: 0;
         background: transparent;
@@ -448,7 +454,7 @@
 
     .survey-data-mock-section-header {
         background: #FFFFFF;
-        padding: 1rem 1.5rem;
+        padding: var(--survey-data-mock-y) var(--survey-data-mock-x);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -464,7 +470,7 @@
 
     .survey-data-mock-section-name {
         font-size: 16px;
-        color: #1A202C;
+        color: #1b202b;
     }
 
     .survey-data-mock-section-status {
@@ -499,7 +505,7 @@
 
     .survey-data-mock-completion {
         font-size: 14px;
-        color: #1A202C;
+        color: #1b202b;
     }
 
     .survey-data-mock-condition-badge {
@@ -589,7 +595,7 @@
 
     .survey-data-mock-section-title-bar {
         background: #FFFFFF;
-        padding: 1rem 1.5rem;
+        padding: var(--survey-data-mock-y) var(--survey-data-mock-x);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -604,7 +610,7 @@
 
     .survey-data-mock-section-title-text {
         font-size: 20px;
-        color: #1A202C!important;
+        color: #1b202b!important;
         margin: 0;
         font-family: 'Poppins', sans-serif;
     }
@@ -624,7 +630,7 @@
     }
 
     .survey-data-mock-section-details-content {
-        padding: 1rem 1.5rem;
+        padding: var(--survey-data-mock-y) var(--survey-data-mock-x);
         overflow: visible;
         width: 100%;
         max-width: 100%;
@@ -691,7 +697,7 @@
     }
 
     .survey-data-mock-form-grid-divider-handle i {
-        color: #1A202C;
+        color: #1b202b;
         font-size: 12px;
     }
 
@@ -831,7 +837,7 @@
 
     .survey-data-mock-button-group .swiper-button-next:hover:after,
     .survey-data-mock-button-group .swiper-button-prev:hover:after {
-        color: #1A202C !important;
+        color: #1b202b !important;
     }
 
     .survey-data-mock-button-group .swiper-button-disabled {
@@ -899,7 +905,7 @@
     }
 
     .survey-data-mock-carousel-arrow:hover i {
-        color: #1A202C;
+        color: #1b202b;
     }
 
     .survey-data-mock-carousel-arrow.hidden {
@@ -911,7 +917,7 @@
         border: none;
         border-radius: 8px;
         background: #F3F4F6;
-        color: #1a202c7a;
+        color: #1b202b7a;
         font-size: 14px;
         font-weight: 500;
         cursor: pointer;
@@ -927,7 +933,7 @@
 
     .survey-data-mock-button.active {
         background: #C1EC4A;
-        color: #1A202C;
+        color: #1b202b;
         font-weight: 600;
     }
 
@@ -950,7 +956,7 @@
         border: 1px solid rgba(148, 163, 184, 0.4);
         border-radius: 4px;
         background: #FFFFFF;
-        color: #1A202C;
+        color: #1b202b;
         font-size: 13px;
         cursor: pointer;
         display: flex;
@@ -1003,7 +1009,7 @@
     .survey-data-mock-costs-table td {
         padding: 0.5rem;
         font-size: 13px;
-        color: #1A202C;
+        color: #1b202b;
         border-bottom: 1px solid rgba(148, 163, 184, 0.1);
     }
 
@@ -1033,7 +1039,7 @@
         border: 1px solid rgba(148, 163, 184, 0.4);
         border-radius: 4px;
         font-size: 13px;
-        color: #1A202C;
+        color: #1b202b;
         background: #FFFFFF;
         transition: border-color 0.2s ease;
         font-family: 'Poppins', sans-serif;
@@ -1513,7 +1519,7 @@
 
     .survey-data-mock-upload-text {
         font-size: 15px;
-        color: #1A202C;
+        color: #1b202b;
         margin: 0;
     }
 
@@ -1603,7 +1609,7 @@
         align-items: center;
         gap: 0.75rem;
         padding: 1rem 2rem;
-        background: #1E3A5F;
+        background: #1b202b;
         color: #FFFFFF;
         border: none;
         border-radius: 4px;
@@ -1646,7 +1652,7 @@
         border: 1px solid rgba(148, 163, 184, 0.4);
         border-radius: 4px;
         font-size: 14px;
-        color: #1A202C;
+        color: #1b202b;
         background: #FFFFFF;
         transition: border-color 0.2s ease;
         font-family: 'Poppins', sans-serif;
@@ -1700,7 +1706,7 @@
     .survey-data-mock-action-icon-btn.active {
         background: #C1EC4A;
         border-color: #C1EC4A;
-        color: #1A202C;
+        color: #1b202b;
     }
 
     .survey-data-mock-action-icon-btn.locked {
@@ -1759,7 +1765,7 @@
 
     .survey-data-mock-clone-modal-title {
         font-size: 20px;
-        color: #1A202C;
+        color: #1b202b;
         margin: 0;
     }
 
@@ -1816,7 +1822,7 @@
         border: 1px solid rgba(148, 163, 184, 0.4);
         border-radius: 4px;
         background: #FFFFFF;
-        color: #1A202C;
+        color: #1b202b;
         font-size: 14px;
         cursor: pointer;
         transition: all 0.2s ease;
@@ -1831,7 +1837,7 @@
     .survey-data-mock-clone-section-btn.active {
         background: #C1EC4A;
         border-color: #C1EC4A;
-        color: #1A202C;
+        color: #1b202b;
     }
 
     .survey-data-mock-clone-section-btn.disabled {
@@ -1852,7 +1858,7 @@
         border: 1px solid rgba(148, 163, 184, 0.4);
         border-radius: 4px;
         background: #FFFFFF;
-        color: #1A202C;
+        color: #1b202b;
         font-size: 14px;
         cursor: pointer;
         transition: all 0.2s ease;
@@ -1867,7 +1873,7 @@
     .survey-data-mock-clone-location-btn.active {
         background: #C1EC4A;
         border-color: #C1EC4A;
-        color: #1A202C;
+        color: #1b202b;
     }
 
     .survey-data-mock-clone-modal-input,
@@ -1877,7 +1883,7 @@
         border: 1px solid rgba(148, 163, 184, 0.4);
         border-radius: 4px;
         font-size: 14px;
-        color: #1A202C;
+        color: #1b202b;
         background: #FFFFFF;
         transition: border-color 0.2s ease;
         font-family: 'Poppins', sans-serif;
@@ -1978,7 +1984,7 @@
 
     .survey-data-mock-rating-modal-title {
         font-size: 20px;
-        color: #1A202C;
+        color: #1b202b;
         margin: 0;
     }
 
@@ -2048,7 +2054,7 @@
 
     .survey-data-mock-rating-option-label {
         font-size: 14px;
-        color: #1A202C;
+        color: #1b202b;
     }
 
     .survey-data-mock-rating-option-description {
@@ -2146,7 +2152,7 @@
 
     .survey-data-mock-cost-modal-title {
         font-size: 20px;
-        color: #1A202C;
+        color: #1b202b;
         margin: 0;
     }
 
@@ -2199,7 +2205,7 @@
         border: 1px solid rgba(148, 163, 184, 0.4);
         border-radius: 4px;
         font-size: 14px;
-        color: #1A202C;
+        color: #1b202b;
         background: #FFFFFF;
         transition: border-color 0.2s ease;
         font-family: 'Poppins', sans-serif;
@@ -2279,7 +2285,7 @@
     .survey-data-mock-cost-edit-btn:hover {
         background: #F1F5F9;
         border-color: rgba(148, 163, 184, 0.6);
-        color: #1A202C;
+        color: #1b202b;
     }
 
     .survey-data-mock-cost-delete-btn:hover {
@@ -2296,12 +2302,10 @@
     }
 
     @media (max-width: 1024px) {
-        .survey-data-mock-body {
-            padding: 1.5rem 1rem;
-        }
-
-        .survey-data-mock-header-bar {
-            padding: 0.75rem 1rem;
+        .survey-data-mock-content {
+            --survey-data-mock-x: 1rem;
+            --survey-data-mock-y: 0.875rem;
+            --survey-data-mock-block: 1.5rem;
         }
 
         .survey-data-mock-button-group {
@@ -2367,7 +2371,7 @@
     }
 
     .survey-data-mock-accommodation-header {
-        padding: 1rem 1.5rem;
+        padding: var(--survey-data-mock-y) var(--survey-data-mock-x);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -2413,12 +2417,42 @@
     }
 
     .survey-data-mock-accommodation-details {
-        padding: 1rem 1.5rem;
+        padding: var(--survey-data-mock-y) var(--survey-data-mock-x);
         background: #FFFFFF;
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
         overflow: hidden;
+    }
+
+    .survey-data-mock-pdf-section {
+        padding: var(--survey-data-mock-block) var(--survey-data-mock-x);
+        margin-top: var(--survey-data-mock-block);
+        text-align: center;
+        border-top: 2px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .survey-data-mock-pdf-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: var(--survey-data-mock-y) 1.5rem;
+        background: #1b202b;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 400;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-data-mock-pdf-button:hover {
+        color: #FFFFFF;
+        text-decoration: none;
+        opacity: 0.9;
     }
 
     /* Component Tabs */
@@ -2448,7 +2482,7 @@
     }
 
     .survey-data-mock-component-tab:hover {
-        color: #1A202C;
+        color: #1b202b;
         background: rgba(148, 163, 184, 0.05);
     }
 
@@ -2644,15 +2678,158 @@
     }
 
     .survey-data-mock-accommodation-form-grid-divider-handle i {
-        color: #1A202C;
+        color: #1b202b;
         font-size: 14px;
         display: inline-block !important;
         visibility: visible !important;
         opacity: 1 !important;
     }
 
-    /* Responsive */
+    /* Responsive - Mobile: single spacing scale for entire page */
     @media (max-width: 768px) {
+        .survey-data-mock-content {
+            --survey-data-mock-x-0: 0;
+            --survey-data-mock-x: 0.75rem;
+            --survey-data-mock-y: 0.75rem;
+            --survey-data-mock-block: 1.25rem;
+        }
+
+        /* Second header (address bar) - same padding as page */
+        .survey-data-mock-header-bar {
+            padding: var(--survey-data-mock-y) var(--survey-data-mock-x);
+            min-height: 52px;
+        }
+
+        .survey-data-mock-header-left {
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .survey-data-mock-back {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+        }
+
+        .survey-data-mock-header-bar .survey-data-mock-back i {
+            font-size: 1.25rem !important;
+        }
+
+        .survey-data-mock-header-title {
+            min-width: 0;
+        }
+
+        .survey-data-mock-header-bar .survey-data-mock-header-address {
+            font-size: 0.875rem !important;
+            font-weight: 600 !important;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .survey-data-mock-header-bar .survey-data-mock-header-ref {
+            font-size: 0.75rem !important;
+            font-weight: 300 !important;
+        }
+
+        .survey-data-mock-header-bar .survey-data-mock-header-level {
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+            padding: 0.35rem 0.6rem;
+            flex-shrink: 0;
+        }
+
+        .survey-data-mock-category {
+            margin-bottom: var(--survey-data-mock-block);
+        }
+
+        .survey-data-mock-category-header {
+            padding: var(--survey-data-mock-y) var(--survey-data-mock-x);
+        }
+
+        .survey-data-mock-category-title {
+            font-size: 1.35rem;
+            line-height: 1.3;
+        }
+
+        .survey-data-mock-sub-category {
+            margin-bottom: var(--survey-data-mock-block);
+        }
+
+        .survey-data-mock-sub-category-title {
+            font-size: 1.1rem;
+            margin: 0 0 0.75rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .survey-data-mock-sub-category-sections {
+            gap: var(--survey-data-mock-y);
+        }
+
+        .survey-data-mock-section-item {
+            margin-bottom: 0.25rem;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .survey-data-mock-section-header {
+            padding: 0.65rem var(--survey-data-mock-x);
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .survey-data-mock-section-name {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 0.8125rem;
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .survey-data-mock-section-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .survey-data-mock-status-info {
+            gap: 0.2rem;
+            font-size: 0.75rem;
+        }
+
+        .survey-data-mock-status-icon {
+            font-size: 0.75rem;
+        }
+
+        .survey-data-mock-status-text {
+            font-size: 0.75rem;
+        }
+
+        .survey-data-mock-status-separator {
+            margin: 0 0.1rem;
+            font-size: 0.65rem;
+        }
+
+        .survey-data-mock-condition-badge {
+            width: 24px;
+            height: 24px;
+        }
+
+        .survey-data-mock-expand-icon {
+            font-size: 1rem;
+        }
+
+        .survey-data-mock-section-title-bar .survey-data-mock-section-title-text {
+            font-size: 0.9375rem !important;
+        }
+
         .survey-data-mock-accommodation-form-grid {
             grid-template-columns: 1fr;
         }
@@ -4335,10 +4512,14 @@ $(document).ready(function() {
                         $sectionItem.find('[data-section-id]').attr('data-section-id', response.assessment_id);
                     }
                     
-                    // Clear selected files after successful save
+                    // Clear selected files and preview, then add saved photos to grid so they show without refresh
                     $sectionItem.data('selectedFiles', []);
                     $sectionItem.find('.survey-data-mock-images-preview').hide();
-                    $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-images-grid').empty();
+                    $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-images-grid-enhanced').empty();
+                    if (response.photos && response.photos.length > 0) {
+                        addPhotosToGrid($sectionItem, response.photos);
+                        updateImageCount($sectionItem);
+                    }
                     
                     // Hide form, show report
                     $details.slideUp(300);
@@ -4352,9 +4533,6 @@ $(document).ready(function() {
                     
                     // Initialize lock state (unlocked by default)
                     updateLockState($sectionItem, false);
-                    
-                    // Note: Images will be visible after page refresh or when section is reopened
-                    // The uploaded images are now saved in the database
                     
                     // Show success message
                     if (typeof toastr !== 'undefined') {
@@ -5498,10 +5676,14 @@ $(document).ready(function() {
                             $sectionItem.find('[data-section-id]').attr('data-section-id', response.assessment_id);
                         }
                         
-                        // Clear selected files after successful save
+                        // Clear selected files and preview, then add saved photos to grid so they show without refresh
                         $sectionItem.data('selectedFiles', []);
                         $sectionItem.find('.survey-data-mock-images-preview').hide();
-                        $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-images-grid').empty();
+                        $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-images-grid-enhanced').empty();
+                        if (response.photos && response.photos.length > 0) {
+                            addPhotosToGrid($sectionItem, response.photos);
+                            updateImageCount($sectionItem);
+                        }
                         
                         // Hide form, show report
                         $details.slideUp(300);
@@ -5522,9 +5704,6 @@ $(document).ready(function() {
                         } else {
                             console.log('Assessment saved successfully');
                         }
-                        
-                        // Note: Images will be visible after page refresh or when section is reopened
-                        // The uploaded images are now saved in the database
                     } else {
                         throw new Error(response.error || 'Failed to save assessment');
                     }
@@ -5937,10 +6116,14 @@ $(document).ready(function() {
                         });
                     }
                     
-                    // Clear selected files after successful save
+                    // Clear selected files and preview, then add saved photos to grid so they show without refresh
                     $item.data('selectedFiles', []);
                     $item.find('.survey-data-mock-images-preview').hide();
-                    $item.find('.survey-data-mock-images-preview .survey-data-mock-images-grid').empty();
+                    $item.find('.survey-data-mock-images-preview .survey-data-mock-images-grid-enhanced').empty();
+                    if (response.photos && response.photos.length > 0) {
+                        addPhotosToGrid($item, response.photos);
+                        updateImageCount($item);
+                    }
                     
                     // Generate report content for accommodation
                     const reportFormData = {
@@ -5978,9 +6161,6 @@ $(document).ready(function() {
                     } else {
                         console.log('Accommodation assessment saved successfully');
                     }
-                    
-                    // Note: Images will be visible after page refresh or when accommodation is reopened
-                    // The uploaded images are now saved in the database
                 } else {
                     throw new Error(response.error || 'Failed to save accommodation assessment');
                 }
@@ -6429,12 +6609,13 @@ $(document).ready(function() {
         }
     }
     
-    // Create image card HTML
+    // Create image card HTML (only use when imageUrl is valid to avoid broken image cards)
     function createImageCard(imageUrl, photoId, index) {
+        if (!imageUrl || typeof imageUrl !== 'string') return $();
         const $card = $(`
-            <div class="survey-data-mock-image-card" data-image-url="${imageUrl}" ${photoId ? 'data-photo-id="' + photoId + '"' : ''}>
+            <div class="survey-data-mock-image-card" data-image-url="" ${photoId ? 'data-photo-id="' + photoId + '"' : ''}>
                 <div class="survey-data-mock-image-wrapper">
-                    <img src="${imageUrl}" alt="Photo ${index + 1}" class="survey-data-mock-image-thumb" loading="lazy" onerror="this.style.display='none'; this.parentElement.querySelector('.survey-data-mock-image-error') && (this.parentElement.querySelector('.survey-data-mock-image-error').style.display='flex');">
+                    <img src="" alt="Photo ${index + 1}" class="survey-data-mock-image-thumb" loading="lazy" onerror="this.style.display='none'; this.parentElement.querySelector('.survey-data-mock-image-error') && (this.parentElement.querySelector('.survey-data-mock-image-error').style.display='flex');">
                     <div class="survey-data-mock-image-error" style="display:none;"><i class="fas fa-image"></i></div>
                     <div class="survey-data-mock-image-overlay">
                         <button type="button" class="survey-data-mock-image-action survey-data-mock-image-preview-btn" title="Preview">
@@ -6450,6 +6631,8 @@ $(document).ready(function() {
                 </div>
             </div>
         `);
+        $card.attr('data-image-url', imageUrl);
+        $card.find('.survey-data-mock-image-thumb').attr('src', imageUrl);
         return $card;
     }
     
@@ -6470,10 +6653,14 @@ $(document).ready(function() {
         }
         
         const existingCount = $existingGrid.find('.survey-data-mock-image-card').length;
-        
+        let appended = 0;
         photos.forEach(function(photo, index) {
-            const $card = createImageCard(photo.url, photo.id, existingCount + index + 1);
-            $existingGrid.append($card);
+            if (!photo.url) return;
+            const $card = createImageCard(photo.url, photo.id, existingCount + appended + 1);
+            if ($card.length) {
+                $existingGrid.append($card);
+                appended++;
+            }
         });
         
         $existingContainer.show();

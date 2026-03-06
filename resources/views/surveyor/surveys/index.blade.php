@@ -356,7 +356,20 @@
             const filtersToggle = document.getElementById('survey-filters-toggle');
             const filtersContainer = document.getElementById('survey-filters-container');
             const sidebarOpenBtn = document.getElementById('survey-sidebar-open');
+            const sidebarBackdrop = document.getElementById('survey-sidebar-backdrop');
             const filterPanelResetBtn = document.getElementById('filter-reset');
+
+            // On mobile/tablet: start with sidebar collapsed so content is full width
+            if (window.innerWidth < 1025 && sidebar && mainContent) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('sidebar-collapsed');
+                if (sidebarOpenBtn) {
+                    sidebarOpenBtn.classList.add('show');
+                }
+                if (sidebarBackdrop) {
+                    sidebarBackdrop.classList.remove('show');
+                }
+            }
 
             if (sidebar && sidebar.classList.contains('collapsed') && sidebarOpenBtn) {
                 sidebarOpenBtn.classList.add('show');

@@ -453,6 +453,60 @@
     .checkbox-item input {
         display: none;
     }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .wizard-container {
+            padding: 0 0.75rem 1.25rem;
+        }
+
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+
+        .page-header > a.btn-builder {
+            width: 100%;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .wizard-content {
+            padding: 20px 18px;
+        }
+
+        .wizard-footer {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .wizard-footer .wizard-footer-left,
+        .wizard-footer .wizard-footer-right {
+            width: 100%;
+            justify-content: stretch;
+        }
+
+        .wizard-footer .wizard-footer-right .btn-builder,
+        .wizard-footer .wizard-footer-left .btn-builder {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .radio-group {
+            flex-direction: column;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .wizard-steps {
+            flex-direction: column;
+        }
+
+        .wizard-step {
+            padding: 12px 16px;
+            text-align: left;
+        }
+    }
 </style>
 @endpush
 

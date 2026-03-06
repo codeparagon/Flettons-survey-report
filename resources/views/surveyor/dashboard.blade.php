@@ -123,28 +123,28 @@
 <style>
 /* Page-wide dark background to keep color constant */
 .dashboard-wrapper, .dashboard-content, body {
-    background-color: #1a202c !important;
+    background-color: #1b202b !important;
 }
 
 /* Override main content and wrapper backgrounds for consistent dark theme */
 .survey-main-content,
 .survey-content-wrapper {
-    background-color: #1a202c !important;
-    background: #1a202c !important;
+    background-color: #1b202b !important;
+    background: #1b202b !important;
 }
 
 /* Ensure layout background is also dark */
 .survey-layout {
-    background: #1a202c !important;
+    background: #1b202b !important;
 }
 
 /* Scoped dashboard styling */
 .survai-dashboard { color:#E5E7EB; }
-.survai-dashboard .sd-hero { background:#1a202c; margin-left:-12px; margin-right:-12px; padding:16px; border-radius:8px; }
+.survai-dashboard .sd-hero { background:#1b202b; margin-left:-12px; margin-right:-12px; padding:16px; border-radius:8px; }
 .survai-dashboard .sd-title { color:#C1EC4A!important; font-weight:800; letter-spacing:0.2px; }
 .survai-dashboard .sd-sub { color:#A7B0BE; }
-.survai-dashboard .sd-row { background:#1a202c; margin-left:-12px; margin-right:-12px; padding:8px 16px 16px 16px; border-radius:12px; }
-.survai-dashboard .sd-card { background:#1a202c; border:1px solid rgba(255,255,255,0.06); border-radius:16px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+.survai-dashboard .sd-row { background:#1b202b; margin-left:-12px; margin-right:-12px; padding:8px 16px 16px 16px; border-radius:12px; }
+.survai-dashboard .sd-card { background:#1b202b; border:1px solid rgba(255,255,255,0.06); border-radius:16px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
 .survai-dashboard .sd-card-body { padding:12px; }
 .survai-dashboard .sd-card-title { color:#E5E7EB; font-weight:700; margin-bottom:6px; }
 .survai-dashboard .sd-card-caption { color:#A7B0BE; font-weight:700; line-height:1.1; margin-top:8px; }
@@ -176,7 +176,7 @@ a.btn-primary,
 button.btn-primary {
     background-color: #C1EC4A !important;
     border-color: #C1EC4A !important;
-    color: #1A202C !important;
+    color: #1b202b !important;
     font-weight: 600 !important;
     padding: 12px 20px !important;
     border-radius: 6px !important;
@@ -191,7 +191,7 @@ a.btn-primary:hover,
 button.btn-primary:hover {
     background-color: #B0D93F !important;
     border-color: #B0D93F !important;
-    color: #1A202C !important;
+    color: #1b202b !important;
     text-decoration: none !important;
     box-shadow: none !important;
 }
@@ -200,7 +200,7 @@ button.btn-primary:hover {
 .badge-info,
 span.badge-info {
     background-color: #C1EC4A !important;
-    color: #1A202C !important;
+    color: #1b202b !important;
     font-weight: 600 !important;
     padding: 6px 12px !important;
     border-radius: 4px !important;
@@ -209,7 +209,7 @@ span.badge-info {
 .badge-success,
 span.badge-success {
     background-color: #C1EC4A !important;
-    color: #1A202C !important;
+    color: #1b202b !important;
     font-weight: 600 !important;
     padding: 6px 12px !important;
     border-radius: 4px !important;
@@ -217,7 +217,7 @@ span.badge-success {
 
 .badge-warning,
 span.badge-warning {
-    background-color: #1A202C !important;
+    background-color: #1b202b !important;
     color: #C1EC4A !important;
     font-weight: 600 !important;
     padding: 6px 12px !important;
@@ -226,7 +226,7 @@ span.badge-warning {
 
 .badge-danger,
 span.badge-danger {
-    background-color: #1A202C !important;
+    background-color: #1b202b !important;
     color: #C1EC4A !important;
     font-weight: 600 !important;
     padding: 6px 12px !important;
@@ -235,7 +235,7 @@ span.badge-danger {
 
 .badge-secondary,
 span.badge-secondary {
-    background-color: #1A202C !important;
+    background-color: #1b202b !important;
     color: #C1EC4A !important;
     font-weight: 600 !important;
     padding: 6px 12px !important;
@@ -255,7 +255,7 @@ span.badge-secondary {
 <script>
 document.addEventListener('DOMContentLoaded', function(){
     const brandGreen = '#C1EC4A';
-    const brandInk = '#1A202C';
+    const brandInk = '#1b202b';
     const darkBg = '#111827';
     const track = '#1F2937';
 

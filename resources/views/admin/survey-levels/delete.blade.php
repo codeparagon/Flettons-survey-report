@@ -66,6 +66,37 @@
         font-size: 14px;
         margin-right: 10px;
     }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .page-header.mb-4 {
+            text-align: left;
+        }
+        
+        .pageheader-title {
+            font-size: 22px;
+        }
+        
+        .delete-confirm-card {
+            padding: 20px 16px;
+        }
+        
+        .row > .col-xl-8,
+        .row > .col-xl-4 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+        
+        .btn-delete-confirm,
+        .btn.btn-secondary {
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        form.d-inline {
+            width: 100%;
+        }
+    }
 </style>
 @endpush
 

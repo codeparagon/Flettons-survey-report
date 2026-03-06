@@ -4,12 +4,12 @@
 
 @section('content')
 <div class="row">
-    <div class="col-xl-12">
-        <div class="page-header">
+    <div class="col-12">
+        <div class="page-header assessment-edit-header">
             <h2 class="pageheader-title">Edit Assessment #{{ $assessment->id }}</h2>
             <div class="page-breadcrumb">
                 <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
+                    <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.survey-section-assessments.index') }}">Survey Section Assessments</a></li>
                         <li class="breadcrumb-item"><a href="{{ route('admin.survey-section-assessments.show', $assessment) }}">Assessment #{{ $assessment->id }}</a></li>
@@ -21,8 +21,8 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-xl-8">
+<div class="row assessment-edit-row">
+    <div class="col-12 col-xl-8 order-2 order-xl-1">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">Assessment Information</h5>
@@ -94,8 +94,8 @@
         </div>
     </div>
 
-    <div class="col-xl-4">
-        <div class="card">
+    <div class="col-12 col-xl-4 order-1 order-xl-2">
+        <div class="card assessment-edit-sidebar-card">
             <div class="card-header">
                 <h5 class="mb-0">Assessment Info</h5>
             </div>
@@ -137,3 +137,75 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+.assessment-edit-header .breadcrumb {
+    padding: 0;
+    background: transparent;
+}
+
+.assessment-edit-sidebar-card .card-body table {
+    width: 100%;
+}
+
+.assessment-edit-sidebar-card .card-body th {
+    padding: 0.4rem 0.5rem 0.4rem 0;
+    font-weight: 600;
+    color: #374151;
+}
+
+.assessment-edit-sidebar-card .card-body td {
+    padding: 0.4rem 0;
+}
+
+@media (max-width: 768px) {
+    .assessment-edit-header {
+        padding: 1rem 1.25rem !important;
+    }
+
+    .assessment-edit-header .pageheader-title {
+        font-size: 1.25rem;
+    }
+
+    .assessment-edit-row .card-body {
+        padding: 1rem;
+    }
+
+    .assessment-edit-row .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .assessment-edit-sidebar-card .btn-block,
+    .assessment-edit-sidebar-card .card-body > a.btn {
+        width: 100%;
+        display: block;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .assessment-edit-row .form-group .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .assessment-edit-row .form-group .btn + .btn {
+        margin-left: 0 !important;
+    }
+
+    .assessment-edit-sidebar-card {
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .assessment-edit-header .pageheader-title {
+        font-size: 1.1rem;
+    }
+
+    .assessment-edit-header .breadcrumb {
+        font-size: 0.85rem;
+    }
+}
+</style>
+@endpush

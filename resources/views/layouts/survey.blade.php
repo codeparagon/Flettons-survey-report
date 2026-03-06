@@ -21,7 +21,7 @@
 
     @stack('styles')
 </head>
-<body class="survey-page">
+<body class="survey-page @if(request()->is('admin/surveys*')) surveys-page-sidebar-open @endif">
     <div class="survey-layout">
         <!-- Survey Header -->
         @include('layouts.survey.partials.header')
@@ -79,6 +79,25 @@
     @stack('scripts')
     
     <script>
+    // Keep sidebar open on admin surveys pages (run early so sidebar is open before other scripts)
+    (function() {
+        if (!document.body.classList.contains('surveys-page-sidebar-open')) return;
+        function ensureSidebarOpen() {
+            var sidebar = document.getElementById('survey-sidebar');
+            var backdrop = document.getElementById('survey-sidebar-backdrop');
+            var mainContent = document.getElementById('survey-main-content');
+            var openBtn = document.getElementById('survey-sidebar-open');
+            if (sidebar) { sidebar.classList.remove('collapsed'); }
+            if (mainContent) { mainContent.classList.remove('sidebar-collapsed'); }
+            if (backdrop) { backdrop.classList.add('show'); }
+            if (openBtn) { openBtn.classList.remove('show'); }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ensureSidebarOpen);
+        } else {
+            ensureSidebarOpen();
+        }
+    })();
     // Aggressively remove all overlays and enable interactions
     $(document).ready(function() {
         function removeAllOverlays() {

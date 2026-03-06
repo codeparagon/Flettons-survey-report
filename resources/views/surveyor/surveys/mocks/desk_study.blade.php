@@ -23,11 +23,17 @@
                 <header class="survey-detail-card-header">
                     <h3>Location Overview</h3>
                 </header>
-                <div cl ass="survey-detail-card-body">
-                    <img src="{{ $deskStudy['map']['image'] }}" alt="Map preview" class="img-fluid rounded" />
+                <div class="survey-detail-card-body">
+                    <img src="{{ $deskStudy['map']['image'] }}" alt="Location map preview" class="img-fluid rounded" />
                     <dl class="survey-detail-datalist">
-                        <div><dt>Longitude</dt><dd>{{ $deskStudy['map']['longitude'] }}</dd></div>
-                        <div><dt>Latitude</dt><dd>{{ $deskStudy['map']['latitude'] }}</dd></div>
+                        <div>
+                            <dt>Longitude</dt>
+                            <dd>{{ $deskStudy['map']['longitude'] }}</dd>
+                        </div>
+                        <div>
+                            <dt>Latitude</dt>
+                            <dd>{{ $deskStudy['map']['latitude'] }}</dd>
+                        </div>
                     </dl>
                 </div>
             </article>
@@ -53,17 +59,20 @@
                 <h3>Planning & Compliance</h3>
             </header>
             <div class="survey-detail-card-body">
-                <div class="survey-detail-datalist">
+                <dl class="survey-detail-datalist">
                     @foreach ($deskStudy['planning'] as $item)
                         <div>
                             <dt>{{ $item['label'] }}</dt>
                             <dd>{{ $item['value'] }}</dd>
                         </div>
                     @endforeach
-                </div>
+                </dl>
             </div>
         </article>
     </section>
 </div>
 @endsection
 
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('css/custom/survey-detail-theme.css') }}">
+@endpush

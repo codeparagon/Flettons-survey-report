@@ -21,7 +21,7 @@
         gap: 24px;
         min-height: calc(100vh - 200px);
     }
-
+    
     .builder-main {
         background: white;
         border-radius: 12px;
@@ -133,16 +133,17 @@
         padding: 24px;
         border-bottom: 1px solid var(--builder-border);
     }
-
+    
     .builder-section:last-child {
         border-bottom: none;
     }
-
+    
     .section-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 16px;
+        gap: 12px;
     }
 
     .section-title {
@@ -196,6 +197,7 @@
     .item-icon {
         width: 40px;
         height: 40px;
+        min-width: 40px;
         background: var(--builder-primary);
         border-radius: 8px;
         display: flex;
@@ -204,6 +206,7 @@
         color: var(--builder-accent);
         margin-right: 12px;
         font-size: 16px;
+        flex: 0 0 40px;
     }
 
     .item-info {
@@ -312,7 +315,9 @@
     .tag-remove {
         cursor: pointer;
         color: #9ca3af;
-        font-size: 14px;
+        font-size: 13px;
+        line-height: 1;
+        margin-left: 4px;
     }
 
     .tag-remove:hover {
@@ -368,16 +373,16 @@
         background: var(--builder-bg);
         cursor: pointer;
     }
-
+    
     .component-header:hover {
         background: var(--builder-hover);
     }
-
+    
     .component-content {
         padding: 16px;
         background: white;
     }
-
+    
     .component-toggle {
         margin-right: 12px;
         color: #6b7280;
@@ -715,8 +720,85 @@
     }
     
     @media (max-width: 768px) {
+        /* Layout & scrolling */
+        .builder-main {
+            max-height: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        
+        .builder-main-content {
+            max-height: none;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .builder-container {
+            gap: 16px;
+        }
+        
+        /* Header */
+        .builder-header {
+            position: static;
+            padding: 14px 16px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .builder-title {
+            font-size: 17px;
+        }
+        
+        .builder-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        
+        .btn-builder {
+            font-size: 13px;
+            padding: 8px 12px;
+        }
+        
+        /* Sections */
+        .builder-section {
+            padding: 16px 14px;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .section-title {
+            font-size: 16px;
+        }
+        
+        .section-subtitle {
+            font-size: 12px;
+        }
+        
+        /* Cards & actions */
         .item-card {
             flex-wrap: wrap;
+            align-items: flex-start;
+            padding: 12px 12px;
+        }
+        
+        .item-icon {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            font-size: 14px;
+            flex: 0 0 34px;
+        }
+        
+        .item-name {
+            font-size: 14px;
+        }
+        
+        .item-meta {
+            font-size: 12px;
         }
         
         .item-actions {
@@ -728,6 +810,103 @@
         .action-btn.text-btn {
             width: 100%;
             justify-content: center;
+        }
+        
+        /* Tags & inputs */
+        .tags-container {
+            padding: 10px;
+        }
+        
+        .tag {
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+        
+        .tag-input {
+            font-size: 12px;
+        }
+        
+        /* Forms & modals */
+        .modal-content {
+            border-radius: 10px;
+        }
+        
+        .modal-header {
+            padding: 14px 16px;
+        }
+        
+        .modal-body {
+            padding: 16px;
+        }
+        
+        .modal-footer {
+            padding: 12px 16px;
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .form-group {
+            margin-bottom: 14px;
+        }
+        
+        .form-label {
+            font-size: 13px;
+        }
+        
+        .form-input {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        
+        .form-hint {
+            font-size: 11px;
+        }
+        
+        .checkbox-group {
+            gap: 8px;
+        }
+        
+        .checkbox-item {
+            padding: 10px 12px;
+            font-size: 13px;
+        }
+        
+        /* Preview panel inside modal or when shown */
+        .preview-content {
+            padding: 16px;
+        }
+        
+        .preview-room {
+            padding: 12px;
+        }
+        
+        .preview-room-title {
+            font-size: 14px;
+        }
+        
+        .preview-tab {
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+        
+        .preview-field-label {
+            font-size: 11px;
+        }
+        
+        .preview-button {
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+        
+        /* Toast */
+        .toast-container {
+            top: 10px;
+            right: 10px;
+            left: 10px;
+        }
+        
+        .toast {
+            font-size: 13px;
         }
     }
 </style>

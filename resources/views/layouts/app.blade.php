@@ -88,6 +88,7 @@
         const sidebar = $('#survey-sidebar');
         const sidebarBackdrop = $('#survey-sidebar-backdrop');
         const sidebarOpenBtn = $('#survey-sidebar-open');
+        const headerMenuBtn = $('#survey-header-menu-btn');
         const sidebarCollapseBtn = $('#survey-sidebar-collapse');
         const mainContent = $('#survey-main-content');
 
@@ -97,17 +98,26 @@
                 sidebar.addClass('collapsed');
                 mainContent.addClass('sidebar-collapsed');
                 sidebarOpenBtn.addClass('show');
-                if (window.innerWidth < 769) {
+                headerMenuBtn.removeClass('active');
+                if (window.innerWidth < 1025) {
                     sidebarBackdrop.removeClass('show');
                 }
             } else {
                 sidebar.removeClass('collapsed');
                 mainContent.removeClass('sidebar-collapsed');
                 sidebarOpenBtn.removeClass('show');
-                if (window.innerWidth < 769) {
+                headerMenuBtn.addClass('active');
+                if (window.innerWidth < 1025) {
                     sidebarBackdrop.addClass('show');
                 }
             }
+        }
+
+        // On mobile/tablet: start with sidebar collapsed so the open button is visible
+        if (window.innerWidth < 1025) {
+            sidebar.addClass('collapsed');
+            mainContent.addClass('sidebar-collapsed');
+            sidebarOpenBtn.addClass('show');
         }
 
         // Toggle sidebar collapse
@@ -118,10 +128,20 @@
             });
         }
 
-        // Open sidebar button
+        // Open sidebar (floating button and header hamburger)
+        function openSidebar() {
+            updateSidebarState(false);
+        }
         if (sidebarOpenBtn.length) {
-            sidebarOpenBtn.on('click', function() {
-                updateSidebarState(false);
+            sidebarOpenBtn.on('click', openSidebar);
+        }
+        if (headerMenuBtn.length) {
+            headerMenuBtn.on('click', function() {
+                if (sidebar.hasClass('collapsed')) {
+                    openSidebar();
+                } else {
+                    updateSidebarState(true);
+                }
             });
         }
 
@@ -134,10 +154,12 @@
 
         // Handle window resize
         $(window).on('resize', function() {
-            if (window.innerWidth >= 769) {
+            if (window.innerWidth >= 1025) {
                 sidebarBackdrop.removeClass('show');
+                headerMenuBtn.removeClass('active');
             } else if (!sidebar.hasClass('collapsed')) {
                 sidebarBackdrop.addClass('show');
+                headerMenuBtn.addClass('active');
             }
         });
 

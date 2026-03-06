@@ -278,6 +278,135 @@
         margin-bottom: 16px;
         opacity: 0.5;
     }
+
+    /* Mobile card layout */
+    .sections-mobile-list {
+        display: none;
+        margin-top: 0.75rem;
+    }
+
+    .section-card-mobile {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        padding: 16px 14px;
+        margin-bottom: 12px;
+        border: 1px solid var(--builder-border);
+    }
+
+    .section-card-mobile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .section-card-mobile-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--builder-primary);
+    }
+
+    .section-card-mobile-id {
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .section-card-mobile-meta {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 8px;
+    }
+
+    .section-card-mobile-content {
+        margin-top: 8px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: var(--builder-bg);
+        border: 1px solid var(--builder-border);
+        max-height: 260px;
+        overflow-y: auto;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #374151;
+    }
+
+    .section-card-mobile-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .section-card-mobile-footer {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .section-card-mobile-footer .btn {
+        flex: 1 1 48%;
+        justify-content: center;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .sections-container {
+            padding: 0 0.75rem 1.25rem;
+        }
+
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .page-header > div:first-child {
+            width: 100%;
+        }
+
+        .page-header > a.btn-builder {
+            width: 100%;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .page-title {
+            font-size: 18px;
+        }
+
+        .page-subtitle {
+            font-size: 13px;
+        }
+
+        .sections-table {
+            border-radius: 10px;
+        }
+
+        .table-header {
+            padding: 14px 16px;
+        }
+
+        th,
+        td {
+            padding: 10px 12px !important;
+        }
+
+        .btn-group {
+            justify-content: flex-start;
+        }
+
+        /* Hide desktop table and show mobile cards */
+        .sections-table {
+            display: none;
+        }
+
+        .sections-mobile-list {
+            display: block;
+        }
+    }
 </style>
 @endpush
 
@@ -296,6 +425,7 @@
         </a>
     </div>
 
+    <!-- Desktop/tablet table view -->
     <div class="sections-table">
         <div class="table-header">
             <h5>All Content Sections</h5>
@@ -418,12 +548,107 @@
                 </tbody>
             </table>
         </div>
-        @if($sections->hasPages())
-            <div class="pagination-wrapper">
-                {{ $sections->links() }}
-            </div>
-        @endif
     </div>
+
+    <!-- Mobile card view -->
+    <div class="sections-mobile-list">
+        @forelse($sections as $section)
+            <div class="section-card-mobile">
+                <div class="section-card-mobile-header">
+                    <div>
+                        <div class="section-card-mobile-title">{{ $section->title }}</div>
+                        <div class="section-card-mobile-id">#{{ $section->id }}</div>
+                    </div>
+                    <div>
+                        @if($section->is_active)
+                            <span class="badge badge-success">Active</span>
+                        @else
+                            <span class="badge badge-secondary">Inactive</span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="section-card-mobile-meta">
+                    @if($section->subcategory_id)
+                        <span class="badge badge-info">Subcategory</span>
+                        <span class="link-info d-block mt-1">
+                            {{ $section->subcategory->category->display_name ?? '' }} >
+                            {{ $section->subcategory->display_name ?? '' }}
+                        </span>
+                    @elseif($section->category_id)
+                        <span class="badge badge-warning">Category</span>
+                        <span class="link-info d-block mt-1">
+                            {{ $section->category->display_name ?? '' }}
+                        </span>
+                    @else
+                        <span class="badge badge-secondary">Standalone</span>
+                    @endif
+                </div>
+
+                <div class="section-card-mobile-content">
+                    {!! $section->content !!}
+                </div>
+
+                @if($section->tags && count($section->tags) > 0)
+                    <div class="section-card-mobile-tags">
+                        @foreach($section->tags as $tag)
+                            <span class="badge badge-info">{{ $tag }}</span>
+                        @endforeach
+                    </div>
+                @endif
+
+                <div class="section-card-mobile-footer">
+                    <a href="{{ route('admin.content-sections.show', $section) }}"
+                       class="btn btn-info btn-sm">
+                        <i class="fas fa-eye"></i> View
+                    </a>
+                    <a href="{{ route('admin.content-sections.edit', $section) }}"
+                       class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <form action="{{ route('admin.content-sections.toggle-status', $section) }}"
+                          method="POST"
+                          class="d-inline flex-grow-1">
+                        @csrf
+                        <button type="submit"
+                                class="btn btn-sm {{ $section->is_active ? 'btn-secondary' : 'btn-success' }} w-100"
+                                title="{{ $section->is_active ? 'Deactivate' : 'Activate' }}">
+                            <i class="fas fa-{{ $section->is_active ? 'pause' : 'play' }}"></i>
+                            {{ $section->is_active ? 'Deactivate' : 'Activate' }}
+                        </button>
+                    </form>
+                    <form action="{{ route('admin.content-sections.destroy', $section) }}"
+                          method="POST"
+                          class="d-inline flex-grow-1"
+                          onsubmit="return confirm('Are you sure you want to delete this content section? This action cannot be undone.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                                class="btn btn-danger btn-sm w-100">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @empty
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h3>No Content Sections Found</h3>
+                <p>Get started by creating your first content section.</p>
+                <a href="{{ route('admin.content-sections.create') }}" class="btn-builder btn-builder-primary">
+                    <i class="fas fa-plus"></i> Create First Section
+                </a>
+            </div>
+        @endforelse
+    </div>
+
+    @if($sections->hasPages())
+        <div class="pagination-wrapper">
+            {{ $sections->links() }}
+        </div>
+    @endif
 </div>
 @endsection
 

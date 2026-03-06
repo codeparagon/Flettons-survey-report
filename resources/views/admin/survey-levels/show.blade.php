@@ -125,6 +125,43 @@
         font-weight: 600;
         text-transform: uppercase;
     }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .d-flex.justify-content-between.align-items-center.mb-4 {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 10px;
+        }
+        
+        .d-flex.justify-content-between.align-items-center.mb-4 > div:last-child {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .d-flex.justify-content-between.align-items-center.mb-4 .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .level-header {
+            padding: 20px 16px;
+        }
+        
+        .level-title {
+            font-size: 22px;
+        }
+        
+        .sections-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .info-card {
+            padding: 18px 16px;
+        }
+    }
 </style>
 @endpush
 

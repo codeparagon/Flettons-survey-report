@@ -12,17 +12,17 @@
     .page-header-builder {
         background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
         color: white;
-        padding: 28px 32px;
-        border-radius: 16px;
-        margin-bottom: 28px;
+        padding: 22px 24px;
+        border-radius: 14px;
+        margin-bottom: 22px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        box-shadow: 0 10px 40px rgba(26, 32, 44, 0.15);
+        box-shadow: 0 8px 28px rgba(26, 32, 44, 0.16);
     }
     
     .page-header-builder h1 {
-        font-size: 26px;
+        font-size: 22px;
         font-weight: 700;
         margin: 0;
         display: flex;
@@ -80,12 +80,12 @@
     /* Stats Bar */
     .stats-bar {
         display: flex;
-        gap: 24px;
+        gap: 20px;
         background: white;
-        padding: 20px 28px;
-        border-radius: 14px;
-        margin-bottom: 24px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        padding: 16px 22px;
+        border-radius: 12px;
+        margin-bottom: 18px;
+        box-shadow: 0 1px 8px rgba(15,23,42,0.06);
         border: 1px solid #e5e7eb;
     }
     
@@ -96,9 +96,9 @@
     }
     
     .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -111,7 +111,7 @@
     }
     
     .stat-info h4 {
-        font-size: 22px;
+        font-size: 20px;
         font-weight: 700;
         color: #1a202c;
         margin: 0;
@@ -126,8 +126,8 @@
     /* Main Content Layout */
     .builder-layout {
         display: grid;
-        grid-template-columns: 1fr 380px;
-        gap: 24px;
+        grid-template-columns: 1fr 360px;
+        gap: 20px;
         align-items: start;
     }
     
@@ -143,8 +143,8 @@
     /* Tree Panel */
     .tree-panel {
         background: white;
-        border-radius: 14px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(15,23,42,0.06);
         border: 1px solid #e5e7eb;
         overflow: hidden;
     }
@@ -254,8 +254,8 @@
     }
     
     .tree-content {
-        padding: 20px;
-        max-height: calc(100vh - 380px);
+        padding: 18px 18px 20px;
+        max-height: calc(100vh - 340px);
         overflow-y: auto;
     }
     
@@ -288,7 +288,7 @@
     .cat-item {
         background: #fafafa;
         border: 1px solid #e5e7eb;
-        border-radius: 12px;
+        border-radius: 10px;
         margin-bottom: 16px;
         overflow: hidden;
         transition: all 0.2s;
@@ -305,7 +305,7 @@
     .cat-head {
         display: flex;
         align-items: center;
-        padding: 16px 20px;
+        padding: 12px 16px;
         cursor: pointer;
         transition: background 0.2s;
         gap: 12px;
@@ -338,8 +338,8 @@
     }
     
     .cat-icon {
-        width: 38px;
-        height: 38px;
+        width: 34px;
+        height: 34px;
         background: linear-gradient(135deg, #1a202c, #374151);
         border-radius: 10px;
         display: flex;
@@ -355,7 +355,7 @@
     
     .cat-name {
         font-weight: 600;
-        font-size: 16px;
+        font-size: 15px;
         color: #1a202c;
         margin-bottom: 2px;
     }
@@ -416,14 +416,14 @@
     
     /* Subcategory Item */
     .subcat-list {
-        margin-left: 50px;
+        margin-left: 42px;
         margin-top: 8px;
     }
     
     .subcat-item {
         background: white;
         border: 1px solid #e5e7eb;
-        border-radius: 10px;
+        border-radius: 9px;
         margin-bottom: 10px;
         overflow: hidden;
     }
@@ -435,7 +435,7 @@
     .subcat-head {
         display: flex;
         align-items: center;
-        padding: 12px 16px;
+        padding: 10px 14px;
         cursor: pointer;
         gap: 10px;
     }
@@ -457,7 +457,7 @@
     .subcat-name {
         flex: 1;
         font-weight: 500;
-        font-size: 14px;
+        font-size: 13px;
         color: #374151;
     }
     
@@ -530,14 +530,14 @@
     
     /* Section Item */
     .sec-list {
-        margin-left: 38px;
+        margin-left: 32px;
         margin-top: 6px;
     }
     
     .sec-item {
         display: flex;
         align-items: center;
-        padding: 10px 14px;
+        padding: 8px 12px;
         background: #f9fafb;
         border-radius: 8px;
         margin-bottom: 6px;
@@ -564,7 +564,7 @@
     
     .sec-name {
         flex: 1;
-        font-size: 14px;
+        font-size: 13px;
         color: #374151;
         font-weight: 500;
     }
@@ -645,6 +645,11 @@
         font-size: 14px;
         font-weight: 500;
         margin-top: 12px;
+    }
+    
+    /* Align "Add Section" button with sections */
+    .add-btn-section {
+        margin-left: 32px;
     }
     
     .add-btn:hover {
@@ -1078,6 +1083,257 @@
     
     .sortable-chosen {
         box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    /* ============================================
+       Responsive Adjustments - Tablets & Mobile
+       ============================================ */
+    @media (max-width: 992px) {
+        .page-header-builder {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 20px 18px;
+        }
+        
+        .header-actions {
+            width: 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+            row-gap: 8px;
+        }
+        
+        .btn-header {
+            flex: 1 1 auto;
+            justify-content: center;
+            padding: 10px 12px;
+            font-size: 13px;
+        }
+        
+        .stats-bar {
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 14px 16px;
+        }
+        
+        .stat-item {
+            flex: 1 1 130px;
+        }
+        
+        .tree-content {
+            max-height: none;
+        }
+        
+        .tree-toolbar {
+            padding-inline: 16px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .page-header-builder h1 {
+            font-size: 18px;
+        }
+        
+        .page-header-builder h1 i {
+            font-size: 20px;
+        }
+        
+        .stat-info h4 {
+            font-size: 18px;
+        }
+        
+        .stat-info span {
+            font-size: 12px;
+        }
+        
+        .stats-bar {
+            flex-direction: column;
+        }
+        
+        .bulk-select {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        
+        .cat-head,
+        .subcat-head,
+        .sec-item {
+            flex-wrap: wrap;
+            align-items: flex-start;
+            padding: 10px 12px;
+        }
+        
+        .cat-actions,
+        .subcat-actions,
+        .sec-actions {
+            opacity: 1;
+        }
+        
+        .subcat-list {
+            margin-left: 16px;
+        }
+        
+        .sec-list {
+            margin-left: 16px;
+        }
+        
+        .add-btn-section {
+            margin-left: 16px;
+        }
+        
+        .modal-box {
+            max-width: 100%;
+        }
+        
+        .modal-body {
+            padding: 18px 16px;
+        }
+        
+        .modal-foot {
+            padding: 12px 16px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+        
+        .toast-wrap {
+            top: auto;
+            bottom: 16px;
+            right: 12px;
+            left: 12px;
+        }
+        
+        .toast-item {
+            width: 100%;
+        }
+    }
+    
+    /* Extra-small devices - tighten up spacing & fonts */
+    @media (max-width: 576px) {
+        .page-header-builder {
+            padding: 14px 12px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+        }
+        
+        .page-header-builder h1 {
+            font-size: 16px;
+            gap: 8px;
+        }
+        
+        .page-header-builder h1 i {
+            font-size: 18px;
+        }
+        
+        .header-actions {
+            gap: 8px;
+        }
+        
+        .btn-header {
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+        
+        .stats-bar {
+            padding: 12px 12px;
+            gap: 10px;
+        }
+        
+        .stat-item {
+            align-items: flex-start;
+        }
+        
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+            border-radius: 10px;
+        }
+        
+        .stat-info h4 {
+            font-size: 16px;
+        }
+        
+        .stat-info span {
+            font-size: 11px;
+        }
+        
+        .tree-content {
+            padding: 14px 12px;
+        }
+        
+        .cat-head,
+        .subcat-head,
+        .sec-item {
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+        
+        .cat-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+        }
+        
+        .cat-name {
+            font-size: 14px;
+        }
+        
+        .subcat-name,
+        .sec-name {
+            font-size: 13px;
+        }
+        
+        .badge-sm {
+            font-size: 9px;
+            padding: 2px 6px;
+        }
+        
+        .add-btn {
+            padding: 10px;
+            font-size: 13px;
+        }
+        
+        .modal-box {
+            border-radius: 12px;
+        }
+        
+        .modal-head {
+            padding: 14px 16px;
+        }
+        
+        .modal-body {
+            padding: 16px 14px;
+        }
+        
+        .modal-foot {
+            padding: 12px 14px;
+        }
+        
+        .form-ctrl {
+            padding: 10px 12px;
+            font-size: 13px;
+        }
+        
+        .form-lbl {
+            font-size: 13px;
+        }
+        
+        .checkbox-item,
+        .clonable-option {
+            padding: 10px 12px;
+            font-size: 13px;
+        }
+        
+        .btn {
+            font-size: 13px;
+            padding: 10px 14px;
+        }
     }
 </style>
 @endpush

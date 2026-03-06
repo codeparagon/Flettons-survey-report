@@ -821,11 +821,23 @@ class SurveyController extends Controller
                 $service->saveSectionPhotos($result['assessment'], $request->file('photos'));
             }
 
+            // Load photos for response so frontend can show them without refresh
+            $result['assessment']->load('photos');
+            $photos = $result['assessment']->photos->map(function($photo) {
+                return [
+                    'id' => $photo->id,
+                    'file_path' => $photo->file_path,
+                    'file_name' => $photo->file_name,
+                    'url' => Storage::disk('public')->url($photo->file_path),
+                ];
+            })->values()->toArray();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Assessment saved successfully',
                 'assessment_id' => $result['assessment']->id,
                 'report_content' => $result['report_content'],
+                'photos' => $photos,
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -924,6 +936,17 @@ class SurveyController extends Controller
                 $service->saveAccommodationPhotos($result['assessment'], $request->file('photos'));
             }
 
+            // Load photos for response so frontend can show them without refresh
+            $result['assessment']->load('photos');
+            $photos = $result['assessment']->photos->map(function($photo) {
+                return [
+                    'id' => $photo->id,
+                    'file_path' => $photo->file_path,
+                    'file_name' => $photo->file_name,
+                    'url' => Storage::disk('public')->url($photo->file_path),
+                ];
+            })->values()->toArray();
+
             $message = $isClone 
                 ? 'Accommodation cloned successfully' 
                 : 'Accommodation assessment saved successfully';
@@ -933,6 +956,7 @@ class SurveyController extends Controller
                 'message' => $message,
                 'assessment_id' => $result['assessment']->id,
                 'report_content' => $result['report_content'],
+                'photos' => $photos,
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1158,14 +1182,14 @@ class SurveyController extends Controller
                 'photos_count' => count($request->file('photos')),
             ]);
 
-            // Reload photos to return them
+            // Reload photos to return them (use storage URL for absolute URLs on production)
             $assessment->load('photos');
             $photos = $assessment->photos->map(function($photo) {
                 return [
                     'id' => $photo->id,
                     'file_path' => $photo->file_path,
                     'file_name' => $photo->file_name,
-                    'url' => asset('storage/' . ltrim($photo->file_path, '/')),
+                    'url' => Storage::disk('public')->url($photo->file_path),
                 ];
             });
 
@@ -1345,14 +1369,14 @@ class SurveyController extends Controller
                 'photos_count' => count($photos),
             ]);
 
-            // Reload photos to return them
+            // Reload photos to return them (use storage URL for absolute URLs on production)
             $assessmentModel->load('photos');
             $uploadedPhotos = $assessmentModel->photos->map(function($photo) {
                 return [
                     'id' => $photo->id,
                     'file_path' => $photo->file_path,
                     'file_name' => $photo->file_name,
-                    'url' => asset('storage/' . ltrim($photo->file_path, '/')),
+                    'url' => Storage::disk('public')->url($photo->file_path),
                 ];
             });
 

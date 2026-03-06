@@ -35,7 +35,7 @@
             @endforeach
         </div>
         
-        <button class="add-btn" onclick="openAddSecModal({{ $subcategory->id }})" style="margin-left: 38px;">
+        <button class="add-btn add-btn-section" onclick="openAddSecModal({{ $subcategory->id }})">
             <i class="fas fa-plus"></i> Add Section
         </button>
     </div>

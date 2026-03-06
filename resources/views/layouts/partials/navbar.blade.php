@@ -1,5 +1,5 @@
 <div class="dashboard-header">
-    <nav class="navbar navbar-expand-lg fixed-top" style="background-color: #1a202c;">
+    <nav class="navbar navbar-expand-lg fixed-top" style="background-color: #1b202b;">
             <a href="{{ route('surveyor.dashboard') }}" class="survey-logo" aria-label="SurvAI dashboard">
                 <img src="{{ asset('images/survai-logo.png') }}" alt="SurvAI" class="survey-logo-img">
             </a>

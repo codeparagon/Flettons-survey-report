@@ -200,6 +200,53 @@
     .text-danger {
         color: #ef4444 !important;
     }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .page-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .page-title {
+            font-size: 22px;
+        }
+        
+        .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .form-section {
+            padding: 20px 16px;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+        }
+        
+        .sections-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            padding: 18px 16px;
+        }
+        
+        .form-actions .d-flex {
+            flex-direction: column;
+            gap: 10px;
+            justify-content: stretch;
+        }
+        
+        .form-actions .btn-secondary,
+        .form-actions .btn-primary {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>
 @endpush
 

@@ -378,8 +378,8 @@ class SurveyAccommodationDataService
             'condition_rating' => $conditionRating,
             'notes' => $assessment->notes ?? '',
             'photos' => $assessment->photos ? $assessment->photos->sortBy('sort_order')->map(function($photo) {
-                // Generate full URL using asset() helper to include base URL
-                $url = asset('storage/' . ltrim($photo->file_path, '/'));
+                // Use storage disk URL so production gets absolute URL from APP_URL
+                $url = \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path);
                 return [
                     'id' => $photo->id,
                     'file_path' => $photo->file_path,

@@ -1059,6 +1059,82 @@
                 padding: 0.75rem 1rem;
             }
         }
+
+        /* Mobile-specific adjustments for typography and spacing */
+        @media (max-width: 768px) {
+            .survey-detail-mock-header-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .survey-detail-mock-header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .survey-detail-mock-back {
+                font-size: 14px;
+            }
+
+            .survey-detail-mock-jobref-label {
+                font-size: 12px;
+            }
+
+            .survey-detail-mock-jobref-value {
+                font-size: 14px;
+            }
+
+            .survey-detail-mock-card-header h3 {
+                font-size: 16px;
+            }
+
+            .survey-detail-mock-body {
+                padding: 1rem;
+            }
+
+            .survey-detail-mock-card-body {
+                padding: 1rem;
+            }
+
+            .survey-detail-mock-datalist dt {
+                font-size: 12px;
+            }
+
+            .survey-detail-mock-value,
+            .survey-detail-mock-input,
+            .survey-detail-mock-note-text,
+            .survey-detail-mock-note-input,
+            .survey-detail-mock-concerns-text,
+            .survey-detail-mock-concerns-input,
+            .survey-detail-mock-text {
+                font-size: 14px;
+            }
+
+            .survey-detail-mock-count-label {
+                font-size: 12px;
+            }
+
+            .survey-detail-mock-count-value {
+                font-size: 16px;
+                padding: 0.5rem 0.75rem;
+                min-width: 52px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .survey-detail-mock-header-bar {
+                padding: 0.75rem 0.75rem;
+            }
+
+            .survey-detail-mock-body {
+                padding: 0.75rem;
+            }
+
+            .survey-detail-mock-card-body {
+                padding: 0.75rem;
+            }
+        }
     </style>
 @endpush
 

@@ -13,7 +13,7 @@ html, body {
     font-family: var(--font-family-base);
 }
 
-http://127.0.0.1:8001/surveyor/surveys/4/data-mock/* Headings - Light weight */
+/* Headings - Light weight */
 h1 {
     font-family: var(--font-family-base);
     font-size: 30px;
@@ -68,7 +68,7 @@ nav, .nav, .nav-item, .nav-link, .menu, .sidebar-menu, .survey-nav-item {
 
 /* Sidebar styling */
 .sidebar-dark {
-    background-color: #1a202c !important;
+    background-color: #1b202b !important;
 }
 
 /* Main content background */
@@ -78,7 +78,7 @@ nav, .nav, .nav-item, .nav-link, .menu, .sidebar-menu, .survey-nav-item {
 
 /* Headings */
 h1, h2, h3, h4, h5, h6 {
-    color: #1a202c !important;
+    color: #1b202b !important;
 }
 
 /* Special heading colors for dark backgrounds */
@@ -94,7 +94,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Text colors */
 body {
     background-color: #f8fafc ;
-    color: #1a202c ;
+    color: #1b202b ;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -114,7 +114,7 @@ body {
 
 /* Footer styling */
 .footer {
-    background-color: #1a202c !important;
+    background-color: #1b202b !important;
     color: #a0aec0 !important;
 }
 
@@ -132,7 +132,7 @@ body {
 
 /* Sidebar Dark - Match Surveyor Dashboard Styling */
 .sidebar-dark.nav-left-sidebar {
-    background-color: #1a202c !important;
+    background-color: #1b202b !important;
 }
 
 /* Sidebar Navbar - Match Surveyor Dashboard Padding */
