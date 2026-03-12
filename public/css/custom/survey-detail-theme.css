@@ -70,6 +70,23 @@ body.survey-detail-page {
     display: block;
 }
 
+/* Top header logo: desktop by default, mobile logo on small screens */
+.survey-detail-brand-img-mobile {
+    display: none !important;
+}
+.survey-detail-brand-img-desktop {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .survey-detail-brand-img-desktop {
+        display: none !important;
+    }
+    .survey-detail-brand-img-mobile {
+        display: block !important;
+    }
+}
+
 .survey-detail-brand-text {
     font-size: 1.25rem;
     color: #FFFFFF;
@@ -213,38 +230,39 @@ body.survey-detail-page {
     gap: 0.5rem;
 }
 
-.survey-detail-menu-btn {
-    width: 34px;
-    height: 34px;
-    display: flex;
+/* Bottom arrow button to open sidebar - shown when sidebar is closed */
+.survey-detail-sidebar-open-btn {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #F9FAFB;
-    border: 1px solid #E5E7EB;
-    border-radius: 8px;
-    color: #1A202C;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(26, 32, 44, 0.2);
+    background: var(--survey-detail-dark);
+    color: #FFFFFF;
+    font-size: 1.05rem;
     cursor: pointer;
-    transition: all 0.2s ease;
-    /* Hidden on desktop, shown on mobile */
-    display: none;
+    box-shadow: 0 18px 32px -20px rgba(26, 32, 44, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition: all 0.25s ease;
+    z-index: 995;
 }
 
-@media (max-width: 768px) {
-    .survey-detail-menu-btn {
-        display: flex;
-    }
+.survey-detail-sidebar-open-btn.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
 }
 
-.survey-detail-menu-btn:hover {
-    background: #F3F4F6;
-    border-color: var(--survey-detail-green);
+.survey-detail-sidebar-open-btn:hover {
+    background: #2D3748;
     color: var(--survey-detail-green);
-}
-
-.survey-detail-menu-btn.active {
-    background: var(--survey-detail-green);
-    border-color: var(--survey-detail-green);
-    color: var(--survey-detail-dark);
 }
 
 /* Tab Navigation - Sophisticated Design */

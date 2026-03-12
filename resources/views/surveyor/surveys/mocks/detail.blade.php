@@ -5,7 +5,7 @@
 @section('content')
     <div class="survey-detail-mock-content">
         <!-- Integrated Header Bar -->
-        <div class="survey-detail-mock-header-bar">
+        <div class="survey-detail-mock-header-bar" style="display: none;">
             <div class="survey-detail-mock-header-left">
                 <a href="{{ route('surveyor.surveys.index') }}" class="survey-detail-mock-back">
                     <i class="fas fa-chevron-left"></i>

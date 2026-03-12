@@ -96,6 +96,7 @@
             @endforelse
         </x-datatable>
     </div>
+    </div>
     <div class="survey-create-overlay" id="survey-create-overlay" aria-hidden="true">
         <div class="survey-create-dialog" role="dialog" aria-modal="true" aria-labelledby="survey-create-title">
             <button type="button" class="survey-create-close" id="survey-create-close" aria-label="Close create survey form">

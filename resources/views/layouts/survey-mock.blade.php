@@ -7,6 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Survey') - {{ config('app.name') }}</title>
 
+    <link rel="icon" type="image/jpeg" href="{{ asset('images/surv-logo-sm.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ asset('images/surv-logo-sm.jpeg') }}">
+
     <!-- Google Fonts - Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,20 +106,17 @@
             var $mainContent = $('#survey-main-content');
             var $sidebarOpenBtn = $('#survey-sidebar-open');
             var $sidebarBackdrop = $('#survey-sidebar-backdrop');
-            var $headerMenuBtn = $('#survey-header-menu-btn');
 
             function updateSidebarState(isCollapsed) {
                 if (isCollapsed) {
                     $sidebar.addClass('collapsed');
                     $mainContent.addClass('sidebar-collapsed');
                     $sidebarOpenBtn.addClass('show');
-                    $headerMenuBtn.removeClass('active');
                     $sidebarBackdrop.removeClass('show');
                 } else {
                     $sidebar.removeClass('collapsed');
                     $mainContent.removeClass('sidebar-collapsed');
                     $sidebarOpenBtn.removeClass('show');
-                    $headerMenuBtn.addClass('active');
                     $sidebarBackdrop.addClass('show');
                 }
                 var $icon = $('#survey-sidebar-collapse').find('i');
@@ -138,18 +138,10 @@
                 return false;
             });
 
-            // Sidebar open button (floating) and header hamburger
+            // Sidebar open button (floating bottom-left)
             $(document).on('click', '#survey-sidebar-open', function(e) {
                 e.stopPropagation();
                 updateSidebarState(false);
-            });
-            $(document).on('click', '#survey-header-menu-btn', function(e) {
-                e.stopPropagation();
-                if ($sidebar.hasClass('collapsed')) {
-                    updateSidebarState(false);
-                } else {
-                    updateSidebarState(true);
-                }
             });
 
             // Backdrop click closes sidebar
@@ -160,7 +152,6 @@
             $(window).on('resize', function() {
                 if (window.innerWidth >= 1025) {
                     $sidebarBackdrop.removeClass('show');
-                    $headerMenuBtn.removeClass('active');
                 } else if (!$sidebar.hasClass('collapsed')) {
                     $sidebarBackdrop.addClass('show');
                 }

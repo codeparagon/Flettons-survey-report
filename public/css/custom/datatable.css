@@ -148,6 +148,17 @@ table.dataTable {
     cursor: not-allowed !important;
 }
 
+/* Override .page-link line-height (from theme/Bootstrap) so pagination buttons don't overflow */
+.dataTables_wrapper .dataTables_paginate .page-link {
+    line-height: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    min-height: inherit !important;
+    border: none !important;
+}
+
 /* Loading state */
 .dataTables_wrapper .dataTables_processing {
     background-color: rgba(26, 32, 44, 0.95) !important;
@@ -250,6 +261,26 @@ table.dataTable tbody td:nth-child(3) {
 /* Address column (first column) */
 table.dataTable tbody td:first-child {
     min-width: 200px !important;
+}
+
+/* Survey table: keep th and td aligned (Address column has same width in header and body) */
+body.survey-page .survey-table-section table.dataTable {
+    table-layout: fixed !important;
+}
+
+body.survey-page .survey-table-section table.dataTable thead th,
+body.survey-page .survey-table-section table.dataTable tbody td {
+    box-sizing: border-box !important;
+}
+
+body.survey-page .survey-table-section table.dataTable thead th:first-child,
+body.survey-page .survey-table-section table.dataTable tbody td:first-child {
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
 }
 
 /* Responsive table wrapper */
@@ -407,10 +438,139 @@ table.dataTable tbody td:first-child {
 
     .survey-table-section .datatable-table th:first-child,
     .survey-table-section .datatable-table td:first-child {
-        max-width: 140px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        width: 140px !important;
+        min-width: 140px !important;
+        max-width: 140px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Survey mobile: smaller table fonts and cell padding */
+    body.survey-page .survey-table-section table.dataTable thead th {
+        font-size: 0.7rem !important;
+        padding: 0.4rem 0.35rem !important;
+        letter-spacing: 0.02em !important;
+    }
+
+    body.survey-page .survey-table-section table.dataTable tbody td {
+        font-size: 0.8rem !important;
+        padding: 0.45rem 0.35rem !important;
+    }
+
+    body.survey-page .survey-table-section table.dataTable tbody td:first-child {
+        font-size: 0.85rem !important;
+    }
+
+    /* LEVEL column: align th with td (left-align both) */
+    body.survey-page .survey-table-section table.dataTable thead th:nth-child(2),
+    body.survey-page .survey-table-section table.dataTable tbody td:nth-child(2) {
+        text-align: left !important;
+    }
+
+    /* Simplified mobile datatable: no dividers, cleaner look */
+    body.survey-page .survey-table-section .datatable-container {
+        padding: 0.5rem 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    body.survey-page .survey-table-section .table-wrapper {
+        border: none !important;
+        border-radius: 0 !important;
+    }
+
+    body.survey-page .survey-table-section table.dataTable thead th {
+        border-top: none !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: none !important;
+        background: #F9FAFB !important;
+    }
+
+    body.survey-page .survey-table-section table.dataTable tbody tr {
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: none !important;
+    }
+
+    body.survey-page .survey-table-section table.dataTable tbody td {
+        border: none !important;
+    }
+
+    body.survey-page .survey-table-section table.dataTable tbody tr.even,
+    body.survey-page .survey-table-section table.dataTable tbody tr.odd {
+        background-color: #ffffff !important;
+    }
+
+    body.survey-page .survey-table-section table.dataTable tbody tr:hover {
+        background-color: #F9FAFB !important;
+    }
+
+    /* No divider above pagination on mobile */
+    body.survey-page .survey-table-section .dataTables_wrapper .bottom-wrapper {
+        border-top: none !important;
+    }
+
+    /* Mobile: compact bottom nav / pagination and entries dropdown */
+    body.survey-page .survey-table-section .dataTables_wrapper .bottom-wrapper {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+        padding-top: 0.65rem !important;
+        margin-top: 0.65rem !important;
+    }
+
+    body.survey-page .survey-table-section .dataTables_wrapper .bottom-left {
+        width: 100% !important;
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+        gap: 0.35rem !important;
+    }
+
+    body.survey-page .survey-table-section .dataTables_wrapper .dataTables_length label {
+        font-size: 0.75rem !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 0.25rem !important;
+    }
+
+    body.survey-page .survey-table-section .dataTables_wrapper .dataTables_length select {
+        padding: 0.35rem 1.5rem 0.35rem 0.5rem !important;
+        font-size: 0.8125rem !important;
+        min-width: 3rem !important;
+        height: 1.75rem !important;
+        min-height: 1.75rem !important;
+        line-height: 1.2 !important;
+        border-radius: 4px !important;
+        box-sizing: border-box !important;
+    }
+
+    body.survey-page .survey-table-section .dataTables_wrapper .dataTables_info {
+        font-size: 0.75rem !important;
+        white-space: normal !important;
+    }
+
+    body.survey-page .survey-table-section .dataTables_wrapper .dataTables_paginate {
+        width: 100% !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 0.35rem !important;
+    }
+
+    /* Match pagination buttons to "Show entries" height/size */
+    body.survey-page .survey-table-section .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0.5rem !important;
+        font-size: 0.75rem !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 4px !important;
+        box-sizing: border-box !important;
     }
 }
 
@@ -421,5 +581,44 @@ table.dataTable tbody td:first-child {
 
     .survey-table-section .datatable-table {
         min-width: 640px;
+    }
+
+    /* Keep simplified look on small mobile + smaller fonts/boxes */
+    body.survey-page .survey-table-section .datatable-container {
+        padding: 0.5rem 0 !important;
+    }
+
+    body.survey-page .survey-table-section table.dataTable thead th {
+        font-size: 0.65rem !important;
+        padding: 0.35rem 0.3rem !important;
+    }
+
+    body.survey-page .survey-table-section table.dataTable tbody td {
+        font-size: 0.75rem !important;
+        padding: 0.4rem 0.3rem !important;
+    }
+
+    body.survey-page .survey-table-section table.dataTable tbody td:first-child {
+        font-size: 0.8rem !important;
+    }
+
+    body.survey-page .survey-table-section .dataTables_wrapper .dataTables_length label {
+        font-size: 0.7rem !important;
+    }
+
+    body.survey-page .survey-table-section .dataTables_wrapper .dataTables_length select {
+        padding: 0.3rem 1.25rem 0.3rem 0.4rem !important;
+        font-size: 0.75rem !important;
+        height: 1.6rem !important;
+        min-height: 1.6rem !important;
+    }
+
+    body.survey-page .survey-table-section .dataTables_wrapper .dataTables_info {
+        font-size: 0.7rem !important;
+    }
+
+    body.survey-page .survey-table-section .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0.5rem 0.45rem !important;
+        font-size: 0.4rem !important;
     }
 }

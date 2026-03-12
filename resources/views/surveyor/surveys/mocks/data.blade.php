@@ -168,7 +168,14 @@
         <div class="survey-data-mock-cost-modal-body">
             <div class="survey-data-mock-cost-modal-field">
                 <label class="survey-data-mock-cost-modal-label">Category</label>
-                <input type="text" class="survey-data-mock-cost-modal-input" id="cost-modal-category" placeholder="e.g., Essential, Recommended, Optional">
+                <div class="survey-data-mock-cost-category-group">
+                    <button type="button" class="survey-data-mock-cost-category-btn" data-category-value="Essential">Essential</button>
+                    <button type="button" class="survey-data-mock-cost-category-btn" data-category-value="Provisional">Provisional</button>
+                    <button type="button" class="survey-data-mock-cost-category-btn" data-category-value="Improvement">Improvement</button>
+                    <button type="button" class="survey-data-mock-cost-category-btn" data-category-value="Communal">Communal</button>
+                    <button type="button" class="survey-data-mock-cost-category-btn" data-category-value="Contingency">Contingency</button>
+                </div>
+                <input type="hidden" id="cost-modal-category">
             </div>
             <div class="survey-data-mock-cost-modal-field">
                 <label class="survey-data-mock-cost-modal-label">Description</label>
@@ -176,7 +183,7 @@
             </div>
             <div class="survey-data-mock-cost-modal-field">
                 <label class="survey-data-mock-cost-modal-label">Due Year</label>
-                <input type="text" class="survey-data-mock-cost-modal-input" id="cost-modal-due" placeholder="e.g., 2025">
+                <select class="survey-data-mock-cost-modal-input" id="cost-modal-due"></select>
             </div>
             <div class="survey-data-mock-cost-modal-field">
                 <label class="survey-data-mock-cost-modal-label">Cost Amount (£)</label>
@@ -246,16 +253,17 @@
         font-style: normal !important;
     }
 
-    /* Consistent spacing - use throughout the page */
+    /* Consistent spacing - use throughout the page. Headers use survey-dark (#1b202b) only on this page. */
     .survey-data-mock-content {
         --survey-data-mock-x: 1.5rem;
         --survey-data-mock-y: 1rem;
         --survey-data-mock-block: 2rem;
+        --survey-data-mock-header-bg: #1b202b;
     }
 
-    /* Header Bar */
+    /* Header Bar - survey-dark background, light font */
     .survey-data-mock-header-bar {
-        background: #1E293B;
+        background: var(--survey-data-mock-header-bg);
         padding: var(--survey-data-mock-y) var(--survey-data-mock-x);
         display: flex;
         justify-content: space-between;
@@ -348,9 +356,9 @@
         margin-bottom: 0;
     }
 
-    /* Category Header - Collapsible */
+    /* Category Header - same survey-dark as main header, light font */
     .survey-data-mock-category-header {
-        background: #1E293B;
+        background: var(--survey-data-mock-header-bg);
         padding: 1.25rem var(--survey-data-mock-x);
         display: flex;
         justify-content: space-between;
@@ -360,12 +368,12 @@
     }
 
     .survey-data-mock-category-header:hover {
-        background: #334155;
+        background: var(--survey-data-mock-header-bg);
     }
 
     .survey-data-mock-category-title {
         font-size: 30px;
-        color: #FFFFFF!important;
+        color: #FFFFFF !important;
         margin: 0;
         font-family: 'Poppins', sans-serif;
     }
@@ -414,7 +422,8 @@
     }
 
     .survey-data-mock-sub-category-title {
-        font-size: 20px;
+        font-size: 1.8rem;
+        font-weight: 400!important;
         color: #FFFFFF;
         margin: 0 0 0.25rem 0;
         padding: 0;
@@ -1083,7 +1092,7 @@
     
     /* Images Section Container */
     .survey-data-mock-images-section {
-        margin-top: 1.5rem;
+        /* margin-top: 1.5rem; */
     }
 
     .survey-data-mock-images-section .survey-data-mock-field-label {
@@ -1099,26 +1108,21 @@
         font-weight: 500;
     }
 
-    /* Upload Dropzone - Matching Project Theme */
+    /* Upload Dropzone - match Additional Notes border */
     .survey-data-mock-upload-dropzone {
-        border: 2px dashed #CBD5E1;
-        border-radius: 12px;
-        padding: 2rem 1.5rem;
-        background: #F8FAFC;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
+        padding: 1.25rem 1rem;
+        background: #FFFFFF;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
         text-align: center;
     }
-
-    .survey-data-mock-upload-dropzone:hover {
-        border-color: #C1EC4A;
-        background: #F1F5F9;
-    }
-
+    
+    .survey-data-mock-upload-dropzone:hover,
     .survey-data-mock-upload-dropzone.dragover {
         border-color: #C1EC4A;
-        border-style: solid;
-        background: rgba(193, 236, 74, 0.1);
+        background: #F1F5F9;
     }
 
     .survey-data-mock-upload-icon-main {
@@ -1342,7 +1346,7 @@
         height: 44px;
         border: none;
         border-radius: 8px;
-        background: #1E293B;
+        background: var(--survey-data-mock-header-bg);
         color: #FFFFFF;
         cursor: pointer;
         display: flex;
@@ -1382,7 +1386,7 @@
         height: 48px;
         border: none;
         border-radius: 8px;
-        background: #1E293B;
+        background: var(--survey-data-mock-header-bg);
         color: #FFFFFF;
         cursor: pointer;
         transition: all 0.2s ease;
@@ -1472,7 +1476,7 @@
         transform: translateX(-50%);
         font-size: 14px;
         color: #94A3B8;
-        background: #1E293B;
+        background: var(--survey-data-mock-header-bg);
         padding: 0.5rem 1rem;
         border-radius: 6px;
     }
@@ -1483,28 +1487,23 @@
     }
 
 
-    /* Legacy Support - Keep old classes working */
+    /* Legacy Support - Keep old classes working, match Additional Notes border */
     .survey-data-mock-images-upload {
-        border: 2px dashed rgba(148, 163, 184, 0.3);
-        border-radius: 8px;
-        padding: 2rem 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 4px;
+        padding: 1.25rem 1rem;
         text-align: center;
-        background: #E0F2FE;
+        background: #FFFFFF;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
     }
-
-    .survey-data-mock-images-upload:hover {
-        border-color: #C1EC4A;
-        background: #DBEAFE;
-    }
-
+    
+    .survey-data-mock-images-upload:hover,
     .survey-data-mock-images-upload.dragover {
         border-color: #C1EC4A;
-        background: #BFDBFE;
-        border-width: 3px;
+        background: #F1F5F9;
     }
 
     .survey-data-mock-upload-icon {
@@ -2189,6 +2188,38 @@
         margin-bottom: 0;
     }
 
+    .survey-data-mock-cost-category-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .survey-data-mock-cost-category-btn {
+        padding: 0.4rem 0.75rem;
+        font-size: 13px;
+        border-radius: 9px;
+        border: 1px solid rgba(148, 163, 184, 0.5);
+        background: #FFFFFF;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+        white-space: nowrap;
+    }
+
+    .survey-data-mock-cost-category-btn:hover {
+        border-color: #C1EC4A;
+        background: rgba(193, 236, 74, 0.05);
+        color: #1b202b;
+    }
+
+    .survey-data-mock-cost-category-btn.active {
+        background: #C1EC4A;
+        border-color: #C1EC4A;
+        color: #1b202b;
+        box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.05);
+    }
+
     .survey-data-mock-cost-modal-label {
         display: block;
         font-size: 13px;
@@ -2258,6 +2289,39 @@
         background: #0F172A;
     }
 
+    /* Cost modal mobile responsiveness */
+    @media (max-width: 640px) {
+        .survey-data-mock-cost-modal {
+            align-items: flex-start;
+            padding-top: 4.5rem; /* make sure modal starts below sticky header on mobile */
+            padding-bottom: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .survey-data-mock-cost-modal-content {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 1rem 1.5rem;
+            max-height: calc(100vh - 5.5rem);
+            overflow-y: auto;
+            padding: 1.25rem 1rem 1rem;
+        }
+
+        .survey-data-mock-cost-modal-title {
+            font-size: 18px;
+        }
+
+        .survey-data-mock-cost-modal-footer {
+            flex-direction: column-reverse;
+            align-items: stretch;
+        }
+
+        .survey-data-mock-cost-modal-btn {
+            width: 100%;
+            text-align: center;
+        }
+    }
+
     /* Cost Table Actions */
     .survey-data-mock-costs-table td {
         position: relative;
@@ -2307,32 +2371,27 @@
             --survey-data-mock-y: 0.875rem;
             --survey-data-mock-block: 1.5rem;
         }
-
+        
         .survey-data-mock-button-group {
             gap: 0.375rem;
         }
-
+        
         .survey-data-mock-button {
             padding: 0.4rem 0.75rem;
             font-size: 13px;
         }
-
+        
         .survey-data-mock-form-grid {
             flex-direction: column;
         }
         
+        /* On tablet/mobile, hide the middle divider and use vertical spacing instead */
         .survey-data-mock-form-grid-divider {
-            width: 100%;
-            height: 4px;
-            cursor: row-resize;
+            display: none;
         }
         
-        .survey-data-mock-form-grid-divider::before {
-            left: 0;
-            right: 0;
-            top: -2px;
-            bottom: -2px;
-            cursor: row-resize;
+        .survey-data-mock-form-column-left {
+            margin-bottom: 1.25rem;
         }
         
         .survey-data-mock-form-column-left,
@@ -2376,13 +2435,13 @@
         justify-content: space-between;
         align-items: center;
         cursor: pointer;
-        background: #1E293B;
+        background: var(--survey-data-mock-header-bg);
         border-bottom: 1px solid rgba(148, 163, 184, 0.2);
         transition: all 0.2s ease;
     }
 
     .survey-data-mock-accommodation-header:hover {
-        background: #475569;
+        background: var(--survey-data-mock-header-bg);
     }
 
     .survey-data-mock-accommodation-name {
@@ -2641,6 +2700,21 @@
         background: #C1EC4A;
         width: 5px;
         box-shadow: 0 0 8px rgba(193, 236, 74, 0.4);
+    }
+
+    @media (max-width: 1024px) {
+        /* Stack accommodation columns and hide middle divider on tablet/mobile for consistent spacing */
+        .survey-data-mock-accommodation-form-grid {
+            flex-direction: column;
+        }
+
+        .survey-data-mock-accommodation-form-grid-divider {
+            display: none;
+        }
+
+        .survey-data-mock-accommodation-form-grid [data-column="left"] {
+            margin-bottom: 1.25rem;
+        }
     }
 
     .survey-data-mock-accommodation-form-grid-divider::before {
@@ -2921,6 +2995,88 @@ $(document).ready(function() {
         return fallback;
     }
 
+    // Helper: derive an automatic condition rating from material + defects
+    function calculateAutoConditionRating(material, defects) {
+        const defectsArray = Array.isArray(defects) ? defects : [];
+        const materialStr = (material || '').toString().toLowerCase();
+        const defectStrings = defectsArray
+            .filter(Boolean)
+            .map(d => d.toString().toLowerCase());
+
+        // No or "None" defects → best rating
+        if (defectStrings.length === 0 || defectStrings.includes('none')) {
+            return '1';
+        }
+
+        const severeDefects = [
+            'rot',
+            'hole',
+            'holes',
+            'deflection',
+            'structural crack',
+            'subsidence',
+            'heave',
+            'significant movement'
+        ];
+
+        const moderateDefects = [
+            'perished',
+            'thermal sag',
+            'slipped tile',
+            'slipped tiles',
+            'moss',
+            'lichen',
+            'leak',
+            'leaks',
+            'damp',
+            'spalling'
+        ];
+
+        const hasSevere = defectStrings.some(d =>
+            severeDefects.some(s => d.includes(s))
+        );
+        if (hasSevere) {
+            return '3';
+        }
+
+        const hasModerate = defectStrings.some(d =>
+            moderateDefects.some(m => d.includes(m))
+        );
+        if (hasModerate) {
+            return '2';
+        }
+
+        // Asbestos or similar higher‑risk materials with any defect → at least 2
+        if (materialStr.includes('asbestos') && defectStrings.length > 0) {
+            return '2';
+        }
+        // Default when there are some unclassified defects
+        return '2';
+    }
+
+    // Helper: derive an automatic accommodation condition rating from components
+    function calculateAutoConditionRatingFromComponents(components) {
+        if (!Array.isArray(components) || components.length === 0) {
+            return '1';
+        }
+
+        let worst = '1';
+
+        components.forEach(component => {
+            const material = component && component.material ? component.material : '';
+            const defects = component && Array.isArray(component.defects) ? component.defects : [];
+            const rating = calculateAutoConditionRating(material, defects);
+
+            if (rating === '3') {
+                worst = '3';
+            } else if (rating === '2' && worst === '1') {
+                worst = '2';
+            }
+        });
+
+        return worst;
+    }
+
     // Mock GPT Content Generator for Accommodation Sections
     function generateAccommodationReportContent(formData, accommodationName) {
         const notes = formData.notes || '';
@@ -3166,6 +3322,10 @@ $(document).ready(function() {
             
             // Update badge data (no text - badge shows only color)
             $badge.data('current-rating', selectedRating);
+            $badge.attr('data-current-rating', selectedRating);
+            // Mark this rating as manually overridden so auto-calculation won't replace it on save
+            $badge.data('manual-rating', true);
+            $badge.attr('data-manual-rating', '1');
             // Also update section-id if it was accommodation-id
             if ($badge.data('accommodation-id') && !$badge.data('section-id')) {
                 $badge.attr('data-section-id', currentRatingSectionId);
@@ -3849,6 +4009,24 @@ $(document).ready(function() {
     let currentCostIndex = null;
 
     // Add Cost Button
+    function populateDueYearOptions(selectedYear) {
+        const $select = $('#cost-modal-due');
+        const currentYear = new Date().getFullYear();
+        const maxYearsAhead = 30;
+        const placeholderText = 'Select due year';
+        
+        $select.empty();
+        $select.append($('<option>', { value: '', text: placeholderText }));
+        
+        for (let year = currentYear; year <= currentYear + maxYearsAhead; year++) {
+            $select.append($('<option>', {
+                value: year,
+                text: year,
+                selected: selectedYear && parseInt(selectedYear, 10) === year
+            }));
+        }
+    }
+
     $(document).on('click', '.survey-data-mock-add-cost-btn', function(e) {
         e.stopPropagation();
         const $sectionItem = $(this).closest('.survey-data-mock-section-item');
@@ -3857,8 +4035,16 @@ $(document).ready(function() {
         
         // Reset modal form
         $('#cost-modal-category').val('');
+        $('.survey-data-mock-cost-category-btn').removeClass('active');
         $('#cost-modal-description').val('');
-        $('#cost-modal-due').val('');
+        
+        // Populate due year options from now into the future
+        const selectedDefects = $sectionItem.find('[data-group="defects"].active').map(function() {
+            return $(this).data('value');
+        }).get();
+        const hasDefects = selectedDefects && selectedDefects.length > 0 && !selectedDefects.includes('None');
+        const defaultYear = hasDefects ? new Date().getFullYear() : '';
+        populateDueYearOptions(defaultYear);
         $('#cost-modal-cost').val('');
         $('.survey-data-mock-cost-modal-title').text('Add Cost');
         
@@ -3886,9 +4072,15 @@ $(document).ready(function() {
         // Populate modal form
         $('#cost-modal-category').val(category);
         $('#cost-modal-description').val(description);
-        $('#cost-modal-due').val(due);
+        populateDueYearOptions(due);
         $('#cost-modal-cost').val(cost);
         $('.survey-data-mock-cost-modal-title').text('Edit Cost');
+
+        // Sync category buttons with existing value (single-select)
+        $('.survey-data-mock-cost-category-btn').removeClass('active');
+        if (category) {
+            $(`.survey-data-mock-cost-category-btn[data-category-value="${category}"]`).addClass('active');
+        }
         
         // Show modal
         $('#survey-data-mock-cost-modal').addClass('show');
@@ -3954,6 +4146,14 @@ $(document).ready(function() {
                 }
             });
         }
+    });
+
+    // Category button selection (single-select)
+    $(document).on('click', '.survey-data-mock-cost-category-btn', function() {
+        const value = $(this).data('category-value') || '';
+        $('.survey-data-mock-cost-category-btn').removeClass('active');
+        $(this).addClass('active');
+        $('#cost-modal-category').val(value);
     });
 
     // Save Cost from Modal
@@ -4452,8 +4652,32 @@ $(document).ready(function() {
             }
         });
         
-        // Get condition rating
-        const conditionRating = $sectionItem.find('.survey-data-mock-condition-badge').data('current-rating') || 'ni';
+        // Determine condition rating (auto from defects/material unless manually overridden)
+        let conditionRating = $sectionItem.find('.survey-data-mock-condition-badge').data('current-rating') || 'ni';
+        const $sectionBadges = $(`.survey-data-mock-condition-badge[data-section-id="${sectionId}"]`);
+        const firstBadge = $sectionBadges.first();
+        const isManualRating = firstBadge.length &&
+            (firstBadge.data('manual-rating') === true ||
+             firstBadge.data('manual-rating') === 1 ||
+             firstBadge.data('manual-rating') === '1');
+
+        if (!isManualRating) {
+            const autoRating = calculateAutoConditionRating(formData.material, formData.defects);
+            conditionRating = autoRating;
+
+            const ratingClass = conditionRating === 'ni'
+                ? 'survey-data-mock-condition-badge--ni'
+                : `survey-data-mock-condition-badge--${conditionRating}`;
+
+            $sectionBadges.each(function() {
+                const $badge = $(this);
+                $badge.removeClass('survey-data-mock-condition-badge--1 survey-data-mock-condition-badge--2 survey-data-mock-condition-badge--3 survey-data-mock-condition-badge--ni');
+                $badge.addClass(ratingClass);
+                $badge.data('current-rating', conditionRating);
+                $badge.attr('data-current-rating', conditionRating);
+            });
+        }
+
         formData.condition_rating = conditionRating;
         
         // Get selected image files
@@ -4488,9 +4712,9 @@ $(document).ready(function() {
             });
         }
         
-        // Append image files
-        selectedFiles.forEach((file, index) => {
-            formDataObj.append(`photos[${index}]`, file);
+        // Append image files (only new File objects - never re-send existing images)
+        (selectedFiles || []).filter(function(f) { return f instanceof File; }).forEach(function(file, index) {
+            formDataObj.append('photos[' + index + ']', file);
         });
         
         // Show loading state
@@ -4516,9 +4740,12 @@ $(document).ready(function() {
                     $sectionItem.data('selectedFiles', []);
                     $sectionItem.find('.survey-data-mock-images-preview').hide();
                     $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-images-grid-enhanced').empty();
+                    $sectionItem.find('.survey-data-mock-file-input').val('');
+                    $sectionItem.find('.survey-data-mock-upload-dropzone input[type="file"]').val('');
                     if (response.photos && response.photos.length > 0) {
-                        addPhotosToGrid($sectionItem, response.photos);
-                        updateImageCount($sectionItem);
+                        $sectionItem.find('.survey-data-mock-existing-images .survey-data-mock-images-grid-enhanced').empty();
+                        (window.addPhotosToGrid || addPhotosToGrid)($sectionItem, response.photos);
+                        (window.updateImageCount || updateImageCount)($sectionItem);
                     }
                     
                     // Hide form, show report
@@ -4618,7 +4845,10 @@ $(document).ready(function() {
                 break;
                 
             case 'edit':
-                // Toggle back to form view
+                // Toggle back to form view - clear file state so existing images are not re-submitted
+                $sectionItem.data('selectedFiles', []);
+                $sectionItem.find('.survey-data-mock-file-input').val('');
+                $sectionItem.find('.survey-data-mock-upload-dropzone input[type="file"]').val('');
                 $reportContent.slideUp(300);
                 $details.slideDown(300, function() {
                     // Re-initialize carousels after the form is fully visible
@@ -5652,9 +5882,9 @@ $(document).ready(function() {
                 });
             }
             
-            // Append image files
-            selectedFiles.forEach((file, index) => {
-                formDataObj.append(`photos[${index}]`, file);
+            // Append image files (only new File objects - never re-send existing images)
+            (selectedFiles || []).filter(function(f) { return f instanceof File; }).forEach(function(file, index) {
+                formDataObj.append('photos[' + index + ']', file);
             });
             
             // Show loading state
@@ -5680,9 +5910,12 @@ $(document).ready(function() {
                         $sectionItem.data('selectedFiles', []);
                         $sectionItem.find('.survey-data-mock-images-preview').hide();
                         $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-images-grid-enhanced').empty();
+                        $sectionItem.find('.survey-data-mock-file-input').val('');
+                        $sectionItem.find('.survey-data-mock-upload-dropzone input[type="file"]').val('');
                         if (response.photos && response.photos.length > 0) {
-                            addPhotosToGrid($sectionItem, response.photos);
-                            updateImageCount($sectionItem);
+                            $sectionItem.find('.survey-data-mock-existing-images .survey-data-mock-images-grid-enhanced').empty();
+                            (window.addPhotosToGrid || addPhotosToGrid)($sectionItem, response.photos);
+                            (window.updateImageCount || updateImageCount)($sectionItem);
                         }
                         
                         // Hide form, show report
@@ -6028,8 +6261,8 @@ $(document).ready(function() {
             return;
         }
         
-        // Get condition rating
-        const conditionRating = $item.find('.survey-data-mock-condition-badge').data('current-rating') || 'ni';
+        // Get current condition rating from badge (may be auto or manual)
+        let conditionRating = $item.find('.survey-data-mock-condition-badge').data('current-rating') || 'ni';
         
         // Collect all form data
         const formData = {
@@ -6063,6 +6296,32 @@ $(document).ready(function() {
             });
         });
         
+        // Automatically derive accommodation condition rating from components unless manually overridden
+        const $accommodationBadges = $(`.survey-data-mock-condition-badge[data-accommodation-id="${accommodationId}"]`);
+        const firstAccommodationBadge = $accommodationBadges.first();
+        const isAccommodationManual = firstAccommodationBadge.length &&
+            (firstAccommodationBadge.data('manual-rating') === true ||
+             firstAccommodationBadge.data('manual-rating') === 1 ||
+             firstAccommodationBadge.data('manual-rating') === '1');
+
+        if (!isAccommodationManual) {
+            const autoAccommodationRating = calculateAutoConditionRatingFromComponents(formData.components);
+            conditionRating = autoAccommodationRating;
+            formData.condition_rating = conditionRating;
+
+            const ratingClass = conditionRating === 'ni'
+                ? 'survey-data-mock-condition-badge--ni'
+                : `survey-data-mock-condition-badge--${conditionRating}`;
+
+            $accommodationBadges.each(function() {
+                const $badge = $(this);
+                $badge.removeClass('survey-data-mock-condition-badge--1 survey-data-mock-condition-badge--2 survey-data-mock-condition-badge--3 survey-data-mock-condition-badge--ni');
+                $badge.addClass(ratingClass);
+                $badge.data('current-rating', conditionRating);
+                $badge.attr('data-current-rating', conditionRating);
+            });
+        }
+        
         // Get selected image files
         const selectedFiles = $item.data('selectedFiles') || [];
         
@@ -6086,9 +6345,9 @@ $(document).ready(function() {
             }
         });
         
-        // Append image files
-        selectedFiles.forEach((file, index) => {
-            formDataObj.append(`photos[${index}]`, file);
+        // Append image files (only new File objects - never re-send existing images)
+        (selectedFiles || []).filter(function(f) { return f instanceof File; }).forEach(function(file, index) {
+            formDataObj.append('photos[' + index + ']', file);
         });
         
         // Show loading state
@@ -6120,9 +6379,12 @@ $(document).ready(function() {
                     $item.data('selectedFiles', []);
                     $item.find('.survey-data-mock-images-preview').hide();
                     $item.find('.survey-data-mock-images-preview .survey-data-mock-images-grid-enhanced').empty();
+                    $item.find('.survey-data-mock-file-input').val('');
+                    $item.find('.survey-data-mock-upload-dropzone input[type="file"]').val('');
                     if (response.photos && response.photos.length > 0) {
-                        addPhotosToGrid($item, response.photos);
-                        updateImageCount($item);
+                        $item.find('.survey-data-mock-existing-images .survey-data-mock-images-grid-enhanced').empty();
+                        (window.addPhotosToGrid || addPhotosToGrid)($item, response.photos);
+                        (window.updateImageCount || updateImageCount)($item);
                     }
                     
                     // Generate report content for accommodation
@@ -6542,8 +6804,8 @@ $(document).ready(function() {
                 success: function(response) {
                     console.log('Upload success:', response);
                     if (response.photos && response.photos.length > 0) {
-                        addPhotosToGrid($sectionItem, response.photos);
-                        updateImageCount($sectionItem);
+                        (window.addPhotosToGrid || addPhotosToGrid)($sectionItem, response.photos);
+                        (window.updateImageCount || updateImageCount)($sectionItem);
                     }
                     
                     $uploadTitle.text(originalTitle);
@@ -6666,6 +6928,9 @@ $(document).ready(function() {
         $existingContainer.show();
     }
     
+    // Expose to global scope so save success callbacks in other document.ready blocks can use it
+    window.addPhotosToGrid = addPhotosToGrid;
+    
     // Update image count display
     function updateImageCount($sectionItem) {
         const count = $sectionItem.find('.survey-data-mock-image-card, .survey-data-mock-image-item').length;
@@ -6675,6 +6940,9 @@ $(document).ready(function() {
         $countSpan.text(count > 0 ? `(${count})` : '');
         $gridCount.text(`${count} image(s)`);
     }
+    
+    // Expose to global scope for save success callbacks in other document.ready blocks
+    window.updateImageCount = updateImageCount;
     
     // Initialize all sections
     $('.survey-data-mock-section-item').each(function() {

@@ -38,6 +38,25 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->middleware('gue
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+/*
+|--------------------------------------------------------------------------
+| Storage files (when symlink is disabled on server)
+|--------------------------------------------------------------------------
+| Serves files from storage/app/public at /storage/* so survey section
+| images work without running php artisan storage:link (symlink() is often
+| disabled on shared hosting).
+*/
+Route::get('/storage/{path}', function (string $path) {
+    if (str_contains($path, '..')) {
+        abort(404);
+    }
+    $fullPath = storage_path('app/public/' . $path);
+    if (!is_file($fullPath)) {
+        abort(404);
+    }
+    return response()->file($fullPath);
+})->where('path', '.+')->name('storage.serve');
+
 // Super Admin Routes
 Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     Route::get('/dashboard', [AdminDashboard::class, 'index'])->name('admin.dashboard');

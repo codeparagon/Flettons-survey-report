@@ -24,9 +24,6 @@
             </div>
         </div>
         <div class="survey-detail-header-right">
-            <button type="button" class="survey-detail-menu-btn" id="survey-detail-sidebar-toggle" title="Menu">
-                <i class="fas fa-bars"></i>
-            </button>
         </div>
     </div>
     

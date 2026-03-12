@@ -31,7 +31,8 @@
         <div class="survey-detail-top-header">
             <div class="survey-detail-top-header-content">
                 <a href="{{ route('surveyor.dashboard') }}" class="survey-detail-brand" aria-label="SurvAI dashboard">
-                    <img src="{{ asset('images/survai-logo.svg') }}" alt="SurvAI" class="survey-detail-brand-img">
+                    <img src="{{ asset('images/survai-logo.svg') }}" alt="SurvAI" class="survey-detail-brand-img survey-detail-brand-img-desktop">
+                    <img src="{{ asset('images/surv-logo-sm.jpeg') }}" alt="SurvAI" class="survey-detail-brand-img survey-detail-brand-img-mobile">
                 </a>
                 <div class="survey-detail-top-header-actions">
                     <!-- <button type="button" class="survey-detail-action-btn" title="New Document">
@@ -77,6 +78,13 @@
                 </div>
             </div>
         </div>
+
+        <!-- Sidebar Open Button (bottom arrow) -->
+        @if(isset($survey) && $survey)
+        <button type="button" class="survey-detail-sidebar-open-btn" id="survey-detail-sidebar-open" aria-label="Show sidebar">
+            <i class="fa fa-chevron-right"></i>
+        </button>
+        @endif
     </div>
 
     <!-- jQuery -->
@@ -97,8 +105,8 @@
     <script>
     // Mobile app-like interactions
     $(document).ready(function() {
-        // Sidebar toggle
-        const sidebarToggle = document.getElementById('survey-detail-sidebar-toggle');
+        // Sidebar toggle - use floating bottom arrow button (no header hamburger)
+        const sidebarOpenBtn = document.getElementById('survey-detail-sidebar-open');
         const sidebarClose = document.getElementById('survey-detail-sidebar-close');
         const sidebar = document.querySelector('.survey-detail-sidebar');
         const sidebarBackdrop = document.getElementById('survey-detail-sidebar-backdrop');
@@ -106,23 +114,20 @@
         function openSidebar() {
             if (sidebar) sidebar.classList.add('show');
             if (sidebarBackdrop) sidebarBackdrop.classList.add('show');
-            if (sidebarToggle) sidebarToggle.classList.add('active');
+            if (sidebarOpenBtn) sidebarOpenBtn.classList.remove('show');
         }
         
         function closeSidebar() {
             if (sidebar) sidebar.classList.remove('show');
             if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
-            if (sidebarToggle) sidebarToggle.classList.remove('active');
+            if (sidebarOpenBtn) sidebarOpenBtn.classList.add('show');
         }
         
-        if (sidebarToggle && sidebar) {
-            sidebarToggle.addEventListener('click', function(e) {
+        // Floating bottom arrow opens sidebar
+        if (sidebarOpenBtn && sidebar) {
+            sidebarOpenBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                if (sidebar.classList.contains('show')) {
-                    closeSidebar();
-                } else {
-                    openSidebar();
-                }
+                openSidebar();
             });
         }
         
@@ -138,6 +143,9 @@
                 closeSidebar();
             });
         }
+        
+        // When sidebar is closed, show the floating button
+        if (sidebarOpenBtn) sidebarOpenBtn.classList.add('show');
         
         // Close sidebar on escape key
         document.addEventListener('keydown', function(e) {

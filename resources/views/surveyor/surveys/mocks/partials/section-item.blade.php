@@ -203,19 +203,15 @@
 
                     <!-- Images Upload -->
                     <div class="survey-data-mock-field-group survey-data-mock-images-section">
-                        <label class="survey-data-mock-field-label">
-                            Images
-                            @php $photoCount = count($section['photos'] ?? []); @endphp
-                            @if($photoCount > 0)
-                                <span class="survey-data-mock-image-count" data-image-count>({{ $photoCount }})</span>
-                            @endif
-                        </label>
+                        @php $photoCount = count($section['photos'] ?? []); @endphp
                         <input type="file" class="survey-data-mock-file-input" multiple accept="image/*" style="display: none;">
                         
                         <!-- Upload Area -->
                         <div class="survey-data-mock-upload-dropzone">
                             <i class="fas fa-cloud-upload-alt survey-data-mock-upload-icon-main"></i>
-                            <p class="survey-data-mock-upload-title">Drop images here</p>
+                            <p class="survey-data-mock-upload-title">
+                                Drop images here ({{ $photoCount }} image{{ $photoCount == 1 ? '' : 's' }})
+                            </p>
                             <p class="survey-data-mock-upload-subtitle">or <span class="survey-data-mock-upload-browse">browse</span> to upload</p>
                         </div>
                         

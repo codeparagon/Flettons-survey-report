@@ -6,6 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Survey') - {{ config('app.name') }}</title>
 
+    <link rel="icon" type="image/jpeg" href="{{ asset('images/surv-logo-sm.jpeg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ asset('images/surv-logo-sm.jpeg') }}">
+
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="{{ asset('newdesign/assets/vendor/bootstrap/css/bootstrap.min.css') }}">
     <!-- FontAwesome CSS -->
@@ -22,6 +25,7 @@
     @stack('styles')
 </head>
 <body class="survey-page">
+    <img src="{{ asset('images/surv-logo-sm.jpeg') }}" alt="SurvAI" class="survey-logo-img">
     <div class="survey-layout">
         <!-- Survey Header -->
         @include('layouts.survey.partials.header')
@@ -84,7 +88,6 @@
         const sidebar = $('#survey-sidebar');
         const sidebarBackdrop = $('#survey-sidebar-backdrop');
         const sidebarOpenBtn = $('#survey-sidebar-open');
-        const headerMenuBtn = $('#survey-header-menu-btn');
         const sidebarCollapseBtn = $('#survey-sidebar-collapse');
         const mainContent = $('#survey-main-content');
 
@@ -93,7 +96,6 @@
                 sidebar.addClass('collapsed');
                 mainContent.addClass('sidebar-collapsed');
                 sidebarOpenBtn.addClass('show');
-                headerMenuBtn.removeClass('active');
                 if (window.innerWidth < 1025) {
                     sidebarBackdrop.removeClass('show');
                 }
@@ -101,7 +103,6 @@
                 sidebar.removeClass('collapsed');
                 mainContent.removeClass('sidebar-collapsed');
                 sidebarOpenBtn.removeClass('show');
-                headerMenuBtn.addClass('active');
                 if (window.innerWidth < 1025) {
                     sidebarBackdrop.addClass('show');
                 }
@@ -126,15 +127,6 @@
         if (sidebarOpenBtn.length) {
             sidebarOpenBtn.on('click', openSidebar);
         }
-        if (headerMenuBtn.length) {
-            headerMenuBtn.on('click', function() {
-                if (sidebar.hasClass('collapsed')) {
-                    openSidebar();
-                } else {
-                    updateSidebarState(true);
-                }
-            });
-        }
         if (sidebarBackdrop.length) {
             sidebarBackdrop.on('click', function() {
                 updateSidebarState(true);
@@ -143,10 +135,8 @@
         $(window).on('resize', function() {
             if (window.innerWidth >= 1025) {
                 sidebarBackdrop.removeClass('show');
-                headerMenuBtn.removeClass('active');
             } else if (!sidebar.hasClass('collapsed')) {
                 sidebarBackdrop.addClass('show');
-                headerMenuBtn.addClass('active');
             }
         });
         window.surveyLayoutOpenSidebar = openSidebar;

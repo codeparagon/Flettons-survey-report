@@ -143,7 +143,31 @@ php artisan make:controller ControllerName
 
 # Create new model
 php artisan make:model ModelName
+
+# Link storage so uploaded images are publicly accessible (required on production)
+php artisan storage:link
 ```
+
+## 📷 Production: Survey section images not showing
+
+Survey section images are stored under `storage/app/public/` and served at `https://your-domain.com/storage/...`. If images work locally but not on production, run these on the **server** (e.g. over SSH):
+
+1. **Create the storage link** (when `symlink()` is allowed):
+   ```bash
+   cd /path/to/your/laravel/app
+   php artisan storage:link
+   ```
+   This creates `public/storage` → `storage/app/public`. Without it, `/storage/...` URLs return 404.
+
+2. **If `php artisan storage:link` fails with "Call to undefined function symlink()"**: Many shared hosts disable `symlink()`. This app includes a **fallback route** that serves files from `storage/app/public` at `/storage/*` without using a symlink. Deploy the latest code (which adds this route) and ensure requests to `/storage/...` are handled by Laravel (your server should send all non-static requests to `index.php`). No extra steps needed; images will be served by the route.
+
+3. **Check permissions** so the web server can read files:
+   ```bash
+   chmod -R 755 storage
+   chmod -R 755 bootstrap/cache
+   ```
+
+4. **Confirm files exist**: Images only exist on the server if they were uploaded there. If you only deploy code, `storage/app/public/survey-photos/` may be empty. Either re-upload on production, or sync those folders from local to server (e.g. rsync), or use S3 for the public disk in production.
 
 ## 🔮 Ready for Future Development
 

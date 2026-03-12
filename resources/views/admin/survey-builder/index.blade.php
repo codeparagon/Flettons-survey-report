@@ -1349,7 +1349,7 @@
         <a href="{{ route('admin.survey-options.index') }}" class="btn-header btn-header-secondary">
             <i class="fas fa-cog"></i> Global Options
         </a>
-        <button class="btn-header btn-header-primary" onclick="openAddCategoryModal()">
+        <button type="button" class="btn-header btn-header-primary" onclick="openAddCategoryModal()">
             <i class="fas fa-plus"></i> Add Category
         </button>
     </div>
@@ -1443,7 +1443,7 @@
             <button class="modal-close" onclick="closeModal('addCategoryModal')">&times;</button>
         </div>
         <div class="modal-body">
-            <form id="addCategoryForm">
+            <form id="addCategoryForm" onsubmit="return false;">
                 <div class="form-grp">
                     <label class="form-lbl">Category Name <span class="required">*</span></label>
                     <input type="text" class="form-ctrl" name="display_name" required placeholder="e.g., Exterior">
@@ -1461,8 +1461,8 @@
             </form>
         </div>
         <div class="modal-foot">
-            <button class="btn btn-secondary" onclick="closeModal('addCategoryModal')">Cancel</button>
-            <button class="btn btn-success" onclick="saveCategory()">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('addCategoryModal')">Cancel</button>
+            <button type="button" class="btn btn-success" onclick="saveCategory(event)">
                 <i class="fas fa-plus"></i> Add Category
             </button>
         </div>
@@ -1477,7 +1477,7 @@
             <button class="modal-close" onclick="closeModal('addSubcategoryModal')">&times;</button>
         </div>
         <div class="modal-body">
-            <form id="addSubcategoryForm">
+            <form id="addSubcategoryForm" onsubmit="return false;">
                 <input type="hidden" name="category_id" id="subcatCategoryId">
                 <div class="form-grp">
                     <label class="form-lbl">Parent Category</label>
@@ -1494,8 +1494,8 @@
             </form>
         </div>
         <div class="modal-foot">
-            <button class="btn btn-secondary" onclick="closeModal('addSubcategoryModal')">Cancel</button>
-            <button class="btn btn-success" onclick="saveSubcategory()">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('addSubcategoryModal')">Cancel</button>
+            <button type="button" class="btn btn-success" onclick="saveSubcategory()">
                 <i class="fas fa-plus"></i> Add Subcategory
             </button>
         </div>
@@ -1511,7 +1511,7 @@
         </div>
         
         <div class="modal-body">
-            <form id="sectionForm">
+            <form id="sectionForm" onsubmit="return false;">
                 <input type="hidden" name="subcategory_id" id="secSubcatId">
                 <input type="hidden" name="section_id" id="secEditId">
                 
@@ -1551,8 +1551,8 @@
         </div>
         
         <div class="modal-foot">
-            <button class="btn btn-secondary" onclick="closeModal('sectionModal')">Cancel</button>
-            <button class="btn btn-success" onclick="saveSection()">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('sectionModal')">Cancel</button>
+            <button type="button" class="btn btn-success" onclick="saveSection()">
                 <i class="fas fa-check"></i> <span id="sectionSaveText">Add Section</span>
             </button>
         </div>
@@ -1567,16 +1567,94 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const STATE_KEY = 'surveyBuilderState';
 
 document.addEventListener('DOMContentLoaded', function() {
     initSortables();
     initAutoSlug();
+    restoreUIState();
 });
+
+window.addEventListener('beforeunload', saveUIState);
+
+// UI state persistence (collapsed items, selection, scroll)
+function saveUIState() {
+    try {
+        const collapsedCats = Array.from(document.querySelectorAll('.cat-item.collapsed')).map(i => i.dataset.id);
+        const collapsedSubcats = Array.from(document.querySelectorAll('.subcat-item.collapsed')).map(i => i.dataset.id);
+        const selectedSecEl = document.querySelector('.sec-item.selected');
+        const selectedSec = selectedSecEl ? selectedSecEl.dataset.id : null;
+        const tree = document.querySelector('.tree-content');
+        const scrollTop = tree ? tree.scrollTop : 0;
+
+        const state = { collapsedCats, collapsedSubcats, selectedSec, scrollTop };
+        localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    } catch (e) {
+        // ignore persistence errors
+    }
+}
+
+function restoreUIState() {
+    try {
+        const raw = localStorage.getItem(STATE_KEY);
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        if (!state || typeof state !== 'object') return;
+
+        if (Array.isArray(state.collapsedCats)) {
+            state.collapsedCats.forEach(id => {
+                const el = document.querySelector(`.cat-item[data-id="${id}"]`);
+                if (el) el.classList.add('collapsed');
+            });
+        }
+
+        if (Array.isArray(state.collapsedSubcats)) {
+            state.collapsedSubcats.forEach(id => {
+                const el = document.querySelector(`.subcat-item[data-id="${id}"]`);
+                if (el) el.classList.add('collapsed');
+            });
+        }
+
+        if (state.selectedSec) {
+            const secEl = document.querySelector(`.sec-item[data-id="${state.selectedSec}"]`);
+            if (secEl) {
+                document.querySelectorAll('.sec-item').forEach(i => i.classList.remove('selected'));
+                secEl.classList.add('selected');
+                loadPreview(state.selectedSec);
+            }
+        }
+
+        const tree = document.querySelector('.tree-content');
+        if (tree && typeof state.scrollTop === 'number') {
+            tree.scrollTop = state.scrollTop;
+        }
+    } catch (e) {
+        // ignore restore errors
+    }
+}
+
+// Generic button loading helper
+function setButtonLoading(button, isLoading, loadingText) {
+    if (!button) return;
+    if (isLoading) {
+        if (!button.dataset.originalHtml) {
+            button.dataset.originalHtml = button.innerHTML;
+        }
+        button.disabled = true;
+        button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${loadingText}`;
+    } else {
+        if (button.dataset.originalHtml) {
+            button.innerHTML = button.dataset.originalHtml;
+        }
+        button.disabled = false;
+    }
+}
 
 // Sortable
 function initSortables() {
     const catList = document.getElementById('categoryList');
-    if (catList && catList.querySelector('.cat-item')) {
+    if (catList && catList.querySelector('.cat-item') && !catList.dataset.sortableInitialized) {
+        catList.dataset.sortableInitialized = '1';
         new Sortable(catList, {
             handle: '.drag-handle',
             animation: 150,
@@ -1586,6 +1664,8 @@ function initSortables() {
     }
     
     document.querySelectorAll('.subcat-list').forEach(list => {
+        if (list.dataset.sortableInitialized) return;
+        list.dataset.sortableInitialized = '1';
         new Sortable(list, {
             handle: '.drag-handle',
             animation: 150,
@@ -1595,6 +1675,8 @@ function initSortables() {
     });
     
     document.querySelectorAll('.sec-list').forEach(list => {
+        if (list.dataset.sortableInitialized) return;
+        list.dataset.sortableInitialized = '1';
         new Sortable(list, {
             handle: '.drag-handle',
             animation: 150,
@@ -1615,6 +1697,36 @@ function initAutoSlug() {
             }
         });
     });
+
+    // Prevent Enter key from submitting most modal forms (which reloads the page)
+    ['addSubcategoryForm', 'sectionForm'].forEach(id => {
+        const f = document.getElementById(id);
+        if (f) {
+            f.addEventListener('submit', function(e) {
+                e.preventDefault();
+            });
+        }
+    });
+
+    // Category form: prevent native submit (no reload) and route through saveCategory
+    const catForm = document.getElementById('addCategoryForm');
+    if (catForm) {
+        catForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            saveCategory(e);
+        });
+
+        const nameInput = catForm.querySelector('input[name="display_name"]');
+        if (nameInput) {
+            nameInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveCategory(e);
+                }
+            });
+        }
+    }
 }
 
 function slugify(text) {
@@ -1650,6 +1762,10 @@ function closeModal(id) {
 }
 
 function openAddCategoryModal() {
+    const form = document.getElementById('addCategoryForm');
+    if (form) {
+        form.reset();
+    }
     openModal('addCategoryModal');
 }
 
@@ -1716,41 +1832,93 @@ async function api(url, method = 'GET', data = null) {
 }
 
 // Save functions
-async function saveCategory() {
+async function saveCategory(e) {
     const form = document.getElementById('addCategoryForm');
-    const data = Object.fromEntries(new FormData(form));
+    if (!form) return;
+
+    // Prevent any default form submission (page reload)
+    if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    const displayNameInput = form.querySelector('input[name="display_name"]');
+    if (!displayNameInput || !displayNameInput.value.trim()) {
+        toast('Please enter a category name', 'error');
+        displayNameInput && displayNameInput.focus();
+        return;
+    }
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
     data.name = data.display_name;
-    
+
+    const btn = document.querySelector('#addCategoryModal .btn-success');
+
     try {
+        setButtonLoading(btn, true, 'Adding...');
         const result = await api('/admin/api/categories', 'POST', data);
         if (result.success) {
             toast('Category created!', 'success');
             closeModal('addCategoryModal');
-            location.reload();
+
+            const list = document.getElementById('categoryList');
+            if (list && result.html) {
+                list.insertAdjacentHTML('beforeend', result.html);
+                initSortables();
+            }
+
+            const selectAll = document.getElementById('selectAllBox');
+            if (selectAll) {
+                selectAll.checked = false;
+            }
+            updateBulkBtns();
+            
+            // Reset the form
+            form.reset();
         } else {
-            toast(result.message || 'Error', 'error');
+            toast(result.message || 'Error creating category', 'error');
         }
     } catch (e) {
         toast('Error creating category', 'error');
+    } finally {
+        setButtonLoading(btn, false, 'Add Category');
     }
+    
+    // Return false to prevent any default behavior
+    return false;
 }
 
 async function saveSubcategory() {
     const form = document.getElementById('addSubcategoryForm');
     const data = Object.fromEntries(new FormData(form));
     data.name = data.display_name;
+    const btn = document.querySelector('#addSubcategoryModal .btn-success');
     
     try {
+        setButtonLoading(btn, true, 'Adding...');
         const result = await api('/admin/api/subcategories', 'POST', data);
         if (result.success) {
             toast('Subcategory created!', 'success');
             closeModal('addSubcategoryModal');
-            location.reload();
+            
+            const list = document.querySelector(`.cat-item[data-id="${data.category_id}"] .subcat-list`);
+            if (list && result.html) {
+                list.insertAdjacentHTML('beforeend', result.html);
+            }
+            const selectAll = document.getElementById('selectAllBox');
+            if (selectAll) {
+                selectAll.checked = false;
+            }
+            updateBulkBtns();
+            initSortables();
         } else {
             toast(result.message || 'Error', 'error');
         }
     } catch (e) {
         toast('Error creating subcategory', 'error');
+    } finally {
+        setButtonLoading(btn, false, 'Add Subcategory');
     }
 }
 
@@ -1771,18 +1939,34 @@ async function saveSection() {
     const isEdit = data.section_id && data.section_id !== '';
     const url = isEdit ? `/admin/api/section-definitions/${data.section_id}` : '/admin/api/section-definitions';
     const method = isEdit ? 'PUT' : 'POST';
+    const btn = document.querySelector('#sectionModal .btn-success');
     
     try {
+        setButtonLoading(btn, true, isEdit ? 'Updating...' : 'Adding...');
         const result = await api(url, method, data);
         if (result.success) {
             toast(`Section ${isEdit ? 'updated' : 'created'}!`, 'success');
             closeModal('sectionModal');
-            location.reload();
+            
+            if (!isEdit && result.html) {
+                const list = document.querySelector(`.subcat-item[data-id="${data.subcategory_id}"] .sec-list`);
+                if (list) {
+                    list.insertAdjacentHTML('beforeend', result.html);
+                }
+                initSortables();
+            } else {
+                // Previously we forced a full page reload here.
+                // To keep the builder snappy and avoid unexpected reloads,
+                // we simply persist UI state and leave the DOM as-is.
+                saveUIState();
+            }
         } else {
             toast(result.message || 'Error', 'error');
         }
     } catch (e) {
         toast('Error saving section', 'error');
+    } finally {
+        setButtonLoading(btn, false, isEdit ? 'Update Section' : 'Add Section');
     }
 }
 
@@ -1837,7 +2021,16 @@ async function cloneSec(id) {
         const result = await api(`/admin/api/section-definitions/${id}/clone`, 'POST');
         if (result.success) {
             toast('Section cloned!', 'success');
-            location.reload();
+            if (result.html) {
+                const original = document.querySelector(`.sec-item[data-id="${id}"]`);
+                if (original) {
+                    original.insertAdjacentHTML('afterend', result.html);
+                }
+                initSortables();
+            } else {
+                // If no HTML is returned, just persist UI state without reloading.
+                saveUIState();
+            }
         } else {
             toast(result.message || 'Error', 'error');
         }
@@ -1870,7 +2063,11 @@ function enableEdit(el) {
     el.addEventListener('blur', saveEdit, { once: true });
     el.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
-        if (e.key === 'Escape') { el.contentEditable = false; location.reload(); }
+        if (e.key === 'Escape') {
+            el.contentEditable = false;
+            saveUIState();
+            // No reload here to avoid losing current builder state.
+        }
     });
 }
 
@@ -1886,7 +2083,8 @@ async function saveEdit(e) {
         toast('Updated!', 'success');
     } catch (e) {
         toast('Error', 'error');
-        location.reload();
+        saveUIState();
+        // Do not reload on error; keep the user on the builder page.
     }
 }
 
@@ -1922,7 +2120,8 @@ async function doBulk(action) {
     }
     
     toast(`Bulk ${action} done`, 'success');
-    location.reload();
+    saveUIState();
+    // Avoid full page reload after bulk operations to keep the builder responsive.
 }
 
 // Preview

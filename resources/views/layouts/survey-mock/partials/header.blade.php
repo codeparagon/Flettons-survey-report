@@ -1,11 +1,9 @@
 <div class="survey-header">
     <div class="survey-header-content">
         <div class="survey-header-left">
-            <button type="button" class="survey-header-menu-btn" id="survey-header-menu-btn" aria-label="Open menu" aria-expanded="false">
-                <i class="fas fa-bars" aria-hidden="true"></i>
-            </button>
             <a href="{{ route('surveyor.dashboard') }}" class="survey-logo" aria-label="SurvAI dashboard">
-                <img src="{{ asset('images/survai-logo.png') }}" alt="SurvAI" class="survey-logo-img">
+                <img src="{{ asset('images/survai-logo.png') }}" alt="SurvAI" class="survey-logo-img survey-logo-img-desktop">
+                <img src="{{ asset('images/surv-logo-sm.jpeg') }}" alt="SurvAI" class="survey-logo-img survey-logo-img-mobile">
             </a>
         </div>
         <div class="survey-header-right">

@@ -2,7 +2,8 @@
     <div class="survey-header-content">
         <div class="survey-header-left">
             <a href="@if(auth()->user()->isSuperAdmin()){{ route('admin.dashboard') }}@elseif(auth()->user()->isClient()){{ route('client.dashboard') }}@else{{ route('surveyor.dashboard') }}@endif" class="survey-logo" aria-label="SurvAI dashboard">
-                <img src="{{ asset('images/survai-logo.png') }}" alt="SurvAI" class="survey-logo-img">
+                <img src="{{ asset('images/survai-logo.png') }}" alt="SurvAI" class="survey-logo-img survey-logo-img-desktop">
+                <img src="{{ asset('images/surv-logo-sm.jpeg') }}" alt="SurvAI" class="survey-logo-img survey-logo-img-mobile">
             </a>
         </div>
         <div class="survey-header-right">
