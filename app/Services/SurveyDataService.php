@@ -723,16 +723,40 @@ class SurveyDataService
         ];
 
         // Get category-based options (all option types with merged scopes)
-        $categories = SurveyCategory::where('is_active', true)->orderBy('sort_order')->get();
+        $categories = SurveyCategory::with(['subcategories' => function($query) {
+                $query->where('is_active', true)->orderBy('sort_order');
+            }])
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
+
         foreach ($categories as $category) {
-            $mapping[$category->display_name] = [
-                'section' => $this->getSectionOptions($category->display_name),
-                'location' => $this->getLocationOptions($category->display_name),
-                'structure' => $this->getStructureOptions($category->display_name),
-                'material' => $this->getMaterialOptions($category->display_name),
-                'defects' => $this->getDefectOptions($category->display_name),
-                'remaining_life' => $this->getRemainingLifeOptions($category->display_name),
+            $categoryName = $category->display_name;
+
+            // Base (category-scoped) options
+            $mapping[$categoryName] = [
+                'section' => $this->getSectionOptions($categoryName),
+                'location' => $this->getLocationOptions($categoryName),
+                'structure' => $this->getStructureOptions($categoryName),
+                'material' => $this->getMaterialOptions($categoryName),
+                'defects' => $this->getDefectOptions($categoryName),
+                'remaining_life' => $this->getRemainingLifeOptions($categoryName),
+                // Sub-category specific options (global + category + that subcategory only)
+                'by_subcategory' => [],
             ];
+
+            foreach ($category->subcategories as $subcategory) {
+                $subCategoryKey = $subcategory->name;
+
+                $mapping[$categoryName]['by_subcategory'][$subCategoryKey] = [
+                    'section' => $this->getSectionOptions($categoryName, $subCategoryKey),
+                    'location' => $this->getLocationOptions($categoryName, $subCategoryKey),
+                    'structure' => $this->getStructureOptions($categoryName, $subCategoryKey),
+                    'material' => $this->getMaterialOptions($categoryName, $subCategoryKey),
+                    'defects' => $this->getDefectOptions($categoryName, $subCategoryKey),
+                    'remaining_life' => $this->getRemainingLifeOptions($categoryName, $subCategoryKey),
+                ];
+            }
         }
 
         return $mapping;
@@ -797,9 +821,10 @@ class SurveyDataService
      * Get location options from database (global + category + subcategory scoped).
      * 
      * @param string|null $categoryName
+     * @param string|null $subCategoryKey
      * @return array
      */
-    public function getLocationOptions(?string $categoryName = null): array
+    public function getLocationOptions(?string $categoryName = null, ?string $subCategoryKey = null): array
     {
         $locationType = SurveyOptionType::where('key_name', 'location')->first();
         if (!$locationType) {
@@ -819,15 +844,28 @@ class SurveyDataService
                     ->toArray();
 
                 // Include global + category + subcategory scoped options
-                $query->where(function ($q) use ($category, $subcategoryIds) {
+                $query->where(function ($q) use ($category, $subcategoryIds, $subCategoryKey) {
                     $q->where('scope_type', 'global')
                       ->orWhere(function ($inner) use ($category) {
                           $inner->where('scope_type', 'category')
                                 ->where('scope_id', $category->id);
                       })
-                      ->orWhere(function ($inner) use ($subcategoryIds) {
-                          $inner->where('scope_type', 'subcategory')
-                                ->whereIn('scope_id', $subcategoryIds);
+                      ->orWhere(function ($inner) use ($subcategoryIds, $subCategoryKey) {
+                          $inner->where('scope_type', 'subcategory');
+
+                          if ($subCategoryKey) {
+                              // If specific subcategory requested, filter to that one
+                              $subcategory = SurveySubcategory::where('name', $subCategoryKey)->first();
+                              if ($subcategory) {
+                                  $inner->where('scope_id', $subcategory->id);
+                              } else {
+                                  // Fallback: include all subcategories for this category
+                                  $inner->whereIn('scope_id', $subcategoryIds);
+                              }
+                          } else {
+                              // Otherwise include all subcategories for this category
+                              $inner->whereIn('scope_id', $subcategoryIds);
+                          }
                       });
                 });
             } else {
@@ -872,15 +910,28 @@ class SurveyDataService
         // Get global + category + subcategory scoped options
         return SurveyOption::where('option_type_id', $structureType->id)
             ->where('is_active', true)
-            ->where(function ($query) use ($category, $subcategoryIds) {
+            ->where(function ($query) use ($category, $subcategoryIds, $subCategoryKey) {
                 $query->where('scope_type', 'global')
                       ->orWhere(function ($q) use ($category) {
                           $q->where('scope_type', 'category')
                             ->where('scope_id', $category->id);
                       })
-                      ->orWhere(function ($q) use ($subcategoryIds) {
-                          $q->where('scope_type', 'subcategory')
-                            ->whereIn('scope_id', $subcategoryIds);
+                      ->orWhere(function ($q) use ($subcategoryIds, $subCategoryKey) {
+                          $q->where('scope_type', 'subcategory');
+
+                          if ($subCategoryKey) {
+                              // If specific subcategory requested, filter to that one
+                              $subcategory = SurveySubcategory::where('name', $subCategoryKey)->first();
+                              if ($subcategory) {
+                                  $q->where('scope_id', $subcategory->id);
+                              } else {
+                                  // Fallback: include all subcategories for this category
+                                  $q->whereIn('scope_id', $subcategoryIds);
+                              }
+                          } else {
+                              // Otherwise include all subcategories for this category
+                              $q->whereIn('scope_id', $subcategoryIds);
+                          }
                       });
             })
             ->orderByRaw("FIELD(scope_type, 'global', 'category', 'subcategory')")
@@ -916,15 +967,28 @@ class SurveyDataService
         // Get global + category + subcategory scoped options
         return SurveyOption::where('option_type_id', $materialType->id)
             ->where('is_active', true)
-            ->where(function ($query) use ($category, $subcategoryIds) {
+            ->where(function ($query) use ($category, $subcategoryIds, $subCategoryKey) {
                 $query->where('scope_type', 'global')
                       ->orWhere(function ($q) use ($category) {
                           $q->where('scope_type', 'category')
                             ->where('scope_id', $category->id);
                       })
-                      ->orWhere(function ($q) use ($subcategoryIds) {
-                          $q->where('scope_type', 'subcategory')
-                            ->whereIn('scope_id', $subcategoryIds);
+                      ->orWhere(function ($q) use ($subcategoryIds, $subCategoryKey) {
+                          $q->where('scope_type', 'subcategory');
+
+                          if ($subCategoryKey) {
+                              // If specific subcategory requested, filter to that one
+                              $subcategory = SurveySubcategory::where('name', $subCategoryKey)->first();
+                              if ($subcategory) {
+                                  $q->where('scope_id', $subcategory->id);
+                              } else {
+                                  // Fallback: include all subcategories for this category
+                                  $q->whereIn('scope_id', $subcategoryIds);
+                              }
+                          } else {
+                              // Otherwise include all subcategories for this category
+                              $q->whereIn('scope_id', $subcategoryIds);
+                          }
                       });
             })
             ->orderByRaw("FIELD(scope_type, 'global', 'category', 'subcategory')")
@@ -939,7 +1003,7 @@ class SurveyDataService
      * @param string|null $categoryName
      * @return array
      */
-    public function getDefectOptions(?string $categoryName = null): array
+    public function getDefectOptions(?string $categoryName = null, ?string $subCategoryKey = null): array
     {
         $defectType = SurveyOptionType::where('key_name', 'defects')->first();
         if (!$defectType) {
@@ -959,15 +1023,28 @@ class SurveyDataService
                     ->toArray();
 
                 // Include global + category + subcategory scoped options
-                $query->where(function ($q) use ($category, $subcategoryIds) {
+                $query->where(function ($q) use ($category, $subcategoryIds, $subCategoryKey) {
                     $q->where('scope_type', 'global')
                       ->orWhere(function ($inner) use ($category) {
                           $inner->where('scope_type', 'category')
                                 ->where('scope_id', $category->id);
                       })
-                      ->orWhere(function ($inner) use ($subcategoryIds) {
-                          $inner->where('scope_type', 'subcategory')
-                                ->whereIn('scope_id', $subcategoryIds);
+                      ->orWhere(function ($inner) use ($subcategoryIds, $subCategoryKey) {
+                          $inner->where('scope_type', 'subcategory');
+
+                          if ($subCategoryKey) {
+                              // If specific subcategory requested, filter to that one
+                              $subcategory = SurveySubcategory::where('name', $subCategoryKey)->first();
+                              if ($subcategory) {
+                                  $inner->where('scope_id', $subcategory->id);
+                              } else {
+                                  // Fallback: include all subcategories for this category
+                                  $inner->whereIn('scope_id', $subcategoryIds);
+                              }
+                          } else {
+                              // Otherwise include all subcategories for this category
+                              $inner->whereIn('scope_id', $subcategoryIds);
+                          }
                       });
                 });
             } else {
@@ -991,7 +1068,7 @@ class SurveyDataService
      * @param string|null $categoryName
      * @return array
      */
-    public function getRemainingLifeOptions(?string $categoryName = null): array
+    public function getRemainingLifeOptions(?string $categoryName = null, ?string $subCategoryKey = null): array
     {
         $remainingLifeType = SurveyOptionType::where('key_name', 'remaining_life')->first();
         if (!$remainingLifeType) {
@@ -1011,15 +1088,28 @@ class SurveyDataService
                     ->toArray();
 
                 // Include global + category + subcategory scoped options
-                $query->where(function ($q) use ($category, $subcategoryIds) {
+                $query->where(function ($q) use ($category, $subcategoryIds, $subCategoryKey) {
                     $q->where('scope_type', 'global')
                       ->orWhere(function ($inner) use ($category) {
                           $inner->where('scope_type', 'category')
                                 ->where('scope_id', $category->id);
                       })
-                      ->orWhere(function ($inner) use ($subcategoryIds) {
-                          $inner->where('scope_type', 'subcategory')
-                                ->whereIn('scope_id', $subcategoryIds);
+                      ->orWhere(function ($inner) use ($subcategoryIds, $subCategoryKey) {
+                          $inner->where('scope_type', 'subcategory');
+
+                          if ($subCategoryKey) {
+                              // If specific subcategory requested, filter to that one
+                              $subcategory = SurveySubcategory::where('name', $subCategoryKey)->first();
+                              if ($subcategory) {
+                                  $inner->where('scope_id', $subcategory->id);
+                              } else {
+                                  // Fallback: include all subcategories for this category
+                                  $inner->whereIn('scope_id', $subcategoryIds);
+                              }
+                          } else {
+                              // Otherwise include all subcategories for this category
+                              $inner->whereIn('scope_id', $subcategoryIds);
+                          }
                       });
                 });
             } else {

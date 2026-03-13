@@ -190,11 +190,11 @@ body.survey-page > div:not(.survey-layout):not(.survey-header):not(.survey-sideb
 }
 
 /* Logo: desktop by default, mobile logo on small screens */
-.survey-logo-img-mobile {
+.survey-logo .survey-logo-img-mobile {
     display: none !important;
 }
-.survey-logo-img-desktop {
-    display: block;
+.survey-logo .survey-logo-img-desktop {
+    display: block !important;
 }
 
 .survey-logo-icon {
@@ -1329,10 +1329,10 @@ body.modal-open-lite {
         max-height: 40px;
     }
 
-    .survey-logo-img-desktop {
+    .survey-logo .survey-logo-img-desktop {
         display: none !important;
     }
-    .survey-logo-img-mobile {
+    .survey-logo .survey-logo-img-mobile {
         display: block !important;
     }
 

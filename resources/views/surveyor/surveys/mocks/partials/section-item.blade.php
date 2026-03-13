@@ -51,7 +51,15 @@
                 <div class="survey-data-mock-form-column survey-data-mock-form-column-left" data-column="left">
                     <!-- Section Buttons - Dynamic based on category -->
                     @php
-                        $sectionOptions = $optionsMapping[$categoryName]['section'] ?? [$section['name']];
+                        $subcategoryKey = $section['subcategory_key'] ?? null;
+                        $categoryOptions = $optionsMapping[$categoryName] ?? [];
+                        $subCategoryOptions = $subcategoryKey && isset($categoryOptions['by_subcategory'][$subcategoryKey])
+                            ? $categoryOptions['by_subcategory'][$subcategoryKey]
+                            : null;
+
+                        // Section options: prefer sub-category specific, then category, then fallback to section name
+                        $sectionOptions = $subCategoryOptions['section']
+                            ?? ($categoryOptions['section'] ?? [$section['name']]);
                         if (empty($sectionOptions)) {
                             $sectionOptions = [$section['name']];
                         }
@@ -67,8 +75,9 @@
 
                     <!-- Location Buttons -->
                     @php
-                        // Use category-specific location options (global + category + subcategory scoped)
-                        $locationOptions = $optionsMapping[$categoryName]['location'] ?? $optionsMapping['location'] ?? ['Whole Property', 'Right', 'Left', 'Front', 'Rear'];
+                        // Use sub-category specific location options if available, otherwise category, then global defaults
+                        $locationOptions = $subCategoryOptions['location']
+                            ?? ($categoryOptions['location'] ?? ($optionsMapping['location'] ?? ['Whole Property', 'Right', 'Left', 'Front', 'Rear']));
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Location</label>
@@ -81,7 +90,8 @@
 
                     <!-- Structure Buttons -->
                     @php
-                        $structureOptions = $optionsMapping[$categoryName]['structure'] ?? ['Standard'];
+                        $structureOptions = $subCategoryOptions['structure']
+                            ?? ($categoryOptions['structure'] ?? ['Standard']);
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Structure</label>
@@ -94,7 +104,8 @@
 
                     <!-- Material Buttons -->
                     @php
-                        $materialOptions = $optionsMapping[$categoryName]['material'] ?? ['Mixed'];
+                        $materialOptions = $subCategoryOptions['material']
+                            ?? ($categoryOptions['material'] ?? ['Mixed']);
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Material</label>
@@ -107,8 +118,9 @@
 
                     <!-- Defects Buttons -->
                     @php
-                        // Use category-specific defect options (global + category + subcategory scoped)
-                        $defectOptions = $optionsMapping[$categoryName]['defects'] ?? $optionsMapping['defects'] ?? ['Holes', 'Perished', 'Thermal Sag', 'Deflection', 'Rot', 'Moss', 'Lichen', 'Slipped Tiles', 'None'];
+                        // Use sub-category specific defect options first, then category, then global defaults
+                        $defectOptions = $subCategoryOptions['defects']
+                            ?? ($categoryOptions['defects'] ?? ($optionsMapping['defects'] ?? ['Holes', 'Perished', 'Thermal Sag', 'Deflection', 'Rot', 'Moss', 'Lichen', 'Slipped Tiles', 'None']));
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Defects</label>
@@ -131,8 +143,9 @@
                 <div class="survey-data-mock-form-column survey-data-mock-form-column-right" data-column="right">
                     <!-- Remaining Life Buttons -->
                     @php
-                        // Use category-specific remaining life options (global + category + subcategory scoped)
-                        $remainingLifeOptions = $optionsMapping[$categoryName]['remaining_life'] ?? $optionsMapping['remaining_life'] ?? ['0', '1-5', '6-10', '10+'];
+                        // Use sub-category specific remaining life options first, then category, then global defaults
+                        $remainingLifeOptions = $subCategoryOptions['remaining_life']
+                            ?? ($categoryOptions['remaining_life'] ?? ($optionsMapping['remaining_life'] ?? ['0', '1-5', '6-10', '10+']));
                     @endphp
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Remaining Life (Years)</label>

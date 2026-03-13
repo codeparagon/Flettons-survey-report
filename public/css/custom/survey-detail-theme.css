@@ -71,18 +71,18 @@ body.survey-detail-page {
 }
 
 /* Top header logo: desktop by default, mobile logo on small screens */
-.survey-detail-brand-img-mobile {
+.survey-detail-brand .survey-detail-brand-img-mobile {
     display: none !important;
 }
-.survey-detail-brand-img-desktop {
-    display: block;
+.survey-detail-brand .survey-detail-brand-img-desktop {
+    display: block !important;
 }
 
 @media (max-width: 768px) {
-    .survey-detail-brand-img-desktop {
+    .survey-detail-brand .survey-detail-brand-img-desktop {
         display: none !important;
     }
-    .survey-detail-brand-img-mobile {
+    .survey-detail-brand .survey-detail-brand-img-mobile {
         display: block !important;
     }
 }

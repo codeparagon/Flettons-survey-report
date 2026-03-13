@@ -120,7 +120,7 @@
 <div id="survey-data-mock-rating-modal" class="survey-data-mock-rating-modal">
     <div class="survey-data-mock-rating-modal-content">
         <div class="survey-data-mock-rating-modal-header">
-            <h3 class="survey-data-mock-rating-modal-title">Update Condition Rating</h3>
+            <h3 class="survey-data-mock-rating-modal-title">Condition Rating</h3>
             <button type="button" class="survey-data-mock-rating-modal-close" id="rating-modal-close">
                 <i class="fas fa-times"></i>
             </button>
@@ -1982,7 +1982,8 @@
     }
 
     .survey-data-mock-rating-modal-title {
-        font-size: 20px;
+        font-size: 1.6rem;
+        font-weight: 500!important;
         color: #1b202b;
         margin: 0;
     }
