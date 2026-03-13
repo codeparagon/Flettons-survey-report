@@ -25,7 +25,6 @@
     @stack('styles')
 </head>
 <body class="survey-page">
-    <img src="{{ asset('images/surv-logo-sm.jpeg') }}" alt="SurvAI" class="survey-logo-img">
     <div class="survey-layout">
         <!-- Survey Header -->
         @include('layouts.survey.partials.header')
