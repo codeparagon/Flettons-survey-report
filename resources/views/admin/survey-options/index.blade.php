@@ -16,12 +16,16 @@
     }
 
     .options-container {
-        max-width: 1200px;
+        width: 100%;
+        max-width: 100%;
         margin: 0 auto;
+        padding: 0;
     }
 
     .page-header {
         display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 24px;
@@ -86,11 +90,23 @@
         background: #e5e7eb;
     }
 
-    /* Option Type Cards */
+    /* Option Type Cards - use horizontal space; more columns on large screens */
     .option-type-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         gap: 24px;
+    }
+
+    @media (min-width: 1400px) {
+        .option-type-grid {
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        }
+    }
+
+    @media (min-width: 1800px) {
+        .option-type-grid {
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+        }
     }
 
     .option-type-card {
@@ -177,10 +193,35 @@
         font-size: 13px;
         color: #374151;
         transition: all 0.2s;
+        max-width: 100%;
+        word-break: break-word;
     }
 
     .option-tag:hover {
         border-color: var(--builder-accent);
+    }
+
+    .option-tag-drag-handle {
+        cursor: grab;
+        color: #9ca3af;
+        padding: 0 2px;
+        margin-right: 2px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 12px;
+    }
+    .option-tag-drag-handle:active {
+        cursor: grabbing;
+    }
+    .option-tag-drag-handle:hover {
+        color: var(--builder-primary);
+    }
+    .option-tag.sortable-ghost {
+        opacity: 0.5;
+        border-style: dashed;
+    }
+    .option-tag.sortable-chosen {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
     .option-tag-remove {
@@ -195,7 +236,7 @@
 
     .option-input {
         flex: 1;
-        min-width: 100px;
+        min-width: 80px;
         border: none;
         outline: none;
         font-size: 13px;
@@ -451,6 +492,123 @@
         font-size: 13px;
         font-style: italic;
     }
+
+    /* Mobile & tablet: use space well and stay responsive */
+    @media (max-width: 1024px) {
+        .options-container {
+            padding: 0;
+        }
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .page-header .btn-builder {
+            width: 100%;
+            justify-content: center;
+        }
+        .page-title {
+            font-size: 1.25rem;
+        }
+        .page-subtitle {
+            font-size: 13px;
+        }
+        .option-type-grid {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        .option-type-card {
+            min-width: 0;
+        }
+        .option-type-header {
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 14px 16px;
+        }
+        .option-type-content {
+            padding: 14px 16px;
+        }
+        .options-tags {
+            padding: 10px;
+            min-height: 44px;
+        }
+        .option-tag {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        .builder-modal {
+            padding: 12px;
+            align-items: flex-start;
+            padding-top: 2rem;
+        }
+        .modal-content {
+            max-height: 85vh;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            padding: 14px 16px;
+            margin-bottom: 16px;
+        }
+        .page-title {
+            font-size: 1.125rem;
+        }
+        .page-subtitle {
+            font-size: 12px;
+        }
+        .option-type-grid {
+            gap: 16px;
+        }
+        .option-type-header {
+            padding: 12px 14px;
+        }
+        .option-type-title {
+            font-size: 15px;
+        }
+        .option-type-content {
+            padding: 12px 14px;
+        }
+        .scoped-section {
+            padding: 10px;
+        }
+        .scoped-title {
+            font-size: 11px;
+        }
+        .options-section-title {
+            font-size: 11px;
+        }
+        .btn-builder {
+            padding: 10px 14px;
+            font-size: 13px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .page-header {
+            padding: 12px 14px;
+        }
+        .option-type-header {
+            padding: 10px 12px;
+        }
+        .option-type-content {
+            padding: 10px 12px;
+        }
+        .options-tags {
+            padding: 8px;
+        }
+        .option-tag {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+        .option-input {
+            min-width: 60px;
+        }
+        .add-option-type-card {
+            min-height: 160px;
+        }
+    }
 </style>
 @endpush
 
@@ -462,7 +620,7 @@
                 <i class="fas fa-sliders-h mr-2"></i>
                 Global Options Manager
             </h1>
-            <p class="page-subtitle">Manage dropdown options for survey sections (Location, Structure, Material, Defects, Remaining Life)</p>
+            <p class="page-subtitle">Manage dropdown options for survey sections (Location, Structure, Material, Defects, Remaining Life). Drag the grip icon to reorder; the same order is used on the surveyor survey-data page.</p>
         </div>
         <button class="btn-builder btn-builder-primary" onclick="openAddOptionTypeModal()">
             <i class="fas fa-plus"></i> Add Option Type
@@ -492,6 +650,7 @@
                     <div class="options-tags" data-type-id="{{ $optionType->id }}" data-scope="global">
                         @forelse($organized['global'] as $option)
                             <span class="option-tag" data-option-id="{{ $option->id }}">
+                                <span class="option-tag-drag-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>
                                 {{ $option->value }}
                                 <span class="option-tag-remove" onclick="deleteOption({{ $option->id }})">&times;</span>
                             </span>
@@ -513,6 +672,7 @@
                         <div class="options-tags" data-type-id="{{ $optionType->id }}" data-scope="category" data-scope-id="{{ $categoryId }}">
                             @foreach($data['options'] as $option)
                                 <span class="option-tag" data-option-id="{{ $option->id }}">
+                                    <span class="option-tag-drag-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>
                                     {{ $option->value }}
                                     <span class="option-tag-remove" onclick="deleteOption({{ $option->id }})">&times;</span>
                                 </span>
@@ -534,6 +694,7 @@
                         <div class="options-tags" data-type-id="{{ $optionType->id }}" data-scope="subcategory" data-scope-id="{{ $subcategoryId }}">
                             @foreach($data['options'] as $option)
                                 <span class="option-tag" data-option-id="{{ $option->id }}">
+                                    <span class="option-tag-drag-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>
                                     {{ $option->value }}
                                     <span class="option-tag-remove" onclick="deleteOption({{ $option->id }})">&times;</span>
                                 </span>
@@ -657,16 +818,58 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('newdesign/assets/vendor/shortable-nestable/Sortable.min.js') }}"></script>
 <script>
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 // Categories data for subcategory selector
 const categoriesData = @json($categories);
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     initAutoSlug();
+    initOptionSortable();
 });
+
+function initOptionSortable() {
+    if (typeof Sortable === 'undefined') return;
+    document.querySelectorAll('.options-tags').forEach(function(container) {
+        new Sortable(container, {
+            draggable: '.option-tag',
+            handle: '.option-tag-drag-handle',
+            dataIdAttr: 'data-option-id',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            filter: '.option-input, .empty-options',
+            preventOnFilter: true,
+            onEnd: function(evt) {
+                saveOptionOrder(evt.from);
+            }
+        });
+    });
+}
+
+async function saveOptionOrder(container) {
+    const tags = container.querySelectorAll('.option-tag');
+    const order = Array.from(tags).map(function(tag) { return parseInt(tag.getAttribute('data-option-id'), 10); }).filter(Boolean);
+    if (order.length === 0) return;
+    try {
+        const result = await apiCall('/admin/api/options/reorder', 'POST', { order: order });
+        if (result.success) {
+            showToast('Order saved', 'success');
+        } else {
+            showToast(result.message || 'Failed to save order', 'error');
+        }
+    } catch (error) {
+        showToast('Failed to save order', 'error');
+    }
+}
 
 function initAutoSlug() {
     document.querySelectorAll('input[name="label"]').forEach(input => {
@@ -809,7 +1012,7 @@ async function addOption(optionTypeId, value, scopeType, scopeId, inputElement) 
             const tag = document.createElement('span');
             tag.className = 'option-tag';
             tag.dataset.optionId = result.option.id;
-            tag.innerHTML = `${value}<span class="option-tag-remove" onclick="deleteOption(${result.option.id})">&times;</span>`;
+            tag.innerHTML = `<span class="option-tag-drag-handle" title="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>${escapeHtml(value)}<span class="option-tag-remove" onclick="deleteOption(${result.option.id})">&times;</span>`;
             container.insertBefore(tag, inputElement);
             
             showToast('Option added', 'success');
