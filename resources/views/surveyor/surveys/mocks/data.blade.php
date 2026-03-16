@@ -32,7 +32,10 @@
                 <div class="survey-data-mock-category-content collapse show">
                     <div class="survey-data-mock-sections">
                         @foreach($subCategories as $subCategoryName => $sections)
-                            <div class="survey-data-mock-sub-category" data-sub-category="{{ $subCategoryName }}">
+                            @php
+                                $subCategoryKey = !empty($sections) && isset($sections[0]['subcategory_key']) ? $sections[0]['subcategory_key'] : $subCategoryName;
+                            @endphp
+                            <div class="survey-data-mock-sub-category" data-sub-category="{{ $subCategoryName }}" data-sub-category-key="{{ $subCategoryKey }}">
                                 <h3 class="survey-data-mock-sub-category-title">{{ $subCategoryName }}</h3>
                                 
                                 <div class="survey-data-mock-sub-category-sections">
@@ -2983,16 +2986,22 @@ $(document).ready(function() {
     // Options mapping from SurveyDataService
     const optionsMapping = @json($optionsMapping ?? []);
 
-    // Helper function to get options with fallback
-    function getOptions(categoryName, optionType, fallback = []) {
+    // Helper function to get options with fallback (scoped to category and optionally sub-category)
+    function getOptions(categoryName, optionType, fallback = [], subCategoryKey = null) {
+        const categoryOptions = optionsMapping[categoryName];
+        const bySub = categoryOptions && categoryOptions.by_subcategory;
+
+        // Prefer sub-category specific options when subCategoryKey is provided
+        if (subCategoryKey && bySub && bySub[subCategoryKey] && bySub[subCategoryKey][optionType]) {
+            return bySub[subCategoryKey][optionType];
+        }
+        if (categoryOptions && categoryOptions[optionType]) {
+            return categoryOptions[optionType];
+        }
+        // Global options for location, remaining_life, defects
         if (optionType === 'location' || optionType === 'remaining_life' || optionType === 'defects') {
             return optionsMapping[optionType] || fallback;
         }
-        
-        if (optionsMapping[categoryName] && optionsMapping[categoryName][optionType]) {
-            return optionsMapping[categoryName][optionType];
-        }
-        
         return fallback;
     }
 
@@ -5042,17 +5051,14 @@ $(document).ready(function() {
         
         const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
         currentCloneSubCategory = $subCategory;
+        const subCategoryKey = $subCategory.attr('data-sub-category-key') || null;
 
-        // Get available sections based on category - use dynamic options mapping
+        // Get section options scoped to this category and sub-category only
         let allSections = [];
-        
-        // Get section options from mapping
-        const sectionOptions = getOptions(categoryName, 'section', []);
-        
+        const sectionOptions = getOptions(categoryName, 'section', [], subCategoryKey);
         if (sectionOptions && sectionOptions.length > 0) {
             allSections = sectionOptions;
         } else {
-            // Fallback: get from button group
             $details.find('[data-group="section"]').each(function() {
                 const sectionValue = $(this).data('value');
                 if (sectionValue) {
@@ -5061,26 +5067,23 @@ $(document).ready(function() {
             });
         }
 
-        // Generate section buttons in modal - NO RESTRICTION on sections
         const $cloneButtons = $('#clone-section-buttons');
         $cloneButtons.empty();
-        
         allSections.forEach(function(section) {
             const $btn = $('<button>')
                 .addClass('survey-data-mock-clone-section-btn')
                 .attr('type', 'button')
                 .data('section', section)
                 .text(section);
-            
             $cloneButtons.append($btn);
         });
-        
-        // Generate location buttons
+
+        // Get location options scoped to this category and sub-category only
         const $locationButtons = $('#clone-location-buttons');
         $locationButtons.empty();
         $('#clone-location-error').hide();
-        
-        const locationOptions = optionsMapping['location'] || ['Whole Property', 'Right', 'Left', 'Front', 'Rear'];
+        const defaultLocationFallback = ['Whole Property', 'Right', 'Left', 'Front', 'Rear'];
+        const locationOptions = getOptions(categoryName, 'location', defaultLocationFallback, subCategoryKey);
         locationOptions.forEach(function(location) {
             const $btn = $('<button>')
                 .addClass('survey-data-mock-clone-location-btn')
@@ -5404,18 +5407,18 @@ $(document).ready(function() {
             currentCloneData = formData;
             currentCloneCategory = categoryName;
             selectedCloneSection = null;
+            selectedCloneLocation = null;
 
-            // Get available sections based on category - use dynamic options mapping
+            const $subCategory = $item.closest('.survey-data-mock-sub-category');
+            currentCloneSubCategory = $subCategory;
+            const subCategoryKey = $subCategory.attr('data-sub-category-key') || null;
+
+            // Get section options scoped to this category and sub-category only
             let allSections = [];
-            const currentSelectedSection = formData.section;
-            
-            // Get section options from mapping
-            const sectionOptions = getOptions(categoryName, 'section', []);
-            
+            const sectionOptions = getOptions(categoryName, 'section', [], subCategoryKey);
             if (sectionOptions && sectionOptions.length > 0) {
                 allSections = sectionOptions;
             } else {
-                // Fallback: get from button group
                 $details.find('[data-group="section"]').each(function() {
                     const sectionValue = $(this).data('value');
                     if (sectionValue) {
@@ -5423,9 +5426,21 @@ $(document).ready(function() {
                     }
                 });
             }
-            
-            // Get all already selected sections in the same sub-category to disable them
-            const $subCategory = $item.closest('.survey-data-mock-sub-category');
+
+            const defaultLocationFallback = ['Whole Property', 'Right', 'Left', 'Front', 'Rear'];
+            const locationOptions = getOptions(categoryName, 'location', defaultLocationFallback, subCategoryKey);
+            const $locationButtons = $('#clone-location-buttons');
+            $locationButtons.empty();
+            $('#clone-location-error').hide();
+            locationOptions.forEach(function(location) {
+                const $btn = $('<button>')
+                    .addClass('survey-data-mock-clone-location-btn')
+                    .attr('type', 'button')
+                    .data('location', location)
+                    .text(location);
+                $locationButtons.append($btn);
+            });
+
             const alreadySelectedSections = [];
             
             $subCategory.find('.survey-data-mock-section-item').each(function() {
