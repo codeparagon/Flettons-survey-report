@@ -795,7 +795,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 20px 24px;
-        background: linear-gradient(135deg, #1a202c, #374151);
+        background: #1b202b;
         color: white;
     }
     
@@ -803,6 +803,7 @@
         font-size: 18px;
         font-weight: 600;
         margin: 0;
+        color: #fff !important;
     }
     
     .modal-close {
@@ -1528,6 +1529,10 @@
                 @if($levels->count() > 0)
                 <div class="form-grp">
                     <label class="form-lbl">Assign to Survey Levels</label>
+                    <div class="d-flex gap-2 mb-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllLevels()">Select all</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAllLevels()">Deselect all</button>
+                    </div>
                     <div class="checkbox-group" id="levelBoxes">
                         @foreach($levels as $level)
                         <label class="checkbox-item" onclick="toggleCheckbox(this)">
@@ -1541,8 +1546,8 @@
                 @endif
                 
                 <div class="form-grp" style="margin-bottom: 0;">
-                    <label class="clonable-option" onclick="toggleCheckbox(this)">
-                        <input type="checkbox" name="is_clonable" value="1">
+                    <label class="clonable-option selected" onclick="toggleCheckbox(this)">
+                        <input type="checkbox" name="is_clonable" value="1" checked>
                         <i class="fas fa-copy"></i> Allow duplication
                     </label>
                     <p class="form-hint" style="margin-top: 8px;">Surveyors can create multiple copies (e.g., for multiple roof areas).</p>
@@ -1780,6 +1785,15 @@ function openAddSecModal(subcatId) {
     document.getElementById('secEditId').value = '';
     document.getElementById('sectionModalTitle').textContent = 'Add Section';
     document.getElementById('sectionSaveText').textContent = 'Add Section';
+    document.getElementById('sectionForm').reset();
+    document.getElementById('secSubcatId').value = subcatId;
+    document.getElementById('secEditId').value = '';
+    selectAllLevels();
+    const clonableOpt = document.querySelector('#sectionForm .clonable-option');
+    if (clonableOpt) {
+        clonableOpt.querySelector('input[name="is_clonable"]').checked = true;
+        clonableOpt.classList.add('selected');
+    }
     openModal('sectionModal');
 }
 
@@ -1803,10 +1817,14 @@ function openEditSecModal(secId) {
             if (sec.is_clonable) {
                 clonableInput.checked = true;
                 clonableOpt.classList.add('selected');
+            } else {
+                clonableInput.checked = false;
+                clonableOpt.classList.remove('selected');
             }
             
             // Set level checkboxes (if levels data is returned)
-            if (data.levels) {
+            deselectAllLevels();
+            if (data.levels && data.levels.length) {
                 data.levels.forEach(levelId => {
                     const checkbox = document.querySelector(`#levelBoxes input[value="${levelId}"]`);
                     if (checkbox) {
@@ -1817,6 +1835,26 @@ function openEditSecModal(secId) {
             }
         }
         openModal('sectionModal');
+    });
+}
+
+function selectAllLevels() {
+    const levelBoxes = document.getElementById('levelBoxes');
+    if (!levelBoxes) return;
+    levelBoxes.querySelectorAll('input[name="levels[]"]').forEach(cb => {
+        cb.checked = true;
+        const item = cb.closest('.checkbox-item');
+        if (item) item.classList.add('selected');
+    });
+}
+
+function deselectAllLevels() {
+    const levelBoxes = document.getElementById('levelBoxes');
+    if (!levelBoxes) return;
+    levelBoxes.querySelectorAll('input[name="levels[]"]').forEach(cb => {
+        cb.checked = false;
+        const item = cb.closest('.checkbox-item');
+        if (item) item.classList.remove('selected');
     });
 }
 
