@@ -182,7 +182,9 @@ class SurveyAccommodationDataService
             $configuredTypes = SurveyAccommodationType::where('is_active', true)
                 ->with(['components' => function($query) {
                     $query->where('is_active', true)
-                          ->orderBy('survey_accommodation_type_components.sort_order');
+                          // Use global Components ordering so the surveyor view
+                          // matches the admin Components list (Walls, then Ceiling, etc.)
+                          ->orderBy('survey_accommodation_components.sort_order');
                 }])
                 ->orderBy('sort_order')
                 ->get()
@@ -209,7 +211,9 @@ class SurveyAccommodationDataService
                         ->where('is_active', true)
                         ->with(['components' => function($query) {
                             $query->where('is_active', true)
-                                  ->orderBy('survey_accommodation_type_components.sort_order');
+                                  // Use global Components ordering so the surveyor view
+                                  // matches the admin Components list (Walls, then Ceiling, etc.)
+                                  ->orderBy('survey_accommodation_components.sort_order');
                         }])
                         ->orderBy('sort_order')
                         ->get()
@@ -352,19 +356,50 @@ class SurveyAccommodationDataService
         // The type name should be shown in the title, not "Select Section" or custom names
         $displayName = $accommodationTypeName;
         
-        // Get total components from component assessments (only components that were actually added)
-        // This ensures we show the correct count based on what was selected when adding the section
-        $totalComponents = $assessment->componentAssessments->count();
-        
-        // Calculate completed components (components with material or defects filled)
+        // Build components list in the same order as configured in admin
+        $typeComponents = $assessment->accommodationType
+            ? $assessment->accommodationType->components
+            : collect();
+
+        // Index existing component assessments by component_id for quick lookup
+        $componentAssessmentsByComponentId = $assessment->componentAssessments
+            ->keyBy('component_id');
+
+        $componentsArray = [];
         $completedComponents = 0;
-        foreach ($assessment->componentAssessments as $compAssessment) {
-            $hasMaterial = !empty($compAssessment->material);
-            $hasDefects = $compAssessment->defects && $compAssessment->defects->count() > 0;
-            if ($hasMaterial || $hasDefects) {
-                $completedComponents++;
+
+        foreach ($typeComponents as $component) {
+            $componentAssessment = $componentAssessmentsByComponentId->get($component->id);
+
+            $materialValue = '';
+            $defectsValues = [];
+
+            if ($componentAssessment) {
+                $hasMaterial = $componentAssessment->material !== null;
+                $hasDefectsRelation = $componentAssessment->defects && $componentAssessment->defects->count() > 0;
+
+                if ($hasMaterial) {
+                    $materialValue = $componentAssessment->material->value ?? '';
+                }
+
+                if ($hasDefectsRelation) {
+                    $defectsValues = $componentAssessment->defects->pluck('value')->toArray();
+                }
+
+                if ($hasMaterial || $hasDefectsRelation) {
+                    $completedComponents++;
+                }
             }
+
+            $componentsArray[] = [
+                'component_key' => $component->key_name,
+                'component_name' => $component->display_name,
+                'material' => $materialValue,
+                'defects' => $defectsValues,
+            ];
         }
+
+        $totalComponents = $typeComponents->count();
         
         // Get report content from database (if exists)
         $reportContent = $assessment->report_content ?? '';
@@ -391,14 +426,7 @@ class SurveyAccommodationDataService
             'has_report' => $hasReport,
             'completed_components' => $completedComponents,
             'total_components' => $totalComponents,
-            'components' => $assessment->componentAssessments->map(function($compAssessment) {
-                return [
-                    'component_key' => $compAssessment->component->key_name,
-                    'component_name' => $compAssessment->component->display_name,
-                    'material' => $compAssessment->material ? $compAssessment->material->value : '',
-                    'defects' => $compAssessment->defects->pluck('value')->toArray(),
-                ];
-            })->toArray(),
+            'components' => $componentsArray,
         ];
     }
     

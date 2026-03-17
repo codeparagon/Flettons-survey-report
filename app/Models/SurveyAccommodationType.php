@@ -38,7 +38,10 @@ class SurveyAccommodationType extends Model
         )
         ->withPivot('is_required', 'sort_order')
         ->withTimestamps()
-        ->orderBy('survey_accommodation_type_components.sort_order');
+        // Order components using the global Components sorting,
+        // so the surveyor carousel matches the order in the
+        // admin "Components" list (Walls, then Ceiling, etc.)
+        ->orderBy('survey_accommodation_components.sort_order');
     }
 
     /**

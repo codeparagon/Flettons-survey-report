@@ -2926,6 +2926,15 @@
 
 @push('scripts')
 <script>
+    // Prefer non-blocking notifications over browser alerts
+    function notifyNonBlockingError(message) {
+        if (typeof toastr !== 'undefined' && toastr && typeof toastr.error === 'function') {
+            toastr.error(message);
+            return;
+        }
+        // Fallback: avoid alert() popups
+        console.error(message);
+    }
 $(document).ready(function() {
     // Category Collapse/Expand Functionality
     $('[data-category-toggle]').on('click', function() {
@@ -3399,7 +3408,7 @@ $(document).ready(function() {
                     if (typeof toastr !== 'undefined') {
                         toastr.error(errorMessage);
                     } else {
-                        alert(errorMessage);
+                        notifyNonBlockingError(errorMessage);
                     }
                     $saveBtn.prop('disabled', false).text(originalBtnText);
                 }
@@ -4588,7 +4597,7 @@ $(document).ready(function() {
                 if (typeof toastr !== 'undefined') {
                     toastr.error(errorMessage);
                 } else {
-                    alert(errorMessage);
+                    notifyNonBlockingError(errorMessage);
                 }
             }
         });
@@ -4614,6 +4623,12 @@ $(document).ready(function() {
         const $button = $(this);
         const sectionId = $button.data('section-id');
         const $sectionItem = $button.closest('.survey-data-mock-section-item');
+        
+        // Accommodation items have their own save handler; avoid double-handling.
+        if ($sectionItem.is('[data-accommodation-id]')) {
+            return;
+        }
+
         const sectionDefinitionId = $sectionItem.data('section-definition-id');
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
@@ -4626,7 +4641,7 @@ $(document).ready(function() {
         
         // Validate required data
         if (!surveyId || !sectionDefinitionId) {
-            alert('Error: Missing survey or section information. Please refresh the page.');
+            notifyNonBlockingError('Error: Missing survey or section information. Please refresh the page.');
             return;
         }
         
@@ -4799,7 +4814,7 @@ $(document).ready(function() {
                 if (typeof toastr !== 'undefined') {
                     toastr.error(errorMessage);
                 } else {
-                    alert(errorMessage);
+                    notifyNonBlockingError(errorMessage);
                 }
                 
                 console.error('Error saving assessment:', xhr);
@@ -5826,7 +5841,7 @@ $(document).ready(function() {
             
             // Validate required data
             if (!surveyId || !sectionDefinitionId) {
-                alert('Error: Missing survey or section information. Please refresh the page.');
+                notifyNonBlockingError('Error: Missing survey or section information. Please refresh the page.');
                 return;
             }
             
@@ -6247,7 +6262,7 @@ $(document).ready(function() {
         
         // Validate required data
         if (!surveyId) {
-            alert('Error: Missing survey information. Please refresh the page.');
+            notifyNonBlockingError('Error: Missing survey information. Please refresh the page.');
             return;
         }
         
@@ -6264,7 +6279,7 @@ $(document).ready(function() {
                     accommodationName: accommodationName,
                     itemData: $item.data()
                 });
-                alert('Error: Missing accommodation type information. Please refresh the page.\n\nIf this error persists, please contact support.');
+                notifyNonBlockingError('Error: Missing accommodation type information. Please refresh the page. If this error persists, please contact support.');
                 return;
             }
         }
@@ -6273,7 +6288,7 @@ $(document).ready(function() {
         finalAccommodationTypeId = parseInt(finalAccommodationTypeId);
         if (isNaN(finalAccommodationTypeId) || finalAccommodationTypeId <= 0) {
             console.error('Invalid accommodation type ID', finalAccommodationTypeId);
-            alert('Error: Invalid accommodation type information. Please refresh the page.');
+            notifyNonBlockingError('Error: Invalid accommodation type information. Please refresh the page.');
             return;
         }
         
@@ -6487,7 +6502,7 @@ $(document).ready(function() {
         
         // Validate required data
         if (!surveyId) {
-            alert('Error: Missing survey information. Please refresh the page.');
+            notifyNonBlockingError('Error: Missing survey information. Please refresh the page.');
             return;
         }
         
@@ -6498,7 +6513,7 @@ $(document).ready(function() {
             
             if (!finalAccommodationTypeId || finalAccommodationTypeId === '' || finalAccommodationTypeId === 'null' || finalAccommodationTypeId === 'undefined') {
                 console.error('Accommodation type ID missing for clone');
-                alert('Error: Missing accommodation type information. Please refresh the page.');
+                notifyNonBlockingError('Error: Missing accommodation type information. Please refresh the page.');
                 return;
             }
         }
@@ -6507,7 +6522,7 @@ $(document).ready(function() {
         finalAccommodationTypeId = parseInt(finalAccommodationTypeId);
         if (isNaN(finalAccommodationTypeId) || finalAccommodationTypeId <= 0) {
             console.error('Invalid accommodation type ID for clone', finalAccommodationTypeId);
-            alert('Error: Invalid accommodation type information. Please refresh the page.');
+            notifyNonBlockingError('Error: Invalid accommodation type information. Please refresh the page.');
             return;
         }
         
@@ -7247,7 +7262,7 @@ $(document).ready(function() {
         const surveyId = $('.survey-data-mock-content').data('survey-id');
         
         if (!surveyId || !contentSectionId) {
-            alert('Error: Missing survey or content section information. Please refresh the page.');
+            notifyNonBlockingError('Error: Missing survey or content section information. Please refresh the page.');
             return;
         }
 

@@ -1780,7 +1780,32 @@ function renderComponentsChecklist(components) {
     const assignedComponents = components.filter(c => c.is_assigned);
     const unassignedComponents = components.filter(c => !c.is_assigned);
     
-    let html = '';
+        let html = '';
+        
+        // Global select / deselect controls for this accommodation type
+        html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div style="font-size: 13px; color: #6b7280;">
+                    ${components.length} component${components.length === 1 ? '' : 's'} available
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button"
+                            class="action-btn text-btn"
+                            style="padding: 6px 10px; font-size: 12px;"
+                            onclick="toggleAllTypeComponents(true)">
+                        <i class="fas fa-check-square"></i>
+                        Select all
+                    </button>
+                    <button type="button"
+                            class="action-btn text-btn"
+                            style="padding: 6px 10px; font-size: 12px;"
+                            onclick="toggleAllTypeComponents(false)">
+                        <i class="far fa-square"></i>
+                        Deselect all
+                    </button>
+                </div>
+            </div>
+        `;
     
     // Show assigned components first
     if (assignedComponents.length > 0) {
@@ -1845,6 +1870,20 @@ function toggleComponentRequired(componentId, isChecked) {
         }
     }
 }
+
+    // Select / deselect all components for the current accommodation type in the configuration modal
+    function toggleAllTypeComponents(selectAll) {
+        const checklist = document.getElementById('componentsChecklist');
+        if (!checklist) return;
+
+        const componentCheckboxes = checklist.querySelectorAll('input[type="checkbox"][id^="component_"]');
+        
+        componentCheckboxes.forEach(checkbox => {
+            checkbox.checked = !!selectAll;
+            const componentId = parseInt(checkbox.id.replace('component_', ''), 10);
+            toggleComponentRequired(componentId, !!selectAll);
+        });
+    }
 
 function updateComponentRequired(componentId, isRequired) {
     // This is handled in saveTypeComponents
