@@ -56,12 +56,27 @@ class AccommodationBuilderController extends Controller
         // Get global defects
         $defectType = SurveyAccommodationOptionType::where('key_name', 'defects')->first();
         $globalDefects = [];
+        $defectsByComponent = [];
         if ($defectType) {
             $globalDefects = SurveyAccommodationOption::where('option_type_id', $defectType->id)
                 ->where('scope_type', 'global')
                 ->where('is_active', true)
                 ->orderBy('sort_order')
                 ->get();
+
+            // Get defects grouped by component (component-scoped defects)
+            $componentDefects = SurveyAccommodationOption::where('option_type_id', $defectType->id)
+                ->where('scope_type', 'component')
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get();
+
+            foreach ($componentDefects as $defect) {
+                if (!isset($defectsByComponent[$defect->scope_id])) {
+                    $defectsByComponent[$defect->scope_id] = [];
+                }
+                $defectsByComponent[$defect->scope_id][] = $defect;
+            }
         }
         
         // Get survey levels for level selection
@@ -73,6 +88,7 @@ class AccommodationBuilderController extends Controller
             'optionTypes',
             'materialsByComponent',
             'globalDefects',
+            'defectsByComponent',
             'levels'
         ));
     }
@@ -445,7 +461,8 @@ class AccommodationBuilderController extends Controller
         $scopeType = 'global';
         $scopeId = null;
         
-        if ($validated['option_type'] === 'material' && !empty($validated['component_id'])) {
+        // Materials and defects can both be component-specific; fall back to global when no component is provided
+        if (!empty($validated['component_id'])) {
             $scopeType = 'component';
             $scopeId = $validated['component_id'];
         }

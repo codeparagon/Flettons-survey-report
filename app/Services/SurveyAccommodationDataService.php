@@ -518,22 +518,46 @@ class SurveyAccommodationDataService
 
     /**
      * Get defect options for accommodation components from database.
+     * Returns global defects plus any component-specific defects when a component key is provided.
      * 
+     * @param string|null $componentKey
      * @return array
      */
-    public function getComponentDefects(): array
+    public function getComponentDefects(?string $componentKey = null): array
     {
         $defectType = SurveyAccommodationOptionType::where('key_name', 'defects')->first();
         if (!$defectType) {
             return [];
         }
 
-        return SurveyAccommodationOption::where('option_type_id', $defectType->id)
+        // Always include global defects
+        $globalDefects = SurveyAccommodationOption::where('option_type_id', $defectType->id)
             ->where('scope_type', 'global')
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->pluck('value')
             ->toArray();
+
+        if ($componentKey === null) {
+            return $globalDefects;
+        }
+
+        // Add component-specific defects for this component (if any)
+        $component = SurveyAccommodationComponent::where('key_name', $componentKey)->first();
+        if (!$component) {
+            return $globalDefects;
+        }
+
+        $componentDefects = SurveyAccommodationOption::where('option_type_id', $defectType->id)
+            ->where('scope_type', 'component')
+            ->where('scope_id', $component->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray();
+
+        // Merge, preserving order: globals first, then component-specific, and remove duplicates
+        return array_values(array_unique(array_merge($globalDefects, $componentDefects)));
     }
 
     /**
@@ -833,8 +857,12 @@ class SurveyAccommodationDataService
 
             $componentAssessment->save();
 
-            if (isset($componentData['defects']) && is_array($componentData['defects'])) {
-                $defectOptionIds = $this->findAccommodationDefectOptionIds($defectType->id, $componentData['defects']);
+                if (isset($componentData['defects']) && is_array($componentData['defects'])) {
+                    $defectOptionIds = $this->findAccommodationDefectOptionIds(
+                        $defectType->id,
+                        $componentData['defects'],
+                        $component->id
+                    );
                 $componentAssessment->defects()->sync($defectOptionIds);
             }
         }
@@ -874,19 +902,34 @@ class SurveyAccommodationDataService
 
     /**
      * Find accommodation defect option IDs by values.
+     * Looks for component-specific defects first (when component ID provided), then global ones.
      */
-    protected function findAccommodationDefectOptionIds(int $defectOptionTypeId, array $defectValues): array
+    protected function findAccommodationDefectOptionIds(int $defectOptionTypeId, array $defectValues, ?int $componentId = null): array
     {
         if (empty($defectValues)) {
             return [];
         }
 
-        return SurveyAccommodationOption::where('option_type_id', $defectOptionTypeId)
+        $query = SurveyAccommodationOption::where('option_type_id', $defectOptionTypeId)
             ->whereIn('value', $defectValues)
-            ->where('is_active', true)
-            ->where('scope_type', 'global')
-            ->pluck('id')
-            ->toArray();
+            ->where('is_active', true);
+
+        // Match both global and component-specific defects (when component is known)
+        $query->where(function ($q) use ($componentId) {
+            $q->where(function ($q2) {
+                $q2->where('scope_type', 'global')
+                   ->whereNull('scope_id');
+            });
+
+            if ($componentId) {
+                $q->orWhere(function ($q3) use ($componentId) {
+                    $q3->where('scope_type', 'component')
+                       ->where('scope_id', $componentId);
+                });
+            }
+        });
+
+        return $query->pluck('id')->toArray();
     }
 
     /**

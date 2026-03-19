@@ -16,6 +16,9 @@
             </div>
             <div class="item-meta">
                 {{ count($materials) }} materials
+                @if(isset($defects) && count($defects) > 0)
+                    &middot; {{ count($defects) }} defects
+                @endif
                 @if(!$component->is_active)
                     <span class="status-badge inactive ml-2">Inactive</span>
                 @endif
@@ -43,6 +46,24 @@
                 </span>
             @endforeach
             <input type="text" class="tag-input" placeholder="Type and press Enter..." onkeydown="handleMaterialInput(event, {{ $component->id }})">
+        </div>
+
+        <label style="font-weight: 600; font-size: 13px; color: #374151; margin: 16px 0 8px; display: block;">
+            Component Defect Options
+        </label>
+        <div class="tags-container component-defects-container">
+            @if(isset($defects))
+                @foreach($defects as $defect)
+                    <span class="tag" data-id="{{ $defect->id }}">
+                        {{ $defect->value }}
+                        <span class="tag-remove" onclick="deleteDefect({{ $defect->id }})">&times;</span>
+                    </span>
+                @endforeach
+            @endif
+            <input type="text"
+                   class="tag-input"
+                   placeholder="Type and press Enter..."
+                   onkeydown="handleComponentDefectInput(event, {{ $component->id }})">
         </div>
     </div>
 </div>

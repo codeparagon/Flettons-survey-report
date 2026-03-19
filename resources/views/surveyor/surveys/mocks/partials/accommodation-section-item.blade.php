@@ -89,7 +89,8 @@
                                         <label class="survey-data-mock-field-label">Defects</label>
                                         <div class="survey-data-mock-button-group">
                                             @php
-                                                $defects = app(\App\Services\SurveyAccommodationDataService::class)->getComponentDefects();
+                                                $defects = app(\App\Services\SurveyAccommodationDataService::class)
+                                                    ->getComponentDefects($component['component_key']);
                                             @endphp
                                             @foreach($defects as $defect)
                                                 <button type="button" 

@@ -967,7 +967,8 @@
                 @forelse($components as $component)
                     @include('admin.accommodation-builder.partials.component-item', [
                         'component' => $component,
-                        'materials' => $materialsByComponent[$component->id] ?? []
+                        'materials' => $materialsByComponent[$component->id] ?? [],
+                        'defects' => $defectsByComponent[$component->id] ?? []
                     ])
                 @empty
                     <p style="color: #9ca3af; text-align: center; padding: 20px;">No components yet. Add your first component above.</p>
@@ -1649,7 +1650,7 @@ async function deleteMaterial(id) {
     }
 }
 
-// Defect management
+// Defect management (global)
 async function handleDefectInput(event) {
     if (event.key === 'Enter') {
         event.preventDefault();
@@ -1689,6 +1690,44 @@ async function deleteDefect(id) {
         showToast('Defect removed', 'success');
     } catch (error) {
         showToast('Error removing defect', 'error');
+    }
+}
+
+// Component-specific defects
+async function handleComponentDefectInput(event, componentId) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const value = event.target.value.trim();
+        if (value) {
+            await addComponentDefect(componentId, value);
+            event.target.value = '';
+        }
+    }
+}
+
+async function addComponentDefect(componentId, value) {
+    try {
+        const result = await apiCall('/admin/api/accommodation-options', 'POST', {
+            option_type: 'defects',
+            value: value,
+            component_id: componentId
+        });
+        if (result.success) {
+            const container = document.querySelector(`.component-item[data-component-id="${componentId}"] .component-defects-container`);
+            if (!container) {
+                showToast('Unable to find defects container', 'error');
+                return;
+            }
+            const input = container.querySelector('input');
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.dataset.id = result.option.id;
+            tag.innerHTML = `${value}<span class="tag-remove" onclick="deleteDefect(${result.option.id})">&times;</span>`;
+            container.insertBefore(tag, input);
+            showToast('Defect added', 'success');
+        }
+    } catch (error) {
+        showToast('Error adding defect', 'error');
     }
 }
 
