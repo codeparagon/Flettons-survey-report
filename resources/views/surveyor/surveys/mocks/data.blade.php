@@ -2995,6 +2995,10 @@ $(document).ready(function() {
     // Options mapping from SurveyDataService
     const optionsMapping = @json($optionsMapping ?? []);
 
+    // Admin-configured condition rating mapping (missing => NI)
+    // Structure: { material: { normalizedOptionValue: 1|2|3 }, defects: { ... } }
+    const conditionRatingRules = @json($conditionRatingRules ?? ['material' => [], 'defects' => []]);
+
     // Helper function to get options with fallback (scoped to category and optionally sub-category)
     function getOptions(categoryName, optionType, fallback = [], subCategoryKey = null) {
         const categoryOptions = optionsMapping[categoryName];
@@ -3016,84 +3020,77 @@ $(document).ready(function() {
 
     // Helper: derive an automatic condition rating from material + defects
     function calculateAutoConditionRating(material, defects) {
+        function normalizeOptionValue(value) {
+            if (value === null || value === undefined) return '';
+            return value.toString().trim().toLowerCase();
+        }
+
+        const numericRatings = [];
+
+        const materialValue = normalizeOptionValue(material);
+        if (materialValue) {
+            const materialRules = conditionRatingRules && conditionRatingRules.material ? conditionRatingRules.material : {};
+            const mappedMaterial = materialRules[materialValue];
+            if (mappedMaterial !== undefined && mappedMaterial !== null) {
+                numericRatings.push(mappedMaterial);
+            }
+        }
+
         const defectsArray = Array.isArray(defects) ? defects : [];
-        const materialStr = (material || '').toString().toLowerCase();
-        const defectStrings = defectsArray
-            .filter(Boolean)
-            .map(d => d.toString().toLowerCase());
+        const defectRules = conditionRatingRules && conditionRatingRules.defects ? conditionRatingRules.defects : {};
 
-        // No or "None" defects → best rating
-        if (defectStrings.length === 0 || defectStrings.includes('none')) {
-            return '1';
+        defectsArray.forEach(d => {
+            const defectValue = normalizeOptionValue(d);
+            if (!defectValue) return;
+
+            const mapped = defectRules[defectValue];
+            if (mapped !== undefined && mapped !== null) {
+                numericRatings.push(mapped);
+            }
+        });
+
+        // If everything resolves to NI/missing, return NI.
+        if (numericRatings.length === 0) {
+            return 'ni';
         }
 
-        const severeDefects = [
-            'rot',
-            'hole',
-            'holes',
-            'deflection',
-            'structural crack',
-            'subsidence',
-            'heave',
-            'significant movement'
-        ];
+        // Average ignoring NI, then round to nearest 1/2/3.
+        const sum = numericRatings.reduce((acc, r) => acc + r, 0);
+        const avg = sum / numericRatings.length;
+        const rounded = Math.round(avg);
 
-        const moderateDefects = [
-            'perished',
-            'thermal sag',
-            'slipped tile',
-            'slipped tiles',
-            'moss',
-            'lichen',
-            'leak',
-            'leaks',
-            'damp',
-            'spalling'
-        ];
-
-        const hasSevere = defectStrings.some(d =>
-            severeDefects.some(s => d.includes(s))
-        );
-        if (hasSevere) {
-            return '3';
-        }
-
-        const hasModerate = defectStrings.some(d =>
-            moderateDefects.some(m => d.includes(m))
-        );
-        if (hasModerate) {
-            return '2';
-        }
-
-        // Asbestos or similar higher‑risk materials with any defect → at least 2
-        if (materialStr.includes('asbestos') && defectStrings.length > 0) {
-            return '2';
-        }
-        // Default when there are some unclassified defects
-        return '2';
+        const clamped = Math.min(3, Math.max(1, rounded));
+        return String(clamped);
     }
 
     // Helper: derive an automatic accommodation condition rating from components
     function calculateAutoConditionRatingFromComponents(components) {
         if (!Array.isArray(components) || components.length === 0) {
-            return '1';
+            return 'ni';
         }
 
-        let worst = '1';
+        let worstNumericRating = null; // 1|2|3
 
         components.forEach(component => {
             const material = component && component.material ? component.material : '';
             const defects = component && Array.isArray(component.defects) ? component.defects : [];
             const rating = calculateAutoConditionRating(material, defects);
 
-            if (rating === '3') {
-                worst = '3';
-            } else if (rating === '2' && worst === '1') {
-                worst = '2';
+            if (rating === 'ni') return;
+
+            if (worstNumericRating === null) {
+                worstNumericRating = rating;
+                return;
+            }
+
+            const current = parseInt(rating, 10);
+            const worst = parseInt(worstNumericRating, 10);
+            if (current > worst) {
+                worstNumericRating = rating;
             }
         });
 
-        return worst;
+        return worstNumericRating === null ? 'ni' : worstNumericRating;
     }
 
     // Mock GPT Content Generator for Accommodation Sections

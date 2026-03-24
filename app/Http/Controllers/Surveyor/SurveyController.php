@@ -162,10 +162,35 @@ class SurveyController extends Controller
         // Get options mapping for dynamic options from database
         $optionsMapping = $surveyDataService->getOptionsMapping();
 
+        // Load condition rating rules (admin-configured mapping)
+        // JS matching is case-insensitive via normalized (trimmed, lowercased) keys.
+        $conditionRatingRules = [
+            'material' => [],
+            'defects' => [],
+        ];
+
+        $ruleRows = \App\Models\SurveyConditionRatingRule::query()
+            ->whereNotNull('condition_rating')
+            ->get(['option_type', 'option_value', 'condition_rating']);
+
+        foreach ($ruleRows as $row) {
+            $type = $row->option_type;
+            $conditionRatingRules[$type][(string) $row->option_value] = (int) $row->condition_rating;
+        }
+
         // Get content sections
         $contentSections = $this->getContentSectionsForSurvey($survey, $categories);
 
-        return view('surveyor.surveys.mocks.data', compact('survey', 'categories', 'accommodationSections', 'accommodationTypesWithComponents', 'hasAccommodationTypesWithComponents', 'optionsMapping', 'contentSections'));
+        return view('surveyor.surveys.mocks.data', compact(
+            'survey',
+            'categories',
+            'accommodationSections',
+            'accommodationTypesWithComponents',
+            'hasAccommodationTypesWithComponents',
+            'optionsMapping',
+            'conditionRatingRules',
+            'contentSections'
+        ));
     }
 
     /**

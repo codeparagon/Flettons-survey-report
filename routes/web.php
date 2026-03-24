@@ -149,6 +149,9 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     
     // Accommodation Builder
     Route::get('/accommodation-builder', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'index'])->name('admin.accommodation-builder.index');
+
+    // Condition Rating Rules Builder
+    Route::get('/condition-rating-rules', [\App\Http\Controllers\Admin\ConditionRatingRulesController::class, 'index'])->name('admin.condition-rating-rules.index');
     
     // Global Options Manager
     Route::get('/survey-options', [\App\Http\Controllers\Admin\GlobalOptionsController::class, 'index'])->name('admin.survey-options.index');
@@ -207,6 +210,9 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     Route::post('/api/accommodation-options', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'storeOption']);
     Route::put('/api/accommodation-options/{accommodationOption}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'updateOption']);
     Route::delete('/api/accommodation-options/{accommodationOption}', [\App\Http\Controllers\Admin\AccommodationBuilderController::class, 'deleteOption']);
+
+    // Condition Rating Rules API
+    Route::post('/api/condition-rating-rules', [\App\Http\Controllers\Admin\ConditionRatingRulesController::class, 'save'])->name('admin.condition-rating-rules.save');
     
     // ============================================
     // GLOBAL OPTIONS API ENDPOINTS
