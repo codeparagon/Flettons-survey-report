@@ -37,8 +37,19 @@
     </div>
 
     <!-- Expanded Form Content -->
+    @php
+        $subcategoryKey = $section['subcategory_key'] ?? null;
+        $surveyDataService = app(\App\Services\SurveyDataService::class);
+        $enabledFields = $section['enabled_option_fields'] ?? [];
+        if (empty($enabledFields)) {
+            $enabledFields = $surveyDataService->buildEnabledOptionFieldsMeta($surveyDataService->defaultEnabledOptionTypes());
+        }
+        $enabledFieldsLeft = array_slice($enabledFields, 0, 5);
+        $enabledFieldsRight = array_slice($enabledFields, 5);
+    @endphp
     <div class="survey-data-mock-section-details" 
          style="display: {{ ($section['has_report'] ?? false) ? 'none' : 'none' }};"
+         data-option-selections="{{ e(json_encode($section['option_selections'] ?? [])) }}"
          data-selected-section="{{ $section['selected_section'] ?? '' }}"
          data-selected-location="{{ $section['location'] ?? '' }}"
          data-selected-structure="{{ $section['structure'] ?? '' }}"
@@ -47,89 +58,17 @@
          data-selected-remaining-life="{{ $section['remaining_life'] ?? '' }}">
         <div class="survey-data-mock-section-details-content">
             <div class="survey-data-mock-form-grid">
-                <!-- Left Column -->
+                <!-- Left Column: enabled option types (admin survey builder + global options) -->
                 <div class="survey-data-mock-form-column survey-data-mock-form-column-left" data-column="left">
-                    <!-- Section Buttons - Dynamic based on category -->
-                    @php
-                        $subcategoryKey = $section['subcategory_key'] ?? null;
-                        $categoryOptions = $optionsMapping[$categoryName] ?? [];
-                        $subCategoryOptions = $subcategoryKey && isset($categoryOptions['by_subcategory'][$subcategoryKey])
-                            ? $categoryOptions['by_subcategory'][$subcategoryKey]
-                            : null;
-
-                        // Section options: prefer sub-category specific, then category, then fallback to section name
-                        $sectionOptions = $subCategoryOptions['section']
-                            ?? ($categoryOptions['section'] ?? [$section['name']]);
-                        if (empty($sectionOptions)) {
-                            $sectionOptions = [$section['name']];
-                        }
-                    @endphp
-                    <div class="survey-data-mock-field-group">
-                        <label class="survey-data-mock-field-label">Section</label>
-                        <div class="survey-data-mock-button-group">
-                            @foreach($sectionOptions as $option)
-                                <button type="button" class="survey-data-mock-button" data-value="{{ $option }}" data-group="section">{{ $option }}</button>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <!-- Location Buttons -->
-                    @php
-                        // Use sub-category specific location options if available, otherwise category, then global defaults
-                        $locationOptions = $subCategoryOptions['location']
-                            ?? ($categoryOptions['location'] ?? ($optionsMapping['location'] ?? ['Whole Property', 'Right', 'Left', 'Front', 'Rear']));
-                    @endphp
-                    <div class="survey-data-mock-field-group">
-                        <label class="survey-data-mock-field-label">Location</label>
-                        <div class="survey-data-mock-button-group">
-                            @foreach($locationOptions as $option)
-                                <button type="button" class="survey-data-mock-button" data-value="{{ $option }}" data-group="location">{{ $option }}</button>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <!-- Structure Buttons -->
-                    @php
-                        $structureOptions = $subCategoryOptions['structure']
-                            ?? ($categoryOptions['structure'] ?? ['Standard']);
-                    @endphp
-                    <div class="survey-data-mock-field-group">
-                        <label class="survey-data-mock-field-label">Structure</label>
-                        <div class="survey-data-mock-button-group">
-                            @foreach($structureOptions as $option)
-                                <button type="button" class="survey-data-mock-button" data-value="{{ $option }}" data-group="structure">{{ $option }}</button>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <!-- Material Buttons -->
-                    @php
-                        $materialOptions = $subCategoryOptions['material']
-                            ?? ($categoryOptions['material'] ?? ['Mixed']);
-                    @endphp
-                    <div class="survey-data-mock-field-group">
-                        <label class="survey-data-mock-field-label">Material</label>
-                        <div class="survey-data-mock-button-group">
-                            @foreach($materialOptions as $option)
-                                <button type="button" class="survey-data-mock-button" data-value="{{ $option }}" data-group="material">{{ $option }}</button>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <!-- Defects Buttons -->
-                    @php
-                        // Use sub-category specific defect options first, then category, then global defaults
-                        $defectOptions = $subCategoryOptions['defects']
-                            ?? ($categoryOptions['defects'] ?? ($optionsMapping['defects'] ?? ['Holes', 'Perished', 'Thermal Sag', 'Deflection', 'Rot', 'Moss', 'Lichen', 'Slipped Tiles', 'None']));
-                    @endphp
-                    <div class="survey-data-mock-field-group">
-                        <label class="survey-data-mock-field-label">Defects</label>
-                        <div class="survey-data-mock-button-group">
-                            @foreach($defectOptions as $option)
-                                <button type="button" class="survey-data-mock-button" data-value="{{ $option }}" data-group="defects" data-multiple="true">{{ $option }}</button>
-                            @endforeach
-                        </div>
-                    </div>
+                    @foreach($enabledFieldsLeft as $field)
+                        @include('surveyor.surveys.mocks.partials.section-option-field-group', [
+                            'field' => $field,
+                            'section' => $section,
+                            'categoryName' => $categoryName,
+                            'subcategoryKey' => $subcategoryKey,
+                            'surveyDataService' => $surveyDataService,
+                        ])
+                    @endforeach
                 </div>
 
                 <!-- Draggable Divider -->
@@ -139,22 +78,17 @@
                     </div>
                 </div>
                 
-                <!-- Right Column -->
+                <!-- Right Column: option types 6+ (desktop), then costs / notes / images -->
                 <div class="survey-data-mock-form-column survey-data-mock-form-column-right" data-column="right">
-                    <!-- Remaining Life Buttons -->
-                    @php
-                        // Use sub-category specific remaining life options first, then category, then global defaults
-                        $remainingLifeOptions = $subCategoryOptions['remaining_life']
-                            ?? ($categoryOptions['remaining_life'] ?? ($optionsMapping['remaining_life'] ?? ['0', '1-5', '6-10', '10+']));
-                    @endphp
-                    <div class="survey-data-mock-field-group">
-                        <label class="survey-data-mock-field-label">Remaining Life (Years)</label>
-                        <div class="survey-data-mock-button-group">
-                            @foreach($remainingLifeOptions as $option)
-                                <button type="button" class="survey-data-mock-button" data-value="{{ $option }}" data-group="remaining_life">{{ $option }}</button>
-                            @endforeach
-                        </div>
-                    </div>
+                    @foreach($enabledFieldsRight as $field)
+                        @include('surveyor.surveys.mocks.partials.section-option-field-group', [
+                            'field' => $field,
+                            'section' => $section,
+                            'categoryName' => $categoryName,
+                            'subcategoryKey' => $subcategoryKey,
+                            'surveyDataService' => $surveyDataService,
+                        ])
+                    @endforeach
 
                     <!-- Estimated Costs -->
                     <div class="survey-data-mock-field-group survey-data-mock-costs-group">

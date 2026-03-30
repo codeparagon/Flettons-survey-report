@@ -11,6 +11,7 @@ use App\Models\SurveyLevel;
 use App\Models\SurveyOptionType;
 use App\Models\SurveyOption;
 use App\Models\SurveySectionCost;
+use App\Models\SurveySectionOptionValue;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +91,7 @@ class SurveyDataService
         
         if (empty($survey->level)) {
             // No level set - show all active sections (backward compatibility for old surveys)
-            $sectionDefinitions = SurveySectionDefinition::with(['subcategory.category'])
+            $sectionDefinitions = SurveySectionDefinition::with(['subcategory.category', 'requiredFields'])
                 ->where('is_active', true)
                 ->orderBy('sort_order')
                 ->get();
@@ -110,7 +111,7 @@ class SurveyDataService
                     $sectionDefinitions = collect();
                 } else {
                     // Level exists and has sections - return only those sections
-                    $sectionDefinitions = SurveySectionDefinition::with(['subcategory.category'])
+                    $sectionDefinitions = SurveySectionDefinition::with(['subcategory.category', 'requiredFields'])
                         ->whereIn('id', $sectionDefinitionIds)
                         ->where('is_active', true)
                         ->orderBy('sort_order')
@@ -122,17 +123,19 @@ class SurveyDataService
         // Load existing assessments for this survey
         $assessments = SurveySectionAssessment::where('survey_id', $survey->id)
             ->with([
-                'sectionDefinition.subcategory.category', 
-                'sectionType', 
-                'location', 
-                'structure', 
-                'material', 
-                'remainingLife', 
-                'defects', 
+                'sectionDefinition.subcategory.category',
+                'sectionDefinition.requiredFields',
+                'sectionType',
+                'location',
+                'structure',
+                'material',
+                'remainingLife',
+                'defects',
+                'optionValues.option.optionType',
                 'photos' => function($query) {
                     $query->orderBy('sort_order');
-                }, 
-                'costs'
+                },
+                'costs',
             ])
             ->get()
             ->groupBy('section_definition_id');
@@ -184,7 +187,36 @@ class SurveyDataService
     protected function getMockGroupedData(Survey $survey): array
     {
         $categoriesRaw = $this->getMockData($survey);
+        foreach ($categoriesRaw as &$sections) {
+            foreach ($sections as &$section) {
+                $section = $this->enrichSectionViewForMock($section);
+            }
+        }
+        unset($sections, $section);
+
         return $this->groupSectionsBySubCategory($categoriesRaw);
+    }
+
+    /**
+     * Add enabled_option_fields + option_selections for mock UI (useMockData path).
+     *
+     * @param  array<string, mixed>  $section
+     * @return array<string, mixed>
+     */
+    protected function enrichSectionViewForMock(array $section): array
+    {
+        $defaults = $this->defaultEnabledOptionTypes();
+        $section['enabled_option_fields'] = $this->buildEnabledOptionFieldsMeta($defaults);
+        $section['option_selections'] = [
+            'section_type' => $section['selected_section'] ?? '',
+            'location' => $section['location'] ?? '',
+            'structure' => $section['structure'] ?? '',
+            'material' => $section['material'] ?? '',
+            'defects' => $section['defects'] ?? [],
+            'remaining_life' => $section['remaining_life'] ?? '',
+        ];
+
+        return $section;
     }
 
     /**
@@ -196,17 +228,24 @@ class SurveyDataService
      */
     protected function transformSectionDefinitionToViewFormat(SurveySectionDefinition $sectionDef, $assessment = null): array
     {
+        $sectionDef->loadMissing('subcategory.category', 'requiredFields');
         $subcategoryKey = $sectionDef->subcategory->name ?? '';
-        
-        // Build section name - if assessment has section_type, use it
+
+        $types = $this->getEnabledOptionTypesForSection($sectionDef);
+        $selections = $this->buildOptionSelectionsFromAssessment($sectionDef, $assessment);
+
         $sectionName = $sectionDef->display_name;
-        if ($assessment && $assessment->sectionType) {
-            $sectionName = $sectionDef->display_name . ' [' . $assessment->sectionType->value . ']';
+        $sectionTypeVal = $selections['section_type'] ?? '';
+        if ($sectionTypeVal !== '') {
+            $sectionName = $sectionDef->display_name . ' [' . $sectionTypeVal . ']';
         }
-        
-        // Calculate completion count based on submitted fields
-        $completionData = $this->calculateCompletionCount($assessment);
-        
+
+        $completionData = $this->calculateCompletionCount($assessment, $types, $selections);
+
+        $defectsList = isset($selections['defects'])
+            ? (is_array($selections['defects']) ? $selections['defects'] : array_filter([$selections['defects']]))
+            : [];
+
         return [
             'id' => $assessment ? $assessment->id : 'new_' . $sectionDef->id,
             'section_id' => $sectionDef->id,
@@ -215,12 +254,14 @@ class SurveyDataService
             'completion' => $completionData['count'],
             'total' => $completionData['total'],
             'condition_rating' => $assessment ? $this->mapConditionRatingFromNumeric($assessment->condition_rating) : 'ni',
-            'selected_section' => $assessment && $assessment->sectionType ? $assessment->sectionType->value : '',
-            'location' => $assessment && $assessment->location ? $assessment->location->value : '',
-            'structure' => $assessment && $assessment->structure ? $assessment->structure->value : '',
-            'material' => $assessment && $assessment->material ? $assessment->material->value : '',
-            'defects' => $assessment ? $assessment->defects->pluck('value')->toArray() : [],
-            'remaining_life' => $assessment && $assessment->remainingLife ? $assessment->remainingLife->value : '',
+            'enabled_option_fields' => $this->buildEnabledOptionFieldsMeta($types),
+            'option_selections' => $selections,
+            'selected_section' => $sectionTypeVal,
+            'location' => $selections['location'] ?? '',
+            'structure' => $selections['structure'] ?? '',
+            'material' => $selections['material'] ?? '',
+            'defects' => $defectsList,
+            'remaining_life' => $selections['remaining_life'] ?? '',
             'costs' => $assessment ? $assessment->costs->map(function($cost) {
                 return [
                     'category' => $cost->category,
@@ -274,72 +315,66 @@ class SurveyDataService
 
     /**
      * Calculate completion count based on submitted fields.
-     * Counts all fields that have been submitted to the database.
      * Notes, costs, and photos are counted as 1 if they exist, 0 if they don't.
-     * Notes are excluded if empty.
-     * 
-     * @param SurveySectionAssessment|null $assessment
-     * @return array ['count' => int, 'total' => int]
+     *
+     * @param  array<string, mixed>  $selections  keyed by option type key_name
+     * @return array{count: int, total: int}
      */
-    protected function calculateCompletionCount($assessment): array
-    {
+    protected function calculateCompletionCount(
+        ?SurveySectionAssessment $assessment,
+        Collection $enabledTypes,
+        array $selections = []
+    ): array {
         if (!$assessment) {
-            return ['count' => 0, 'total' => 10];
+            $enabledCount = $enabledTypes->count();
+            $total = $enabledCount + 1 + 3;
+
+            return ['count' => 0, 'total' => $total];
         }
-        
+
         $count = 0;
-        
-        // Count basic fields (1 point each if filled)
-        if ($assessment->section_type_id) $count++;
-        if ($assessment->location_id) $count++;
-        if ($assessment->structure_id) $count++;
-        if ($assessment->material_id) $count++;
-        if ($assessment->remaining_life_id) $count++;
-        if ($assessment->condition_rating !== null) $count++;
-        
-        // Count defects (1 point if any defects exist)
-        if ($assessment->defects()->count() > 0) $count++;
-        
-        // Count notes (1 point if notes exist and are not empty) - EXCLUDE if empty
+
+        foreach ($enabledTypes as $ot) {
+            $key = $ot->key_name;
+            $val = $selections[$key] ?? null;
+            if ($ot->is_multiple) {
+                if (is_array($val) && count(array_filter($val, fn ($v) => $v !== null && $v !== '')) > 0) {
+                    $count++;
+                }
+            } else {
+                if ($val !== null && $val !== '') {
+                    $count++;
+                }
+            }
+        }
+
+        if ($assessment->condition_rating !== null) {
+            $count++;
+        }
+
         $hasNotes = !empty(trim($assessment->notes ?? ''));
-        if ($hasNotes) $count++;
-        
-        // Count costs (1 point if any costs exist, 0 if no costs) - similar to notes
+        if ($hasNotes) {
+            $count++;
+        }
+
         $hasCosts = $assessment->costs()->count() > 0;
-        if ($hasCosts) $count++;
-        
-        // Count photos (1 point if any photos exist, 0 if no photos) - similar to notes
+        if ($hasCosts) {
+            $count++;
+        }
+
         $hasPhotos = $assessment->photos()->count() > 0;
-        if ($hasPhotos) $count++;
-        
-        // Calculate total: base fields (7) + notes (0 or 1) + costs (0 or 1) + photos (0 or 1)
-        // Base fields: section_type, location, structure, material, remaining_life, condition_rating, defects = 7
-        $baseFields = 7;
-        $notesField = $hasNotes ? 1 : 0;
-        $costsField = $hasCosts ? 1 : 0;
-        $photosField = $hasPhotos ? 1 : 0;
-        
-        // Total is always 10: 7 base fields + 3 optional fields (notes, costs, photos)
-        $total = $baseFields + 3; // 7 + 3 = 10
-        
+        if ($hasPhotos) {
+            $count++;
+        }
+
+        $enabledCount = $enabledTypes->count();
+        $total = $enabledCount + 1 + 3;
+
         return [
             'count' => $count,
-            'total' => $total
+            'total' => $total,
         ];
     }
-
-    /**
-     * Calculate completion percentage for an assessment (kept for backward compatibility).
-     * 
-     * @param SurveySectionAssessment|null $assessment
-     * @return int
-     */
-    protected function calculateCompletion($assessment): int
-    {
-        $completionData = $this->calculateCompletionCount($assessment);
-        return $completionData['count'];
-    }
-
 
     /**
      * Get sub-categories mapping for each category.
@@ -707,6 +742,348 @@ class SurveyDataService
         return trim($baseName);
     }
 
+
+    /**
+     * Default option types when a section has no rows in survey_section_required_fields (backward compatibility).
+     */
+    public function defaultEnabledOptionTypes(): Collection
+    {
+        return SurveyOptionType::query()
+            ->whereIn('key_name', ['section_type', 'location', 'structure', 'material', 'defects', 'remaining_life'])
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
+    }
+
+    /**
+     * Enabled option types for a section definition (admin toggles + custom types).
+     */
+    public function getEnabledOptionTypesForSection(SurveySectionDefinition $sectionDef): Collection
+    {
+        $sectionDef->loadMissing('requiredFields');
+        $fields = $sectionDef->requiredFields;
+        if ($fields->isEmpty()) {
+            return $this->defaultEnabledOptionTypes();
+        }
+
+        return $fields;
+    }
+
+    /**
+     * UI data-group for buttons: section_type uses "section" for legacy JS selectors.
+     */
+    public function formUiGroupForOptionKey(string $keyName): string
+    {
+        return $keyName === 'section_type' ? 'section' : $keyName;
+    }
+
+    /**
+     * Meta for surveyor section-item Blade: enabled fields with labels and UI group keys.
+     *
+     * @return array<int, array{key_name: string, label: string, is_multiple: bool, data_group: string}>
+     */
+    public function buildEnabledOptionFieldsMeta(Collection $optionTypes): array
+    {
+        return $optionTypes->map(function (SurveyOptionType $ot) {
+            $key = $ot->key_name;
+
+            return [
+                'key_name' => $key,
+                'label' => $ot->label,
+                'is_multiple' => (bool) $ot->is_multiple,
+                'data_group' => $this->formUiGroupForOptionKey($key),
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * Scoped option values for any option type key (built-ins delegate to existing helpers).
+     */
+    public function getOptionsForOptionTypeKey(string $keyName, ?string $categoryName, ?string $subCategoryKey): array
+    {
+        return match ($keyName) {
+            'section_type' => $this->getSectionOptions($categoryName ?? '', $subCategoryKey),
+            'location' => $this->getLocationOptions($categoryName, $subCategoryKey),
+            'structure' => $this->getStructureOptions($categoryName ?? '', $subCategoryKey),
+            'material' => $this->getMaterialOptions($categoryName ?? '', $subCategoryKey),
+            'defects' => $this->getDefectOptions($categoryName, $subCategoryKey),
+            'remaining_life' => $this->getRemainingLifeOptions($categoryName, $subCategoryKey),
+            default => $this->getGenericOptionsForTypeKey($keyName, $categoryName, $subCategoryKey),
+        };
+    }
+
+    /**
+     * Options for a custom option type (same scoping rules as material).
+     */
+    protected function getGenericOptionsForTypeKey(string $keyName, ?string $categoryName, ?string $subCategoryKey): array
+    {
+        $type = SurveyOptionType::where('key_name', $keyName)->where('is_active', true)->first();
+        if (!$type) {
+            return [];
+        }
+
+        if ($categoryName === null || $categoryName === '') {
+            return SurveyOption::where('option_type_id', $type->id)
+                ->where('is_active', true)
+                ->where('scope_type', 'global')
+                ->whereNull('scope_id')
+                ->orderBy('sort_order')
+                ->pluck('value')
+                ->toArray();
+        }
+
+        $category = SurveyCategory::where('display_name', $categoryName)->orWhere('name', $categoryName)->first();
+        if (!$category) {
+            return SurveyOption::where('option_type_id', $type->id)
+                ->where('is_active', true)
+                ->where('scope_type', 'global')
+                ->whereNull('scope_id')
+                ->orderBy('sort_order')
+                ->pluck('value')
+                ->toArray();
+        }
+
+        $subcategoryIds = SurveySubcategory::where('category_id', $category->id)
+            ->pluck('id')
+            ->toArray();
+
+        return SurveyOption::where('option_type_id', $type->id)
+            ->where('is_active', true)
+            ->where(function ($query) use ($category, $subcategoryIds, $subCategoryKey) {
+                $query->where('scope_type', 'global')
+                    ->orWhere(function ($q) use ($category) {
+                        $q->where('scope_type', 'category')
+                            ->where('scope_id', $category->id);
+                    })
+                    ->orWhere(function ($q) use ($subcategoryIds, $subCategoryKey) {
+                        $q->where('scope_type', 'subcategory');
+                        if ($subCategoryKey) {
+                            $subcategory = SurveySubcategory::where('name', $subCategoryKey)->first();
+                            if ($subcategory) {
+                                $q->where('scope_id', $subcategory->id);
+                            } else {
+                                $q->whereIn('scope_id', $subcategoryIds);
+                            }
+                        } else {
+                            $q->whereIn('scope_id', $subcategoryIds);
+                        }
+                    });
+            })
+            ->orderByRaw("FIELD(scope_type, 'global', 'category', 'subcategory')")
+            ->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray();
+    }
+
+    /**
+     * Resolve a survey_options.id for a value with subcategory > category > global precedence.
+     */
+    public function resolveSurveyOptionId(int $optionTypeId, string $value, ?int $categoryId, ?int $subcategoryId): ?int
+    {
+        if ($value === '') {
+            return null;
+        }
+
+        $base = SurveyOption::query()
+            ->where('option_type_id', $optionTypeId)
+            ->where('value', $value)
+            ->where('is_active', true);
+
+        if ($subcategoryId) {
+            $row = (clone $base)->where('scope_type', 'subcategory')->where('scope_id', $subcategoryId)->first();
+            if ($row) {
+                return $row->id;
+            }
+        }
+
+        if ($categoryId) {
+            $row = (clone $base)->where('scope_type', 'category')->where('scope_id', $categoryId)->first();
+            if ($row) {
+                return $row->id;
+            }
+        }
+
+        $row = (clone $base)->where('scope_type', 'global')->whereNull('scope_id')->first();
+
+        return $row?->id;
+    }
+
+    /**
+     * Merge request options with legacy flat keys (section, material, ...).
+     *
+     * @return array<string, mixed>
+     */
+    public function normalizeOptionsFromFormData(array $formData): array
+    {
+        $options = isset($formData['options']) && is_array($formData['options']) ? $formData['options'] : [];
+
+        if (isset($formData['section'])) {
+            $options['section_type'] = $formData['section'];
+        }
+        if (isset($formData['location'])) {
+            $options['location'] = $formData['location'];
+        }
+        if (isset($formData['structure'])) {
+            $options['structure'] = $formData['structure'];
+        }
+        if (isset($formData['material'])) {
+            $options['material'] = $formData['material'];
+        }
+        if (isset($formData['remaining_life'])) {
+            $options['remaining_life'] = $formData['remaining_life'];
+        }
+        if (isset($formData['defects']) && is_array($formData['defects'])) {
+            $options['defects'] = $formData['defects'];
+        }
+
+        return $options;
+    }
+
+    /**
+     * Build selections keyed by option type key_name from generic rows + legacy FKs.
+     *
+     * @return array<string, mixed>
+     */
+    protected function buildOptionSelectionsFromAssessment(
+        SurveySectionDefinition $sectionDef,
+        ?SurveySectionAssessment $assessment
+    ): array {
+        $types = $this->getEnabledOptionTypesForSection($sectionDef);
+        $selections = [];
+
+        if ($assessment) {
+            $assessment->loadMissing(['optionValues.option.optionType', 'sectionType', 'location', 'structure', 'material', 'remainingLife', 'defects']);
+
+            $byTypeId = [];
+            foreach ($assessment->optionValues as $ov) {
+                if (!$ov->option || !$ov->optionType) {
+                    continue;
+                }
+                $tid = $ov->option_type_id;
+                if (!isset($byTypeId[$tid])) {
+                    $byTypeId[$tid] = [];
+                }
+                $byTypeId[$tid][] = $ov->option->value;
+            }
+
+            foreach ($types as $ot) {
+                $key = $ot->key_name;
+                $vals = $byTypeId[$ot->id] ?? null;
+
+                if (!empty($vals)) {
+                    $selections[$key] = $ot->is_multiple ? $vals : ($vals[0] ?? '');
+                    continue;
+                }
+
+                $selections[$key] = $this->legacySelectionForOptionKey($assessment, $key, $ot->is_multiple);
+            }
+        } else {
+            foreach ($types as $ot) {
+                $selections[$ot->key_name] = $ot->is_multiple ? [] : '';
+            }
+        }
+
+        return $selections;
+    }
+
+    /**
+     * @return array|mixed|string
+     */
+    protected function legacySelectionForOptionKey(SurveySectionAssessment $assessment, string $keyName, bool $isMultiple)
+    {
+        return match ($keyName) {
+            'section_type' => $assessment->sectionType->value ?? '',
+            'location' => $assessment->location->value ?? '',
+            'structure' => $assessment->structure->value ?? '',
+            'material' => $assessment->material->value ?? '',
+            'remaining_life' => $assessment->remainingLife->value ?? '',
+            'defects' => $assessment->defects->pluck('value')->toArray(),
+            default => $isMultiple ? [] : '',
+        };
+    }
+
+    /**
+     * Persist generic option selections and dual-write legacy columns for built-in types.
+     *
+     * @param  array<string, mixed>  $options  keyed by option type key_name
+     */
+    protected function syncSectionOptionValues(
+        SurveySectionAssessment $assessment,
+        SurveySectionDefinition $sectionDef,
+        array $options
+    ): void {
+        $sectionDef->loadMissing('subcategory.category');
+        $types = $this->getEnabledOptionTypesForSection($sectionDef);
+        $categoryId = $sectionDef->subcategory->category_id ?? null;
+        $subcategoryId = $sectionDef->subcategory_id;
+
+        SurveySectionOptionValue::where('section_assessment_id', $assessment->id)->delete();
+
+        $sectionTypeId = null;
+        $locationId = null;
+        $structureId = null;
+        $materialId = null;
+        $remainingLifeId = null;
+        $defectIds = [];
+
+        foreach ($types as $ot) {
+            $key = $ot->key_name;
+            $raw = $options[$key] ?? null;
+            if ($ot->is_multiple) {
+                $values = is_array($raw) ? $raw : array_filter([$raw]);
+            } else {
+                $values = $raw !== null && $raw !== '' ? [is_array($raw) ? reset($raw) : $raw] : [];
+                $values = array_slice($values, 0, 1);
+            }
+
+            foreach ($values as $value) {
+                if ($value === null || $value === '') {
+                    continue;
+                }
+                $optionId = $this->resolveSurveyOptionId($ot->id, (string) $value, $categoryId, $subcategoryId);
+                if (!$optionId) {
+                    continue;
+                }
+                SurveySectionOptionValue::create([
+                    'section_assessment_id' => $assessment->id,
+                    'option_type_id' => $ot->id,
+                    'option_id' => $optionId,
+                ]);
+
+                if ($key === 'section_type') {
+                    $sectionTypeId = $sectionTypeId ?? $optionId;
+                }
+                if ($key === 'location') {
+                    $locationId = $locationId ?? $optionId;
+                }
+                if ($key === 'structure') {
+                    $structureId = $structureId ?? $optionId;
+                }
+                if ($key === 'material') {
+                    $materialId = $materialId ?? $optionId;
+                }
+                if ($key === 'remaining_life') {
+                    $remainingLifeId = $remainingLifeId ?? $optionId;
+                }
+                if ($key === 'defects') {
+                    $defectIds[] = $optionId;
+                }
+            }
+        }
+
+        $assessment->section_type_id = $types->contains(fn ($t) => $t->key_name === 'section_type') ? $sectionTypeId : null;
+        $assessment->location_id = $types->contains(fn ($t) => $t->key_name === 'location') ? $locationId : null;
+        $assessment->structure_id = $types->contains(fn ($t) => $t->key_name === 'structure') ? $structureId : null;
+        $assessment->material_id = $types->contains(fn ($t) => $t->key_name === 'material') ? $materialId : null;
+        $assessment->remaining_life_id = $types->contains(fn ($t) => $t->key_name === 'remaining_life') ? $remainingLifeId : null;
+        $assessment->save();
+
+        if ($types->contains(fn ($t) => $t->key_name === 'defects')) {
+            $assessment->defects()->sync(array_unique($defectIds));
+        } else {
+            $assessment->defects()->sync([]);
+        }
+    }
 
     /**
      * Get all options mapping in a structured format from database.
@@ -1205,43 +1582,25 @@ class SurveyDataService
                 }
             }
 
-            // Get option type IDs
-            $optionTypes = SurveyOptionType::whereIn('key_name', ['section_type', 'location', 'structure', 'material', 'remaining_life', 'defects'])
-                ->get()
-                ->keyBy('key_name');
+            $sectionDefinition->load('subcategory.category', 'requiredFields');
 
-            $sectionDefinition->load('subcategory.category');
-            
-            // Map form values to option IDs
-            $sectionTypeId = $this->findSectionOptionId($optionTypes['section_type']->id ?? null, $formData['section'] ?? null, $sectionDefinition->subcategory_id);
-            $locationId = $this->findSectionOptionId($optionTypes['location']->id ?? null, $formData['location'] ?? null);
-            $structureId = $this->findSectionOptionId($optionTypes['structure']->id ?? null, $formData['structure'] ?? null, $sectionDefinition->subcategory->category_id ?? null);
-            $materialId = $this->findSectionOptionId($optionTypes['material']->id ?? null, $formData['material'] ?? null, $sectionDefinition->subcategory->category_id ?? null);
-            $remainingLifeId = $this->findSectionOptionId($optionTypes['remaining_life']->id ?? null, $formData['remaining_life'] ?? null);
+            $normalizedOptions = $this->normalizeOptionsFromFormData($formData);
 
             // Update assessment fields
             $assessment->survey_id = $survey->id;
             $assessment->section_definition_id = $sectionDefinition->id;
-            $assessment->section_type_id = $sectionTypeId;
-            $assessment->location_id = $locationId;
-            $assessment->structure_id = $structureId;
-            $assessment->material_id = $materialId;
-            $assessment->remaining_life_id = $remainingLifeId;
             $assessment->notes = $formData['notes'] ?? null;
-            
+
             $conditionRating = $this->mapConditionRating($formData['condition_rating'] ?? null);
             $assessment->condition_rating = $conditionRating;
-            
+
             $assessment->is_completed = true;
             $assessment->completed_at = now();
             $assessment->save();
             $assessment->refresh();
 
-            // Sync defects
-            if (isset($formData['defects']) && is_array($formData['defects'])) {
-                $defectOptionIds = $this->findSectionDefectOptionIds($optionTypes['defects']->id ?? null, $formData['defects']);
-                $assessment->defects()->sync($defectOptionIds);
-            }
+            $this->syncSectionOptionValues($assessment, $sectionDefinition, $normalizedOptions);
+            $assessment->refresh();
 
             // Save costs
             if (isset($formData['costs']) && is_array($formData['costs'])) {
@@ -1249,7 +1608,7 @@ class SurveyDataService
             }
 
             // Load assessment relationships for ChatGPT
-            $assessment->load(['sectionType', 'location', 'structure', 'material', 'remainingLife', 'defects', 'costs']);
+            $assessment->load(['sectionType', 'location', 'structure', 'material', 'remainingLife', 'defects', 'optionValues.option.optionType', 'costs']);
             
             $chatGPTData = $this->prepareSectionChatGPTData($assessment, $formData);
             
@@ -1403,6 +1762,25 @@ class SurveyDataService
      */
     protected function prepareSectionChatGPTData(SurveySectionAssessment $assessment, array $formData): array
     {
+        $assessment->loadMissing('optionValues.option.optionType');
+
+        $extras = [];
+        foreach ($assessment->optionValues as $ov) {
+            if (!$ov->optionType || !$ov->option) {
+                continue;
+            }
+            $k = $ov->optionType->key_name;
+            if (in_array($k, ['section_type', 'location', 'structure', 'material', 'defects', 'remaining_life'], true)) {
+                continue;
+            }
+            if ($ov->optionType->is_multiple) {
+                $extras[$k] = $extras[$k] ?? [];
+                $extras[$k][] = $ov->option->value;
+            } else {
+                $extras[$k] = $ov->option->value;
+            }
+        }
+
         return [
             'section' => $assessment->sectionType->value ?? $formData['section'] ?? '',
             'location' => $assessment->location->value ?? $formData['location'] ?? '',
@@ -1419,6 +1797,7 @@ class SurveyDataService
                     'cost' => number_format($cost->amount, 2),
                 ];
             })->toArray() ?: ($formData['costs'] ?? []),
+            'extra_option_selections' => $extras,
         ];
     }
 

@@ -45,7 +45,7 @@ class SurveySectionDefinition extends Model
             'survey_section_required_fields',
             'section_definition_id',
             'option_type_id'
-        );
+        )->orderBy('survey_option_types.sort_order');
     }
 
     public function scopeActive($query)

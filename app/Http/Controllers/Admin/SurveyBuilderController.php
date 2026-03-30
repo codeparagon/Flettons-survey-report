@@ -9,6 +9,7 @@ use App\Models\SurveySectionDefinition;
 use App\Models\SurveyLevel;
 use App\Models\SurveyOptionType;
 use App\Models\SurveyOption;
+use App\Services\SurveyDataService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -29,8 +30,13 @@ class SurveyBuilderController extends Controller
             ->get();
         
         $levels = SurveyLevel::active()->ordered()->get();
+
+        $surveyOptionTypes = SurveyOptionType::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
         
-        return view('admin.survey-builder.index', compact('categories', 'levels'));
+        return view('admin.survey-builder.index', compact('categories', 'levels', 'surveyOptionTypes'));
     }
 
     // ===================
@@ -217,11 +223,14 @@ class SurveyBuilderController extends Controller
             ->where('section_definition_id', $section->id)
             ->pluck('survey_level_id')
             ->toArray();
+
+        $section->load('requiredFields');
         
         return response()->json([
             'success' => true,
             'section' => $section,
-            'levels' => $levelIds
+            'levels' => $levelIds,
+            'enabled_option_type_ids' => $section->requiredFields->pluck('id')->values()->all(),
         ]);
     }
 
@@ -238,18 +247,32 @@ class SurveyBuilderController extends Controller
             'max_clones' => 'nullable|integer|min:1|max:20',
             'levels' => 'nullable|array',
             'levels.*' => 'integer|exists:survey_levels,id',
+            'option_type_ids' => 'nullable|array',
+            'option_type_ids.*' => 'integer|exists:survey_option_types,id',
         ]);
         
         $validated['name'] = Str::slug($validated['name'], '_');
         $validated['sort_order'] = SurveySectionDefinition::where('subcategory_id', $validated['subcategory_id'])->max('sort_order') + 1;
         $validated['is_active'] = true;
         $validated['is_clonable'] = $request->input('is_clonable', false) ? true : false;
+
+        $levels = $validated['levels'] ?? [];
+        unset($validated['levels'], $validated['option_type_ids']);
         
         $section = SurveySectionDefinition::create($validated);
+
+        $optionTypeIds = $request->input('option_type_ids', []);
+        if (! is_array($optionTypeIds)) {
+            $optionTypeIds = [];
+        }
+        if ($optionTypeIds === []) {
+            $optionTypeIds = app(SurveyDataService::class)->defaultEnabledOptionTypes()->pluck('id')->all();
+        }
+        $this->syncSectionRequiredFields($section, $optionTypeIds);
         
         // Attach to levels
-        if (!empty($validated['levels'])) {
-            foreach ($validated['levels'] as $index => $levelId) {
+        if (!empty($levels)) {
+            foreach ($levels as $index => $levelId) {
                 DB::table('survey_level_section_definitions')->insert([
                     'survey_level_id' => $levelId,
                     'section_definition_id' => $section->id,
@@ -283,6 +306,8 @@ class SurveyBuilderController extends Controller
             'is_active' => 'nullable|boolean',
             'levels' => 'nullable|array',
             'levels.*' => 'integer|exists:survey_levels,id',
+            'option_type_ids' => 'nullable|array',
+            'option_type_ids.*' => 'integer|exists:survey_option_types,id',
         ]);
         
         if (isset($validated['name'])) {
@@ -290,8 +315,18 @@ class SurveyBuilderController extends Controller
         }
         
         $validated['is_clonable'] = $request->input('is_clonable', false) ? true : false;
+
+        unset($validated['option_type_ids'], $validated['levels']);
         
         $section->update($validated);
+
+        if ($request->has('option_type_ids')) {
+            $optionTypeIds = $request->input('option_type_ids', []);
+            if (! is_array($optionTypeIds)) {
+                $optionTypeIds = [];
+            }
+            $this->syncSectionRequiredFields($section, $optionTypeIds);
+        }
         
         // Update level associations
         if ($request->has('levels')) {
@@ -525,6 +560,28 @@ class SurveyBuilderController extends Controller
         $html = view('admin.survey-builder.partials.preview-content', compact('section', 'optionTypes'))->render();
         
         return response()->json(['html' => $html]);
+    }
+
+    /**
+     * @param  array<int, int>  $optionTypeIds
+     */
+    protected function syncSectionRequiredFields(SurveySectionDefinition $section, array $optionTypeIds): void
+    {
+        DB::table('survey_section_required_fields')
+            ->where('section_definition_id', $section->id)
+            ->delete();
+
+        $optionTypeIds = array_values(array_unique(array_filter($optionTypeIds)));
+        $now = now();
+
+        foreach ($optionTypeIds as $optionTypeId) {
+            DB::table('survey_section_required_fields')->insert([
+                'section_definition_id' => $section->id,
+                'option_type_id' => $optionTypeId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
     }
 }
 

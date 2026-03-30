@@ -23,6 +23,9 @@
                     <a href="{{ route('admin.survey-options.index') }}" class="survey-nav-item {{ request()->is('admin/survey-options*') ? 'active' : '' }}">
                         <span class="survey-nav-label">Global Options</span>
                     </a>
+                    <a href="{{ route('admin.condition-rating-rules.index') }}" class="survey-nav-item {{ request()->is('admin/condition-rating-rules*') ? 'active' : '' }}">
+                        <span class="survey-nav-label">Condition rating rules</span>
+                    </a>
                     <a href="{{ route('admin.survey-levels.index') }}" class="survey-nav-item {{ request()->is('admin/survey-levels*') ? 'active' : '' }}">
                         <span class="survey-nav-label">Survey Levels</span>
                     </a>

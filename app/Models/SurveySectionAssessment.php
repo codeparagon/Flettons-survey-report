@@ -117,6 +117,14 @@ class SurveySectionAssessment extends Model
     }
 
     /**
+     * Generic persisted selections for any option type (single + multi).
+     */
+    public function optionValues()
+    {
+        return $this->hasMany(SurveySectionOptionValue::class, 'section_assessment_id');
+    }
+
+    /**
      * Get the assessment this was cloned from.
      */
     public function clonedFrom()

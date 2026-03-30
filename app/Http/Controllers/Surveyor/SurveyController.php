@@ -569,6 +569,7 @@ class SurveyController extends Controller
                 'form_data.notes' => 'nullable|string',
                 'form_data.photos' => 'nullable|array',
                 'form_data.condition_rating' => 'nullable|string',
+                'form_data.options' => 'nullable|array',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('Clone validation failed', [
@@ -588,7 +589,7 @@ class SurveyController extends Controller
         $sectionDefinitionId = (int) $validated['source_section_definition_id'];
         
         // Verify the section definition exists
-        $sectionDefinition = \App\Models\SurveySectionDefinition::find($sectionDefinitionId);
+        $sectionDefinition = \App\Models\SurveySectionDefinition::with('subcategory')->find($sectionDefinitionId);
         if (!$sectionDefinition) {
             return response()->json(['error' => 'Section definition not found'], 404);
         }
@@ -605,21 +606,27 @@ class SurveyController extends Controller
         
         // Get form data from request
         $formData = $validated['form_data'];
-        
+        $normalizedOpts = $surveyDataService->normalizeOptionsFromFormData($formData);
+
         // Build section data array matching transformAssessmentToViewFormat structure
         $sectionData = [
             'id' => $newSectionId,
             'section_id' => $sectionDefinitionId, // Use the actual section definition ID
             'name' => $newSectionName,
+            'subcategory_key' => $sectionDefinition->subcategory->name ?? '',
             'completion' => 0, // New cloned section starts at 0
             'total' => 10,
             'condition_rating' => $formData['condition_rating'] ?? 'ni',
             'selected_section' => $validated['selected_section'],
-            'location' => $formData['location'] ?? '',
-            'structure' => $formData['structure'] ?? '',
-            'material' => $formData['material'] ?? '',
-            'defects' => $formData['defects'] ?? [],
-            'remaining_life' => $formData['remaining_life'] ?? '',
+            'location' => $normalizedOpts['location'] ?? ($formData['location'] ?? ''),
+            'structure' => $normalizedOpts['structure'] ?? ($formData['structure'] ?? ''),
+            'material' => $normalizedOpts['material'] ?? ($formData['material'] ?? ''),
+            'defects' => isset($normalizedOpts['defects']) ? (array) $normalizedOpts['defects'] : ($formData['defects'] ?? []),
+            'remaining_life' => $normalizedOpts['remaining_life'] ?? ($formData['remaining_life'] ?? ''),
+            'enabled_option_fields' => $surveyDataService->buildEnabledOptionFieldsMeta(
+                $surveyDataService->getEnabledOptionTypesForSection($sectionDefinition)
+            ),
+            'option_selections' => $normalizedOpts,
             'costs' => $formData['costs'] ?? [],
             'notes' => $formData['notes'] ?? '',
             'photos' => $formData['photos'] ?? [],
@@ -794,6 +801,7 @@ class SurveyController extends Controller
                 'material' => 'nullable|string',
                 'defects' => 'nullable|array',
                 'remaining_life' => 'nullable|string',
+                'options' => 'nullable|array',
                 'notes' => 'nullable|string',
                 'costs' => 'nullable|array',
                 'costs.*.category' => 'required_with:costs|string',
@@ -805,6 +813,8 @@ class SurveyController extends Controller
                 'photos' => 'nullable|array',
                 'photos.*' => 'nullable|image|max:10240', // Max 10MB per image
             ]);
+
+            $validated['options'] = $request->input('options', []);
 
             // Get section definition
             $sectionDefinition = SurveySectionDefinition::findOrFail($sectionDefinitionId);

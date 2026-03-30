@@ -1505,7 +1505,7 @@
 
 <!-- Add/Edit Section Modal - Simple Form -->
 <div class="modal-overlay" id="sectionModal">
-    <div class="modal-box" style="max-width: 500px;">
+    <div class="modal-box" style="max-width: 560px;">
         <div class="modal-head">
             <h3 id="sectionModalTitle">Add Section</h3>
             <button class="modal-close" onclick="closeModal('sectionModal')">&times;</button>
@@ -1542,6 +1542,25 @@
                         @endforeach
                     </div>
                     <p class="form-hint">Select which survey levels should include this section.</p>
+                </div>
+                @endif
+
+                @if(isset($surveyOptionTypes) && $surveyOptionTypes->count() > 0)
+                <div class="form-grp">
+                    <label class="form-lbl">Enabled option fields (Survey Data)</label>
+                    <p class="form-hint" style="margin-bottom: 8px;">Choose which option groups appear for this section. Surveyors can answer each enabled type independently (defaults + any custom types you add under Global Options).</p>
+                    <div class="d-flex gap-2 mb-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllOptionTypes()">Select all</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAllOptionTypes()">Deselect all</button>
+                    </div>
+                    <div class="checkbox-group" id="sectionOptionTypeBoxes" style="max-height: 220px; overflow-y: auto;">
+                        @foreach($surveyOptionTypes as $ot)
+                        <label class="checkbox-item" onclick="toggleCheckbox(this)">
+                            <input type="checkbox" name="option_type_ids[]" value="{{ $ot->id }}">
+                            {{ $ot->label }} <span class="text-muted small">({{ $ot->key_name }})</span>
+                        </label>
+                        @endforeach
+                    </div>
                 </div>
                 @endif
                 
@@ -1789,6 +1808,7 @@ function openAddSecModal(subcatId) {
     document.getElementById('secSubcatId').value = subcatId;
     document.getElementById('secEditId').value = '';
     selectAllLevels();
+    selectAllOptionTypes();
     const clonableOpt = document.querySelector('#sectionForm .clonable-option');
     if (clonableOpt) {
         clonableOpt.querySelector('input[name="is_clonable"]').checked = true;
@@ -1833,6 +1853,18 @@ function openEditSecModal(secId) {
                     }
                 });
             }
+
+            deselectAllOptionTypes();
+            if (data.enabled_option_type_ids && data.enabled_option_type_ids.length) {
+                data.enabled_option_type_ids.forEach(optionTypeId => {
+                    const checkbox = document.querySelector(`#sectionOptionTypeBoxes input[value="${optionTypeId}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        const item = checkbox.closest('.checkbox-item');
+                        if (item) item.classList.add('selected');
+                    }
+                });
+            }
         }
         openModal('sectionModal');
     });
@@ -1852,6 +1884,26 @@ function deselectAllLevels() {
     const levelBoxes = document.getElementById('levelBoxes');
     if (!levelBoxes) return;
     levelBoxes.querySelectorAll('input[name="levels[]"]').forEach(cb => {
+        cb.checked = false;
+        const item = cb.closest('.checkbox-item');
+        if (item) item.classList.remove('selected');
+    });
+}
+
+function selectAllOptionTypes() {
+    const box = document.getElementById('sectionOptionTypeBoxes');
+    if (!box) return;
+    box.querySelectorAll('input[name="option_type_ids[]"]').forEach(cb => {
+        cb.checked = true;
+        const item = cb.closest('.checkbox-item');
+        if (item) item.classList.add('selected');
+    });
+}
+
+function deselectAllOptionTypes() {
+    const box = document.getElementById('sectionOptionTypeBoxes');
+    if (!box) return;
+    box.querySelectorAll('input[name="option_type_ids[]"]').forEach(cb => {
         cb.checked = false;
         const item = cb.closest('.checkbox-item');
         if (item) item.classList.remove('selected');
@@ -1973,6 +2025,8 @@ async function saveSection() {
     
     // Get clonable status
     data.is_clonable = form.querySelector('input[name="is_clonable"]').checked ? 1 : 0;
+
+    data.option_type_ids = Array.from(form.querySelectorAll('input[name="option_type_ids[]"]:checked')).map(c => parseInt(c.value, 10));
     
     const isEdit = data.section_id && data.section_id !== '';
     const url = isEdit ? `/admin/api/section-definitions/${data.section_id}` : '/admin/api/section-definitions';

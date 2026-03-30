@@ -3744,22 +3744,114 @@ $(document).ready(function() {
         }
     }
     
-    // Initialize section states on page load
-    function initializeSectionStates() {
-        $('.survey-data-mock-section-item').each(function() {
-            const $sectionItem = $(this);
-            const $details = $sectionItem.find('.survey-data-mock-section-details');
-            const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
-            const hasReport = $sectionItem.attr('data-has-report') === 'true' || $reportContent.attr('data-initial-has-report') === 'true';
-            
-            // Set active buttons based on saved data
+    /** Collect option-type selections keyed by SurveyOptionType key_name (section_type, location, pros, …). */
+    function collectSectionOptionsPayload($details) {
+        const options = {};
+        $details.find('.survey-data-mock-field-group[data-option-key]').each(function() {
+            const $fg = $(this);
+            const key = $fg.data('option-key');
+            const uiGroup = $fg.data('ui-group');
+            const isMultiple = $fg.data('option-multiple') === true || $fg.data('option-multiple') === 'true';
+            if (!key || !uiGroup) {
+                return;
+            }
+            if (isMultiple) {
+                options[key] = $fg.find('[data-group="' + uiGroup + '"].active').map(function() {
+                    return $(this).data('value');
+                }).get();
+            } else {
+                const v = $fg.find('[data-group="' + uiGroup + '"].active').first().data('value');
+                if (v !== undefined && v !== null && v !== '') {
+                    options[key] = v;
+                }
+            }
+        });
+        return options;
+    }
+
+    function appendOptionsToFormData(formDataObj, options) {
+        if (!options || typeof options !== 'object') {
+            return;
+        }
+        Object.keys(options).forEach(function(key) {
+            const v = options[key];
+            if (Array.isArray(v)) {
+                v.forEach(function(item) {
+                    if (item !== undefined && item !== null && item !== '') {
+                        formDataObj.append('options[' + key + '][]', item);
+                    }
+                });
+            } else if (v !== undefined && v !== null && v !== '') {
+                formDataObj.append('options[' + key + ']', v);
+            }
+        });
+    }
+
+    function applyOptionSelectionsFromObject($details, sel) {
+        if (!sel || typeof sel !== 'object') {
+            return;
+        }
+        $details.find('.survey-data-mock-field-group[data-option-key]').each(function() {
+            const $fg = $(this);
+            const key = $fg.data('option-key');
+            const uiGroup = $fg.data('ui-group');
+            const isMultiple = $fg.data('option-multiple') === true || $fg.data('option-multiple') === 'true';
+            const val = sel[key];
+            if (val === undefined || val === null) {
+                return;
+            }
+            if (isMultiple) {
+                const arr = Array.isArray(val) ? val : [val];
+                arr.forEach(function(v) {
+                    if (v === undefined || v === null || v === '') {
+                        return;
+                    }
+                    $fg.find('[data-group="' + uiGroup + '"]').filter(function() {
+                        return String($(this).data('value')) === String(v);
+                    }).addClass('active');
+                });
+            } else if (val !== '') {
+                $fg.find('[data-group="' + uiGroup + '"]').filter(function() {
+                    return String($(this).data('value')) === String(val);
+                }).addClass('active');
+            }
+        });
+    }
+
+    function applyOptionSelectionsToSection($details) {
+        const raw = $details.attr('data-option-selections');
+        if (!raw) {
+            return;
+        }
+        let sel;
+        try {
+            sel = JSON.parse(raw);
+        } catch (e) {
+            return;
+        }
+        applyOptionSelectionsFromObject($details, sel);
+    }
+
+    function initOneSectionItemOptionButtons($sectionItem) {
+        const $details = $sectionItem.find('.survey-data-mock-section-details');
+        const rawSel = $details.attr('data-option-selections');
+        let usedDynamic = false;
+        if (rawSel) {
+            try {
+                const parsed = JSON.parse(rawSel);
+                if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                    applyOptionSelectionsToSection($details);
+                    usedDynamic = true;
+                }
+            } catch (e) {}
+        }
+        if (!usedDynamic) {
             const selectedSection = $details.data('selected-section');
             const selectedLocation = $details.data('selected-location');
             const selectedStructure = $details.data('selected-structure');
             const selectedMaterial = $details.data('selected-material');
             const selectedDefects = $details.data('selected-defects') || [];
             const selectedRemainingLife = $details.data('selected-remaining-life');
-            
             if (selectedSection) {
                 $details.find(`[data-group="section"][data-value="${selectedSection}"]`).addClass('active');
             }
@@ -3780,8 +3872,20 @@ $(document).ready(function() {
             if (selectedRemainingLife) {
                 $details.find(`[data-group="remaining_life"][data-value="${selectedRemainingLife}"]`).addClass('active');
             }
-            
-            // Set initial visibility - both should be hidden initially (shown when expanded)
+        }
+        updateSectionHeader($sectionItem);
+    }
+
+    // Initialize section states on page load
+    function initializeSectionStates() {
+        $('.survey-data-mock-section-item').each(function() {
+            const $sectionItem = $(this);
+            if ($sectionItem.hasClass('survey-data-mock-content-section-item')) {
+                return;
+            }
+            const $details = $sectionItem.find('.survey-data-mock-section-details');
+            const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
+            initOneSectionItemOptionButtons($sectionItem);
             $details.hide();
             $reportContent.hide();
         });
@@ -3971,54 +4075,6 @@ $(document).ready(function() {
         $headerName.text(displayName);
         $titleText.text(displayName);
     }
-
-    // Initialize button states from mock data
-    $('.survey-data-mock-section-item').each(function() {
-        const $sectionItem = $(this);
-        
-        // Skip content sections - they don't have button selections
-        if ($sectionItem.hasClass('survey-data-mock-content-section-item')) {
-            return;
-        }
-        
-        const sectionId = $sectionItem.data('section-id');
-        const $details = $sectionItem.find('.survey-data-mock-section-details');
-        
-        // Initialize button states based on data attributes from PHP
-        const selectedSection = $details.data('selected-section');
-        const selectedLocation = $details.data('selected-location');
-        const selectedStructure = $details.data('selected-structure');
-        const selectedMaterial = $details.data('selected-material');
-        const selectedDefects = $details.data('selected-defects') || [];
-        const selectedRemainingLife = $details.data('selected-remaining-life');
-        
-        // Set active buttons (single selection groups)
-        if (selectedSection) {
-            $details.find(`[data-group="section"][data-value="${selectedSection}"]`).addClass('active');
-        }
-        if (selectedLocation) {
-            $details.find(`[data-group="location"][data-value="${selectedLocation}"]`).addClass('active');
-        }
-        if (selectedStructure) {
-            $details.find(`[data-group="structure"][data-value="${selectedStructure}"]`).addClass('active');
-        }
-        if (selectedMaterial) {
-            $details.find(`[data-group="material"][data-value="${selectedMaterial}"]`).addClass('active');
-        }
-        if (selectedRemainingLife) {
-            $details.find(`[data-group="remaining_life"][data-value="${selectedRemainingLife}"]`).addClass('active');
-        }
-        
-        // Set active buttons (multiple selection - defects)
-        if (selectedDefects && selectedDefects.length > 0) {
-            selectedDefects.forEach(function(defect) {
-                $details.find(`[data-group="defects"][data-value="${defect}"]`).addClass('active');
-            });
-        }
-        
-        // Update header with section name and location
-        updateSectionHeader($sectionItem);
-    });
 
     // Cost Management Functionality
     let currentCostSectionItem = null;
@@ -4642,16 +4698,16 @@ $(document).ready(function() {
             return;
         }
         
-        // Collect all form data
+        // Collect all form data (option types keyed by DB key_name; flat keys kept for condition rating + legacy PHP)
+        const options = collectSectionOptionsPayload($details);
         const formData = {
-            section: $details.find('[data-group="section"].active').data('value') || '',
-            location: $details.find('[data-group="location"].active').data('value') || '',
-            structure: $details.find('[data-group="structure"].active').data('value') || '',
-            material: $details.find('[data-group="material"].active').data('value') || '',
-            defects: $details.find('[data-group="defects"].active').map(function() {
-                return $(this).data('value');
-            }).get(),
-            remaining_life: $details.find('[data-group="remaining_life"].active').data('value') || '',
+            section: options.section_type || '',
+            location: options.location || '',
+            structure: options.structure || '',
+            material: options.material || '',
+            defects: Array.isArray(options.defects) ? options.defects : [],
+            remaining_life: options.remaining_life || '',
+            options: options,
             notes: $details.find('.survey-data-mock-notes-input').val() || '',
             costs: []
         };
@@ -4723,6 +4779,8 @@ $(document).ready(function() {
                 formDataObj.append(`defects[${index}]`, defect);
             });
         }
+        
+        appendOptionsToFormData(formDataObj, formData.options);
         
         // Append costs array
         if (formData.costs && formData.costs.length > 0) {
@@ -5269,16 +5327,23 @@ $(document).ready(function() {
             conditionRating = '1';
         }
         
-        // Prepare form data for AJAX request
-        // Use the selected section and location from the modal
+        const $sourceDetails = $sourceItem.find('.survey-data-mock-section-details');
+        const baseOptions = collectSectionOptionsPayload($sourceDetails);
+        const mergedOptions = Object.assign({}, baseOptions, {
+            section_type: selectedCloneSection || '',
+            location: selectedCloneLocation || ''
+        });
+
+        // Prepare form data for AJAX request (options[] + legacy flat keys for PHP normalize)
         const formData = {
             section: selectedCloneSection || '',
             location: selectedCloneLocation || '',
-            structure: currentCloneData.structure || '',
-            material: currentCloneData.material || '',
-            defects: currentCloneData.defects || [],
-            remainingLife: currentCloneData.remainingLife || '',
-            remaining_life: currentCloneData.remainingLife || '', // for AJAX request
+            structure: mergedOptions.structure !== undefined ? mergedOptions.structure : (currentCloneData.structure || ''),
+            material: mergedOptions.material !== undefined ? mergedOptions.material : (currentCloneData.material || ''),
+            defects: Array.isArray(mergedOptions.defects) ? mergedOptions.defects : (currentCloneData.defects || []),
+            remainingLife: mergedOptions.remaining_life !== undefined ? mergedOptions.remaining_life : (currentCloneData.remainingLife || ''),
+            remaining_life: mergedOptions.remaining_life !== undefined ? mergedOptions.remaining_life : (currentCloneData.remaining_life || ''),
+            options: mergedOptions,
             costs: currentCloneData.costs || [],
             notes: currentCloneData.notes || '',
             photos: currentCloneData.photos || [],
@@ -5373,15 +5438,15 @@ $(document).ready(function() {
             const categoryName = $categorySection.find('.survey-data-mock-category-title').text().trim();
             
             // Collect all form data
+            const options = collectSectionOptionsPayload($details);
             const formData = {
-                section: $details.find('[data-group="section"].active').data('value') || '',
-                location: $details.find('[data-group="location"].active').data('value') || '',
-                structure: $details.find('[data-group="structure"].active').data('value') || '',
-                material: $details.find('[data-group="material"].active').data('value') || '',
-                defects: $details.find('[data-group="defects"].active').map(function() {
-                    return $(this).data('value');
-                }).get(),
-                remainingLife: $details.find('[data-group="remaining_life"].active').data('value') || '',
+                section: options.section_type || '',
+                location: options.location || '',
+                structure: options.structure || '',
+                material: options.material || '',
+                defects: Array.isArray(options.defects) ? options.defects : [],
+                remainingLife: options.remaining_life || '',
+                options: options,
                 notes: $details.find('.survey-data-mock-notes-input').val() || '',
                 costs: [],
                 photos: [] // Initialize photos array
@@ -5744,16 +5809,28 @@ $(document).ready(function() {
     // Helper function to initialize button states for a section
     function initializeSectionButtons($sectionItem, formData) {
         const $details = $sectionItem.find('.survey-data-mock-section-details');
-        
+
+        if (formData.options && typeof formData.options === 'object' && Object.keys(formData.options).length > 0) {
+            applyOptionSelectionsFromObject($details, formData.options);
+            if (formData.section) {
+                $details.data('selected-section', formData.section);
+            }
+            if (formData.location) {
+                $details.data('selected-location', formData.location);
+            }
+            try {
+                $details.attr('data-option-selections', JSON.stringify(formData.options));
+            } catch (e) {}
+            return;
+        }
+
         // Set active buttons (single selection groups)
         if (formData.section) {
             $details.find(`[data-group="section"][data-value="${formData.section}"]`).addClass('active');
-            // Update data attribute for validation
             $details.data('selected-section', formData.section);
         }
         if (formData.location) {
             $details.find(`[data-group="location"][data-value="${formData.location}"]`).addClass('active');
-            // Update data attribute for validation
             $details.data('selected-location', formData.location);
         }
         if (formData.structure) {
@@ -5765,8 +5842,7 @@ $(document).ready(function() {
         if (formData.remainingLife) {
             $details.find(`[data-group="remaining_life"][data-value="${formData.remainingLife}"]`).addClass('active');
         }
-        
-        // Set active buttons (multiple selection - defects)
+
         if (formData.defects && formData.defects.length > 0) {
             formData.defects.forEach(function(defect) {
                 $details.find(`[data-group="defects"][data-value="${defect}"]`).addClass('active');
@@ -5843,15 +5919,15 @@ $(document).ready(function() {
             }
             
             // Collect all form data
+            const options = collectSectionOptionsPayload($details);
             const formData = {
-                section: $details.find('[data-group="section"].active').data('value') || '',
-                location: $details.find('[data-group="location"].active').data('value') || '',
-                structure: $details.find('[data-group="structure"].active').data('value') || '',
-                material: $details.find('[data-group="material"].active').data('value') || '',
-                defects: $details.find('[data-group="defects"].active').map(function() {
-                    return $(this).data('value');
-                }).get(),
-                remaining_life: $details.find('[data-group="remaining_life"].active').data('value') || '',
+                section: options.section_type || '',
+                location: options.location || '',
+                structure: options.structure || '',
+                material: options.material || '',
+                defects: Array.isArray(options.defects) ? options.defects : [],
+                remaining_life: options.remaining_life || '',
+                options: options,
                 notes: $details.find('.survey-data-mock-notes-input').val() || '',
                 costs: []
             };
@@ -5899,6 +5975,8 @@ $(document).ready(function() {
                     formDataObj.append(`defects[${index}]`, defect);
                 });
             }
+            
+            appendOptionsToFormData(formDataObj, formData.options);
             
             // Append costs array
             if (formData.costs && formData.costs.length > 0) {
