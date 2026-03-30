@@ -63,45 +63,58 @@
                                 <div class="survey-data-mock-carousel-slide {{ $index === 0 ? 'active' : '' }}" 
                                      data-slide-index="{{ $index }}"
                                      data-component-key="{{ $component['component_key'] }}">
-                                    <!-- Material Buttons -->
-                                    <div class="survey-data-mock-field-group">
-                                        <label class="survey-data-mock-field-label">
-                                            {{ $component['component_name'] }} Material
-                                        </label>
-                                        <div class="survey-data-mock-button-group">
-                                            @php
-                                                $materials = app(\App\Services\SurveyAccommodationDataService::class)->getComponentMaterials($component['component_key']);
-                                            @endphp
-                                            @foreach($materials as $material)
-                                                <button type="button" 
-                                                        class="survey-data-mock-button {{ $component['material'] === $material ? 'active' : '' }}" 
-                                                        data-value="{{ $material }}" 
-                                                        data-group="material"
-                                                        data-component-key="{{ $component['component_key'] }}">
-                                                    {{ $material }}
-                                                </button>
-                                            @endforeach
+                                    <div class="survey-data-mock-accommodation-component-form">
+                                        <!-- Material Buttons -->
+                                        <div class="survey-data-mock-field-group">
+                                            <label class="survey-data-mock-field-label">
+                                                {{ $component['component_name'] }} Material
+                                            </label>
+                                            <div class="survey-data-mock-button-group">
+                                                @php
+                                                    $materials = app(\App\Services\SurveyAccommodationDataService::class)->getComponentMaterials($component['component_key']);
+                                                @endphp
+                                                @foreach($materials as $material)
+                                                    <button type="button" 
+                                                            class="survey-data-mock-button {{ $component['material'] === $material ? 'active' : '' }}" 
+                                                            data-value="{{ $material }}" 
+                                                            data-group="material"
+                                                            data-component-key="{{ $component['component_key'] }}">
+                                                        {{ $material }}
+                                                    </button>
+                                                @endforeach
+                                            </div>
+                                        </div>
+
+                                        <!-- Defects Buttons -->
+                                        <div class="survey-data-mock-field-group">
+                                            <label class="survey-data-mock-field-label">Defects</label>
+                                            <div class="survey-data-mock-button-group">
+                                                @php
+                                                    $defects = app(\App\Services\SurveyAccommodationDataService::class)
+                                                        ->getComponentDefects($component['component_key']);
+                                                @endphp
+                                                @foreach($defects as $defect)
+                                                    <button type="button" 
+                                                            class="survey-data-mock-button {{ in_array($defect, $component['defects'] ?? []) ? 'active' : '' }}" 
+                                                            data-value="{{ $defect }}" 
+                                                            data-group="defects"
+                                                            data-multiple="true"
+                                                            data-component-key="{{ $component['component_key'] }}">
+                                                        {{ $defect }}
+                                                    </button>
+                                                @endforeach
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <!-- Defects Buttons -->
-                                    <div class="survey-data-mock-field-group">
-                                        <label class="survey-data-mock-field-label">Defects</label>
-                                        <div class="survey-data-mock-button-group">
-                                            @php
-                                                $defects = app(\App\Services\SurveyAccommodationDataService::class)
-                                                    ->getComponentDefects($component['component_key']);
-                                            @endphp
-                                            @foreach($defects as $defect)
-                                                <button type="button" 
-                                                        class="survey-data-mock-button {{ in_array($defect, $component['defects'] ?? []) ? 'active' : '' }}" 
-                                                        data-value="{{ $defect }}" 
-                                                        data-group="defects"
-                                                        data-multiple="true"
-                                                        data-component-key="{{ $component['component_key'] }}">
-                                                    {{ $defect }}
-                                                </button>
-                                            @endforeach
+                                    <div class="survey-data-mock-accommodation-component-report" style="display: none;">
+                                        <textarea class="survey-data-mock-report-textarea survey-data-mock-component-report-textarea" rows="10" placeholder="Component narrative will appear after save…" data-component-key="{{ $component['component_key'] }}"></textarea>
+                                        <div class="survey-data-mock-action-icons survey-data-mock-component-report-actions">
+                                            <button type="button" class="survey-data-mock-action-icon-btn" data-action="component-edit" data-component-key="{{ $component['component_key'] }}" title="Edit this component">
+                                                <i class="fas fa-pencil-alt"></i>
+                                            </button>
+                                            <button type="button" class="survey-data-mock-action-icon-btn" data-action="component-refresh" data-component-key="{{ $component['component_key'] }}" title="Regenerate this component">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

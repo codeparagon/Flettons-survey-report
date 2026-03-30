@@ -1674,6 +1674,22 @@
         cursor: not-allowed;
     }
 
+    /* Accommodation: combined report kept in DOM for reload; UI uses per-slide textareas in carousel */
+    .survey-data-mock-section-item[data-accommodation-id] > .survey-data-mock-report-content {
+        display: none !important;
+    }
+
+    .survey-data-mock-accommodation-component-report .survey-data-mock-component-report-textarea {
+        min-height: 200px;
+    }
+
+    .survey-data-mock-component-report-actions {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+        justify-content: flex-end;
+    }
+
     /* Action Icons Bar */
     .survey-data-mock-action-icons {
         display: flex;
@@ -3145,6 +3161,129 @@ $(document).ready(function() {
         return report;
     }
 
+    /** Collect accommodation form as { notes, components } with component_name for report helpers */
+    function collectAccommodationReportFormData($item) {
+        const $details = $item.find('.survey-data-mock-section-details');
+        const notes = $details.find('.survey-data-mock-notes-input').val() || '';
+        const components = [];
+        $details.find('.survey-data-mock-carousel-slide').each(function() {
+            const $slide = $(this);
+            const componentKey = $slide.data('component-key');
+            if (!componentKey) {
+                return;
+            }
+            const componentName = $item.find(`.survey-data-mock-component-tab[data-component-key="${componentKey}"]`).text().trim() || componentKey;
+            const material = $slide.find('[data-group="material"].active').data('value') || '';
+            const defects = $slide.find('[data-group="defects"].active').map(function() {
+                return $(this).data('value');
+            }).get();
+            components.push({
+                component_key: componentKey,
+                component_name: componentName,
+                material: material,
+                defects: defects
+            });
+        });
+        return { notes: notes, components: components };
+    }
+
+    function accommodationDefectsAreClear(defects) {
+        if (!defects || !defects.length) {
+            return true;
+        }
+        return defects.every(function(d) {
+            return d === 'None' || d === 'No Defects';
+        });
+    }
+
+    /** Single-component narrative (used in carousel report mode per slide) */
+    function generateAccommodationComponentReportContent(comp, accommodationName, sharedNotes) {
+        const componentName = comp.component_name || comp.component_key || 'Component';
+        const material = comp.material || 'not specified';
+        let defectsText = 'no significant defects';
+        if (comp.defects && comp.defects.length > 0 && !accommodationDefectsAreClear(comp.defects)) {
+            defectsText = comp.defects.filter(function(d) {
+                return d !== 'None' && d !== 'No Defects';
+            }).join(', ');
+        }
+        let text = `*${componentName}* (${accommodationName})\n\n`;
+        text += `Material: ${material}.\n`;
+        if (defectsText !== 'no significant defects') {
+            text += `Defects identified: ${defectsText}.\n`;
+        } else {
+            text += `Condition: Good, no significant defects observed.\n`;
+        }
+        if (sharedNotes) {
+            text += `\nAdditional notes (accommodation): ${sharedNotes}\n`;
+        }
+        return text.trim();
+    }
+
+    /** Split stored full report into per-component chunks when markdown matches mock layout */
+    function parseAccommodationReportIntoComponents(fullText, components) {
+        const map = {};
+        if (!fullText || !components || !components.length) {
+            return map;
+        }
+        for (let i = 0; i < components.length; i++) {
+            const comp = components[i];
+            const name = comp.component_name || comp.component_key;
+            const startMarker = `*${name}:*`;
+            const startIdx = fullText.indexOf(startMarker);
+            if (startIdx === -1) {
+                map[comp.component_key] = '';
+                continue;
+            }
+            const contentStart = startIdx + startMarker.length;
+            let endIdx = fullText.length;
+            for (let j = i + 1; j < components.length; j++) {
+                const nextName = components[j].component_name || components[j].component_key;
+                const nextMarker = `\n*${nextName}:*`;
+                const ni = fullText.indexOf(nextMarker, contentStart);
+                if (ni !== -1) {
+                    endIdx = Math.min(endIdx, ni);
+                }
+            }
+            const addIdx = fullText.indexOf('\n**Additional Notes:**', contentStart);
+            const recIdx = fullText.indexOf('\n**Recommendations:**', contentStart);
+            const boundary = Math.min(
+                addIdx !== -1 ? addIdx : fullText.length,
+                recIdx !== -1 ? recIdx : fullText.length,
+                endIdx
+            );
+            map[comp.component_key] = fullText.substring(contentStart, boundary).trim();
+        }
+        return map;
+    }
+
+    function fillAccommodationComponentTextareas($item, reportFormData, accommodationName, fullServerReport) {
+        const parsed = fullServerReport ? parseAccommodationReportIntoComponents(fullServerReport, reportFormData.components) : null;
+        $item.find('.survey-data-mock-carousel-slide').each(function() {
+            const $slide = $(this);
+            const ck = $slide.data('component-key');
+            const comp = reportFormData.components.find(function(c) {
+                return c.component_key === ck;
+            });
+            if (!comp) {
+                return;
+            }
+            let text = '';
+            if (parsed && parsed[ck]) {
+                text = parsed[ck];
+            }
+            if (!text) {
+                text = generateAccommodationComponentReportContent(comp, accommodationName, reportFormData.notes);
+            }
+            $slide.find('.survey-data-mock-component-report-textarea').val(text);
+        });
+    }
+
+    function applyAccommodationComponentReportMode($item, showReport) {
+        $item.attr('data-accommodation-component-mode', showReport ? 'report' : 'form');
+        $item.find('.survey-data-mock-accommodation-component-form').toggle(!showReport);
+        $item.find('.survey-data-mock-accommodation-component-report').toggle(showReport);
+    }
+
     // Mock GPT Content Generator
     function generateMockReportContent(formData, sectionName, categoryName) {
         const location = formData.location || 'the property';
@@ -3213,12 +3352,31 @@ $(document).ready(function() {
         
         if ($sectionItem.hasClass('expanded')) {
             $titleBar.slideDown(300);
-            if (hasReport) {
+            const isAccommodation = $sectionItem.attr('data-accommodation-id') !== undefined;
+            if (isAccommodation && hasReport) {
+                // Per-component report inside carousel: show details, swap slides to textarea mode
+                $reportContent.hide();
+                const accommodationName = $sectionItem.find('.survey-data-mock-section-name').first().text().trim();
+                const full = ($reportContent.find('.survey-data-mock-report-textarea').val() || '').trim();
+                const reportFormData = collectAccommodationReportFormData($sectionItem);
+                if (full) {
+                    fillAccommodationComponentTextareas($sectionItem, reportFormData, accommodationName, full);
+                } else {
+                    fillAccommodationComponentTextareas($sectionItem, reportFormData, accommodationName, null);
+                }
+                applyAccommodationComponentReportMode($sectionItem, true);
+                $details.slideDown(300, function() {
+                    if (isSwiperAvailable()) {
+                        initializeSectionCarousels($sectionItem);
+                    }
+                });
+            } else if (hasReport) {
                 // Show report if report_content exists, hide form
                 $details.hide();
                 $reportContent.slideDown(300);
             } else {
                 // Show form/details if no report_content
+                applyAccommodationComponentReportMode($sectionItem, false);
                 $details.slideDown(300, function() {
                     // Re-initialize carousels after the section is fully visible
                     if (isSwiperAvailable()) {
@@ -4898,6 +5056,10 @@ $(document).ready(function() {
             $lockBtn.find('i').removeClass('fa-lock-open').addClass('fa-lock');
             $sectionItem.attr('data-locked', 'false');
         }
+        
+        if ($sectionItem.attr('data-accommodation-id') !== undefined) {
+            $sectionItem.find('.survey-data-mock-component-report-textarea').prop('disabled', isLocked);
+        }
     }
 
     // Action Icons Handlers
@@ -4910,7 +5072,25 @@ $(document).ready(function() {
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const $categorySection = $sectionItem.closest('.survey-data-mock-category');
         const categoryName = $categorySection.find('.survey-data-mock-category-title').text().trim();
-        const sectionName = $sectionItem.find('.survey-data-mock-section-name').text().trim();
+        const sectionName = $sectionItem.find('.survey-data-mock-section-name').first().text().trim();
+        
+        if (action === 'component-edit') {
+            applyAccommodationComponentReportMode($sectionItem, false);
+            return;
+        }
+        
+        if (action === 'component-refresh') {
+            const componentKey = $button.data('component-key');
+            const reportFormData = collectAccommodationReportFormData($sectionItem);
+            const comp = reportFormData.components.find(function(c) {
+                return c.component_key === componentKey;
+            });
+            if (comp) {
+                const text = generateAccommodationComponentReportContent(comp, sectionName, reportFormData.notes);
+                $sectionItem.find('.survey-data-mock-carousel-slide[data-component-key="' + componentKey + '"] .survey-data-mock-component-report-textarea').val(text);
+            }
+            return;
+        }
         
         switch(action) {
             case 'speaker':
@@ -4929,13 +5109,23 @@ $(document).ready(function() {
                 $sectionItem.data('selectedFiles', []);
                 $sectionItem.find('.survey-data-mock-file-input').val('');
                 $sectionItem.find('.survey-data-mock-upload-dropzone input[type="file"]').val('');
-                $reportContent.slideUp(300);
-                $details.slideDown(300, function() {
-                    // Re-initialize carousels after the form is fully visible
-                    if (isSwiperAvailable()) {
-                        initializeSectionCarousels($sectionItem);
-                    }
-                });
+                if ($sectionItem.attr('data-accommodation-id') !== undefined) {
+                    applyAccommodationComponentReportMode($sectionItem, false);
+                    $reportContent.hide();
+                    $details.slideDown(300, function() {
+                        if (isSwiperAvailable()) {
+                            initializeSectionCarousels($sectionItem);
+                        }
+                    });
+                } else {
+                    $reportContent.slideUp(300);
+                    $details.slideDown(300, function() {
+                        // Re-initialize carousels after the form is fully visible
+                        if (isSwiperAvailable()) {
+                            initializeSectionCarousels($sectionItem);
+                        }
+                    });
+                }
                 break;
                 
             case 'refresh':
@@ -4944,32 +5134,12 @@ $(document).ready(function() {
                 const isAccommodationRefresh = $sectionItem.attr('data-accommodation-id') !== undefined;
                 
                 if (isAccommodationRefresh) {
-                    // Regenerate accommodation report
-                    const accommodationFormData = {
-                        notes: $detailsForRefresh.find('.survey-data-mock-notes-input').val() || '',
-                        components: []
-                    };
-                    
-                    // Collect component data from carousel slides
-                    $detailsForRefresh.find('.survey-data-mock-carousel-slide').each(function() {
-                        const $slide = $(this);
-                        const componentKey = $slide.data('component-key');
-                        const componentName = $sectionItem.find(`.survey-data-mock-component-tab[data-component-key="${componentKey}"]`).text().trim() || componentKey;
-                        
-                        if (componentKey) {
-                            accommodationFormData.components.push({
-                                component_key: componentKey,
-                                component_name: componentName,
-                                material: $slide.find('[data-group="material"].active').data('value') || '',
-                                defects: $slide.find('[data-group="defects"].active').map(function() {
-                                    return $(this).data('value');
-                                }).get()
-                            });
-                        }
-                    });
-                    
-                    const newAccommodationReport = generateAccommodationReportContent(accommodationFormData, sectionName);
+                    const reportFormData = collectAccommodationReportFormData($sectionItem);
+                    const newAccommodationReport = generateAccommodationReportContent(reportFormData, sectionName);
                     $reportContent.find('.survey-data-mock-report-textarea').val(newAccommodationReport);
+                    fillAccommodationComponentTextareas($sectionItem, reportFormData, sectionName, newAccommodationReport);
+                    applyAccommodationComponentReportMode($sectionItem, true);
+                    $reportContent.hide();
                 } else {
                     // Regenerate regular section report
                     const formData = {
@@ -5864,11 +6034,29 @@ $(document).ready(function() {
             
             if ($item.hasClass('expanded')) {
                 $titleBar.slideDown(300);
-                if (hasReport) {
+                const isAccommodation = $item.attr('data-accommodation-id') !== undefined;
+                if (isAccommodation && hasReport) {
+                    $reportContent.hide();
+                    const accommodationName = $item.find('.survey-data-mock-section-name').first().text().trim();
+                    const full = ($reportContent.find('.survey-data-mock-report-textarea').val() || '').trim();
+                    const reportFormData = collectAccommodationReportFormData($item);
+                    if (full) {
+                        fillAccommodationComponentTextareas($item, reportFormData, accommodationName, full);
+                    } else {
+                        fillAccommodationComponentTextareas($item, reportFormData, accommodationName, null);
+                    }
+                    applyAccommodationComponentReportMode($item, true);
+                    $details.slideDown(300, function() {
+                        if (isSwiperAvailable()) {
+                            initializeSectionCarousels($item);
+                        }
+                    });
+                } else if (hasReport) {
                     // Show report if report_content exists, hide form
                     $details.hide();
                     $reportContent.slideDown(300);
                 } else {
+                    applyAccommodationComponentReportMode($item, false);
                     // Show form if no report_content, hide report
                     $details.slideDown(300, function() {
                         // Re-initialize carousels after the section is fully visible
@@ -6309,6 +6497,23 @@ $(document).ready(function() {
         initializeAccommodationCarousel($(this));
     });
 
+    $('.survey-data-mock-section-item[data-accommodation-id]').each(function() {
+        const $acc = $(this);
+        const hasReport = $acc.attr('data-has-report') === 'true' || $acc.attr('data-saved') === 'true';
+        if (!hasReport) {
+            return;
+        }
+        const accommodationName = $acc.find('.survey-data-mock-section-name').first().text().trim();
+        const full = ($acc.find('.survey-data-mock-report-content .survey-data-mock-report-textarea').val() || '').trim();
+        const reportFormData = collectAccommodationReportFormData($acc);
+        if (full) {
+            fillAccommodationComponentTextareas($acc, reportFormData, accommodationName, full);
+        } else {
+            fillAccommodationComponentTextareas($acc, reportFormData, accommodationName, null);
+        }
+        applyAccommodationComponentReportMode($acc, true);
+    });
+
     // Accommodation sections now use the same handler as regular sections
     // No separate handler needed - they use .survey-data-mock-section-item class
 
@@ -6510,13 +6715,18 @@ $(document).ready(function() {
                     
                     const reportContent = response.report_content || generateAccommodationReportContent(reportFormData, accommodationName);
                     
-                    // Get report content area
+                    // Get report content area (full text kept for reload / PDF; UI uses per-component textareas in carousel)
                     const $reportContent = $item.find('.survey-data-mock-report-content');
-                    
-                    // Hide form, show report
-                    $details.slideUp(300);
                     $reportContent.find('.survey-data-mock-report-textarea').val(reportContent);
-                    $reportContent.slideDown(300);
+                    
+                    fillAccommodationComponentTextareas($item, reportFormData, accommodationName, response.report_content || null);
+                    applyAccommodationComponentReportMode($item, true);
+                    $details.slideDown(300, function() {
+                        if (isSwiperAvailable()) {
+                            initializeSectionCarousels($item);
+                        }
+                    });
+                    $reportContent.hide();
                     
                     // Mark section as saved and has report
                     $item.attr('data-saved', 'true');
