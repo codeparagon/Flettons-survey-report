@@ -14,7 +14,6 @@
                 <i class="fas fa-sticky-note survey-data-mock-status-icon"></i>
                 <span class="survey-data-mock-status-text">{{ $accommodation['completed_components'] ?? 0 }}/{{ $accommodation['total_components'] ?? 0 }}</span>
             </span>
-            <span class="survey-data-mock-accommodation-stale-badge" style="display: none;" title="Report is out of date with form inputs or was edited manually">Stale</span>
             <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--{{ $accommodation['condition_rating'] ?? 'ni' }}" 
                   data-section-id="{{ $accommodation['id'] }}"
                   data-accommodation-id="{{ $accommodation['id'] }}"
