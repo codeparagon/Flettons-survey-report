@@ -1,7 +1,7 @@
-<div class="survey-data-mock-section-item" data-section-id="{{ $accommodation['id'] }}" data-accommodation-id="{{ $accommodation['id'] }}" data-accommodation-type-id="{{ !empty($accommodation['accommodation_type_id']) ? $accommodation['accommodation_type_id'] : '' }}" data-has-report="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}" data-saved="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}">
+<div class="survey-data-mock-section-item" data-section-id="{{ $accommodation['id'] }}" data-accommodation-id="{{ $accommodation['id'] }}" data-accommodation-type-id="{{ !empty($accommodation['accommodation_type_id']) ? $accommodation['accommodation_type_id'] : '' }}" data-clone-index="{{ $accommodation['clone_index'] ?? 0 }}" data-has-report="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}" data-saved="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}">
     <div class="survey-data-mock-section-header" data-expandable="true">
         <div class="survey-data-mock-section-name">
-            {{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}
+            {{ $accommodation['display_label'] ?? $accommodation['name'] ?? ($accommodation['accommodation_type_name'] ?? '') }}
         </div>
         <div class="survey-data-mock-section-status">
             @php
@@ -26,7 +26,7 @@
     
     <!-- Section Title Header (visible when expanded) -->
     <div class="survey-data-mock-section-title-bar" style="display: none;">
-        <h3 class="survey-data-mock-section-title-text">{{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}</h3>
+        <h3 class="survey-data-mock-section-title-text">{{ $accommodation['display_label'] ?? $accommodation['name'] ?? ($accommodation['accommodation_type_name'] ?? '') }}</h3>
         <div class="d-flex align-items-center" style="gap: 10px;">
         <span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--{{ $accommodation['condition_rating'] ?? 'ni' }}" 
               data-section-id="{{ $accommodation['id'] }}"

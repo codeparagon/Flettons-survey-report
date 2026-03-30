@@ -752,10 +752,12 @@ class SurveyController extends Controller
             $accommodationName = $baseName . ' ' . $nextNumber;
         }
         
-        // Build accommodation data array
+        // Build accommodation data array (display_label matches Bedroom 1 / Bedroom 2 pattern)
         $accommodationData = [
             'id' => $newAccommodationId,
             'name' => $accommodationName,
+            'display_label' => $accommodationName,
+            'clone_index' => max(0, $nextNumber - 1),
             'accommodation_type_id' => $accommodationTypeId,
             'accommodation_type_name' => $accommodationType->display_name,
             'condition_rating' => $formData['condition_rating'] ?? 'ni',

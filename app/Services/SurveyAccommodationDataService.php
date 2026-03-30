@@ -104,7 +104,9 @@ class SurveyAccommodationDataService
             return [
                 [
                     'id' => 'accommodation_1',
-                    'name' => $accommodationTypeName, // Always use only the accommodation type name
+                    'name' => $accommodationTypeName . ' 1',
+                    'display_label' => $accommodationTypeName . ' 1',
+                    'clone_index' => 0,
                     'accommodation_type_id' => $accommodationTypeId,
                     'accommodation_type_name' => $accommodationTypeName,
                     'notes' => '', // Shared notes for all components
@@ -292,7 +294,9 @@ class SurveyAccommodationDataService
                 // Create default section for this type
                 $result[] = [
                     'id' => 'new_' . $typeId, // Temporary ID until saved
-                    'name' => $type->display_name,
+                    'name' => $type->display_name . ' 1',
+                    'display_label' => $type->display_name . ' 1',
+                    'clone_index' => 0,
                     'accommodation_type_id' => $typeId,
                     'accommodation_type_name' => $type->display_name,
                     'condition_rating' => 'ni',
@@ -351,10 +355,10 @@ class SurveyAccommodationDataService
         
         // Get accommodation type name - must exist since we filtered for it
         $accommodationTypeName = $assessment->accommodationType->display_name ?? 'Unknown';
-        
-        // Always use accommodation type name as the display name (not custom_name)
-        // The type name should be shown in the title, not "Select Section" or custom names
-        $displayName = $accommodationTypeName;
+
+        $cloneIndex = (int) ($assessment->clone_index ?? 0);
+        // Bedroom 1, Bedroom 2, ... (clone_index is 0-based: first assessment = 1)
+        $displayLabel = $accommodationTypeName . ' ' . ($cloneIndex + 1);
         
         // Build components list in the same order as configured in admin
         $typeComponents = $assessment->accommodationType
@@ -407,7 +411,9 @@ class SurveyAccommodationDataService
         
         return [
             'id' => $assessment->id,
-            'name' => $displayName, // Always use accommodation type name
+            'name' => $displayLabel,
+            'display_label' => $displayLabel,
+            'clone_index' => $cloneIndex,
             'accommodation_type_id' => $assessment->accommodation_type_id,
             'accommodation_type_name' => $accommodationTypeName,
             'condition_rating' => $conditionRating,
@@ -740,7 +746,7 @@ class SurveyAccommodationDataService
             
             $reportContent = '';
             try {
-                $accommodationName = $assessment->custom_name ?? $accommodationType->display_name;
+                $accommodationName = $this->accommodationNumberedDisplayName($assessment);
                 $reportContent = $this->chatGPTService->generateAccommodationReport($chatGPTData, $accommodationName);
                 
                 // Save report content to database
@@ -995,6 +1001,17 @@ class SurveyAccommodationDataService
     }
 
     /**
+     * Human-readable label per assessment (e.g. Bedroom 1, Bedroom 2).
+     */
+    protected function accommodationNumberedDisplayName(SurveyAccommodationAssessment $assessment): string
+    {
+        $typeName = $assessment->accommodationType->display_name ?? '';
+        $cloneIndex = (int) ($assessment->clone_index ?? 0);
+
+        return trim($typeName . ' ' . ($cloneIndex + 1));
+    }
+
+    /**
      * Prepare data for ChatGPT service (accommodation).
      */
     protected function prepareAccommodationChatGPTData(SurveyAccommodationAssessment $assessment, array $formData): array
@@ -1010,7 +1027,7 @@ class SurveyAccommodationDataService
         }
 
         return [
-            'accommodation_name' => $assessment->custom_name ?? $assessment->accommodationType->display_name ?? '',
+            'accommodation_name' => $this->accommodationNumberedDisplayName($assessment),
             'accommodation_type' => $assessment->accommodationType->display_name ?? '',
             'components' => $components,
             'notes' => $assessment->notes ?? $formData['notes'] ?? '',

@@ -78,6 +78,9 @@
                 </div>
                 
                 <div class="survey-data-mock-category-content collapse show">
+                    @if(isset($accommodationSections) && count($accommodationSections) > 0)
+                        @include('surveyor.surveys.mocks.partials.accommodation-group-summaries', ['accommodationSections' => $accommodationSections])
+                    @endif
                     <div class="survey-data-mock-sections" style="gap: 0.75rem;">
                         @if(isset($accommodationSections) && count($accommodationSections) > 0)
                             @foreach($accommodationSections as $accommodation)
@@ -1690,6 +1693,132 @@
         justify-content: flex-end;
     }
 
+    /* Accommodation group summaries (combined narrative per component) */
+    .survey-data-mock-accommodation-group-summaries {
+        margin-bottom: 1.25rem;
+        padding: 1rem 1rem 0.5rem;
+        background: rgba(15, 23, 42, 0.35);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 8px;
+    }
+    .survey-data-mock-accommodation-group-summaries-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 1rem;
+        cursor: pointer;
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .survey-data-mock-accommodation-group-summaries-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #f8fafc;
+    }
+    .survey-data-mock-accommodation-group-summaries-hint {
+        font-size: 0.8125rem;
+        color: rgba(226, 232, 240, 0.75);
+        flex: 1 1 auto;
+    }
+    .survey-data-mock-accommodation-group-summaries-chevron {
+        color: #c1ec4a;
+        transition: transform 0.2s ease;
+    }
+    .survey-data-mock-accommodation-group-summaries.is-collapsed .survey-data-mock-accommodation-group-summaries-chevron {
+        transform: rotate(-90deg);
+    }
+    .survey-data-mock-accommodation-group-panel {
+        margin-bottom: 1.25rem;
+    }
+    .survey-data-mock-accommodation-group-panel-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin: 0 0 0.75rem 0;
+    }
+    .survey-data-mock-accommodation-group-component {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: rgba(30, 41, 59, 0.5);
+        border-radius: 6px;
+        border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    .survey-data-mock-accommodation-group-component-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    .survey-data-mock-accommodation-group-component-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #f1f5f9;
+    }
+    .survey-data-mock-group-summary-status {
+        font-size: 0.75rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        background: rgba(100, 116, 139, 0.4);
+        color: #e2e8f0;
+    }
+    .survey-data-mock-group-summary-status.is-stale {
+        background: rgba(217, 119, 6, 0.35);
+        color: #fde68a;
+    }
+    .survey-data-mock-group-summary-status.is-fresh {
+        background: rgba(22, 163, 74, 0.35);
+        color: #bbf7d0;
+    }
+    .survey-data-mock-group-summary-textarea {
+        width: 100%;
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        padding: 0.5rem 0.65rem;
+        border-radius: 4px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: #0f172a;
+        color: #f8fafc;
+        resize: vertical;
+        min-height: 120px;
+    }
+    .survey-data-mock-accommodation-group-component-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    .survey-data-mock-btn.survey-data-mock-btn--primary {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8125rem;
+        border-radius: 4px;
+        border: none;
+        background: #c1ec4a;
+        color: #0f172a;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .survey-data-mock-btn.survey-data-mock-btn--secondary {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8125rem;
+        border-radius: 4px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: transparent;
+        color: #e2e8f0;
+        cursor: pointer;
+    }
+    .survey-data-mock-btn.survey-data-mock-btn--ghost {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8125rem;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: #94a3b8;
+        cursor: pointer;
+    }
+
     /* Action Icons Bar */
     .survey-data-mock-action-icons {
         display: flex;
@@ -2941,6 +3070,7 @@
 @endpush
 
 @push('scripts')
+<script src="{{ asset('js/surveyor-accommodation-improvements.js') }}"></script>
 <script>
     // Prefer non-blocking notifications over browser alerts
     function notifyNonBlockingError(message) {
@@ -5140,6 +5270,9 @@ $(document).ready(function() {
                     fillAccommodationComponentTextareas($sectionItem, reportFormData, sectionName, newAccommodationReport);
                     applyAccommodationComponentReportMode($sectionItem, true);
                     $reportContent.hide();
+                    if (window.SurveyorAccommodationImprovements) {
+                        window.SurveyorAccommodationImprovements.markRoomGenerated($sectionItem);
+                    }
                 } else {
                     // Regenerate regular section report
                     const formData = {
@@ -6514,6 +6647,101 @@ $(document).ready(function() {
         applyAccommodationComponentReportMode($acc, true);
     });
 
+    if (window.SurveyorAccommodationImprovements) {
+        window.SurveyorAccommodationImprovements.bootstrapFromDom();
+    }
+
+    $(document).on('click', '[data-accommodation-group-toggle]', function() {
+        const $wrap = $(this).closest('.survey-data-mock-accommodation-group-summaries');
+        const $body = $wrap.find('.survey-data-mock-accommodation-group-summaries-body');
+        $wrap.toggleClass('is-collapsed');
+        $body.slideToggle(200);
+    });
+
+    $(document).on('input', '.survey-data-mock-section-item[data-accommodation-id] .survey-data-mock-notes-input', function() {
+        const $item = $(this).closest('.survey-data-mock-section-item[data-accommodation-id]');
+        const rid = $item.attr('data-accommodation-id');
+        if (!window.SurveyorAccommodationImprovements) {
+            return;
+        }
+        window.SurveyorAccommodationImprovements.debounceRoomInput(rid, function() {
+            window.SurveyorAccommodationImprovements.updateRoomStalenessUi($item);
+            const tid = $item.attr('data-accommodation-type-id');
+            if (tid) {
+                window.SurveyorAccommodationImprovements.refreshGroupStaleForType(tid);
+            }
+        });
+    });
+
+    $(document).on('click', '.survey-data-mock-section-item[data-accommodation-id] [data-group="material"], .survey-data-mock-section-item[data-accommodation-id] [data-group="defects"]', function() {
+        const $item = $(this).closest('.survey-data-mock-section-item[data-accommodation-id]');
+        setTimeout(function() {
+            if (!window.SurveyorAccommodationImprovements) {
+                return;
+            }
+            window.SurveyorAccommodationImprovements.updateRoomStalenessUi($item);
+            const tid = $item.attr('data-accommodation-type-id');
+            if (tid) {
+                window.SurveyorAccommodationImprovements.refreshGroupStaleForType(tid);
+            }
+        }, 0);
+    });
+
+    $(document).on('input', '.survey-data-mock-section-item[data-accommodation-id] .survey-data-mock-report-textarea', function() {
+        const $item = $(this).closest('.survey-data-mock-section-item[data-accommodation-id]');
+        if (window.SurveyorAccommodationImprovements) {
+            window.SurveyorAccommodationImprovements.markManualReportEdit($item);
+        }
+    });
+
+    $(document).on('click', '.survey-data-mock-group-summary-generate', function() {
+        const $block = $(this).closest('.survey-data-mock-accommodation-group-component');
+        const tid = $block.data('accommodation-type-id');
+        const ck = $block.data('component-key');
+        if (!window.SurveyorAccommodationImprovements) {
+            return;
+        }
+        const list = window.SurveyorAccommodationImprovements.aggregateByComponentKey(tid);
+        const entry = (list || []).filter(function(e) { return e.component_key === ck; })[0];
+        if (!entry) {
+            return;
+        }
+        const text = window.SurveyorAccommodationImprovements.generateGroupComponentNarrative(entry);
+        $block.find('.survey-data-mock-group-summary-textarea').val(text);
+        window.SurveyorAccommodationImprovements.recordGroupGeneration(tid, ck);
+    });
+
+    $(document).on('click', '.survey-data-mock-group-summary-copy', function() {
+        const $ta = $(this).closest('.survey-data-mock-accommodation-group-component').find('.survey-data-mock-group-summary-textarea');
+        const el = $ta.get(0);
+        if (el) {
+            el.select();
+            document.execCommand('copy');
+        }
+        if (typeof toastr !== 'undefined') {
+            toastr.success('Copied to clipboard');
+        }
+    });
+
+    $(document).on('click', '.survey-data-mock-group-summary-clear', function() {
+        const $block = $(this).closest('.survey-data-mock-accommodation-group-component');
+        const tid = $block.data('accommodation-type-id');
+        const ck = $block.data('component-key');
+        $block.find('.survey-data-mock-group-summary-textarea').val('');
+        if (window.SurveyorAccommodationImprovements) {
+            window.SurveyorAccommodationImprovements.clearGroupGenerationRecord(tid, ck);
+        }
+    });
+
+    $(document).on('input', '.survey-data-mock-group-summary-textarea', function() {
+        const $block = $(this).closest('.survey-data-mock-accommodation-group-component');
+        const tid = $block.data('accommodation-type-id');
+        const ck = $block.data('component-key');
+        if (window.SurveyorAccommodationImprovements) {
+            window.SurveyorAccommodationImprovements.clearGroupGenerationRecord(tid, ck);
+        }
+    });
+
     // Accommodation sections now use the same handler as regular sections
     // No separate handler needed - they use .survey-data-mock-section-item class
 
@@ -6521,9 +6749,13 @@ $(document).ready(function() {
     $(document).on('click', '.survey-data-mock-section-item[data-accommodation-id] .survey-data-mock-action-delete', function(e) {
         e.stopPropagation();
         const $item = $(this).closest('.survey-data-mock-section-item[data-accommodation-id]');
+        const typeIdForGroup = $item.attr('data-accommodation-type-id');
         if (confirm('Are you sure you want to delete this accommodation?')) {
             $item.fadeOut(300, function() {
                 $(this).remove();
+                if (typeIdForGroup && window.SurveyorAccommodationImprovements) {
+                    window.SurveyorAccommodationImprovements.refreshGroupStaleForType(typeIdForGroup);
+                }
             });
         }
     });
@@ -6733,6 +6965,10 @@ $(document).ready(function() {
                     $item.attr('data-has-report', 'true');
                     $item.attr('data-locked', 'false');
                     
+                    if (window.SurveyorAccommodationImprovements) {
+                        window.SurveyorAccommodationImprovements.markRoomGenerated($item);
+                    }
+                    
                     // Show success message
                     if (typeof toastr !== 'undefined') {
                         toastr.success(response.message || 'Accommodation assessment saved successfully');
@@ -6886,6 +7122,10 @@ $(document).ready(function() {
                         setTimeout(function() {
                             initializeDividers();
                         }, 100);
+                        
+                        if (window.SurveyorAccommodationImprovements) {
+                            window.SurveyorAccommodationImprovements.registerNewAccommodationRow($newAccommodationItem);
+                        }
                     }
                     
                     // Show success message
