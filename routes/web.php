@@ -244,6 +244,8 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     Route::get('/surveys/{survey}/generate-pdf', [\App\Http\Controllers\Surveyor\SurveyController::class, 'generatePdfReport'])->name('surveyor.surveys.generate-pdf');
     Route::post('/surveys/{survey}/sections/{sectionDefinition}/save', [\App\Http\Controllers\Surveyor\SurveyController::class, 'saveSectionAssessment'])->name('surveyor.surveys.sections.save');
     Route::post('/surveys/{survey}/accommodations/save', [\App\Http\Controllers\Surveyor\SurveyController::class, 'saveAccommodationAssessment'])->name('surveyor.surveys.accommodations.save');
+    Route::post('/surveys/{survey}/accommodations/component-summaries/generate', [\App\Http\Controllers\Surveyor\SurveyController::class, 'generateAccommodationComponentSummaries'])->name('surveyor.surveys.accommodations.component-summaries.generate');
+    Route::post('/surveys/{survey}/accommodations/component-summaries/save', [\App\Http\Controllers\Surveyor\SurveyController::class, 'saveAccommodationComponentSummary'])->name('surveyor.surveys.accommodations.component-summaries.save');
     Route::post('/surveys/{survey}/assessments/{assessment}/condition-rating', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateConditionRating'])->name('surveyor.surveys.assessments.update-condition-rating');
     Route::post('/surveys/{survey}/assessments/{assessment}/costs', [\App\Http\Controllers\Surveyor\SurveyController::class, 'updateCosts'])->name('surveyor.surveys.assessments.update-costs');
     Route::post('/surveys/{survey}/assessments/{assessment}/photos', [\App\Http\Controllers\Surveyor\SurveyController::class, 'uploadPhotos'])->name('surveyor.surveys.assessments.upload-photos');

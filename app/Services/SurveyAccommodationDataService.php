@@ -10,6 +10,7 @@ use App\Models\SurveyAccommodationOption;
 use App\Models\SurveyAccommodationAssessment;
 use App\Models\SurveyAccommodationType;
 use App\Models\SurveyAccommodationComponentAssessment;
+use App\Models\SurveyAccommodationComponentSummary;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -115,12 +116,14 @@ class SurveyAccommodationDataService
                     'total_components' => $configuredType->components->count(),
                     'components' => $configuredType->components->map(function($component) {
                         return [
+                            'component_id' => $component->id,
                             'component_key' => $component->key_name,
                             'component_name' => $component->display_name,
                             'material' => '',
                             'defects' => [],
                         ];
                     })->toArray(),
+                    'form_submitted' => false,
                 ],
             ];
         }
@@ -304,10 +307,12 @@ class SurveyAccommodationDataService
                     'photos' => [],
                     'report_content' => '',
                     'has_report' => false,
+                    'form_submitted' => false,
                     'completed_components' => 0,
                     'total_components' => $type->components->count(),
                     'components' => $type->components->map(function($component) {
                         return [
+                            'component_id' => $component->id,
                             'component_key' => $component->key_name,
                             'component_name' => $component->display_name,
                             'material' => '',
@@ -396,6 +401,7 @@ class SurveyAccommodationDataService
             }
 
             $componentsArray[] = [
+                'component_id' => $component->id,
                 'component_key' => $component->key_name,
                 'component_name' => $component->display_name,
                 'material' => $materialValue,
@@ -430,6 +436,7 @@ class SurveyAccommodationDataService
             })->values()->toArray() : [],
             'report_content' => $reportContent,
             'has_report' => $hasReport,
+            'form_submitted' => (bool) $assessment->is_completed,
             'completed_components' => $completedComponents,
             'total_components' => $totalComponents,
             'components' => $componentsArray,
@@ -567,7 +574,7 @@ class SurveyAccommodationDataService
     }
 
     /**
-     * Save accommodation assessment and generate report.
+     * Save accommodation assessment, persist a plain-text selection summary (no per-room GPT), and regenerate combined component narratives.
      */
     public function saveAccommodationAssessment(Survey $survey, int $accommodationTypeId, array $formData, bool $isClone = false, ?int $assessmentId = null): array
     {
@@ -679,6 +686,16 @@ class SurveyAccommodationDataService
                         $clonedPhoto->save();
                     }
                 }
+
+                // User may have edited notes/components on the unsaved clone row — apply form over the copy
+                if (array_key_exists('notes', $formData)) {
+                    $assessment->notes = $formData['notes'];
+                }
+                $assessment->save();
+                if (isset($formData['components']) && is_array($formData['components']) && ! empty($formData['components'])) {
+                    $this->saveAccommodationComponentAssessments($assessment, $formData['components']);
+                }
+                $assessment->load(['componentAssessments.component', 'componentAssessments.material', 'componentAssessments.defects', 'photos']);
             } elseif ($assessmentId) {
                 // Update existing assessment (not a clone)
                 $assessment = SurveyAccommodationAssessment::where('id', $assessmentId)
@@ -741,30 +758,33 @@ class SurveyAccommodationDataService
             }
 
             $assessment->load(['accommodationType', 'componentAssessments.component', 'componentAssessments.material', 'componentAssessments.defects']);
-            
-            $chatGPTData = $this->prepareAccommodationChatGPTData($assessment, $formData);
-            
-            $reportContent = '';
+
+            $reportContent = $this->buildAccommodationSelectionsSummary($assessment);
+            $assessment->report_content = $reportContent;
+            $assessment->save();
+
+            DB::commit();
+
+            $componentSummaries = [];
+            $componentSummariesError = null;
             try {
-                $accommodationName = $this->accommodationNumberedDisplayName($assessment);
-                $reportContent = $this->chatGPTService->generateAccommodationReport($chatGPTData, $accommodationName);
-                
-                // Save report content to database
-                $assessment->report_content = $reportContent;
-                $assessment->save();
+                $componentSummaries = $this->regenerateComponentGroupSummariesForType($survey, $accommodationTypeId);
             } catch (\Exception $e) {
-                Log::error('Failed to generate accommodation report content', [
-                    'assessment_id' => $assessment->id,
+                $componentSummariesError = $e->getMessage();
+                Log::error('Failed to regenerate accommodation component group summaries', [
+                    'survey_id' => $survey->id,
+                    'accommodation_type_id' => $accommodationTypeId,
                     'error' => $e->getMessage(),
                 ]);
             }
-
-            DB::commit();
 
             return [
                 'success' => true,
                 'assessment' => $assessment,
                 'report_content' => $reportContent,
+                'report_generation_error' => null,
+                'component_summaries' => $componentSummaries,
+                'component_summaries_error' => $componentSummariesError,
             ];
 
         } catch (\Exception $e) {
@@ -1001,6 +1021,211 @@ class SurveyAccommodationDataService
     }
 
     /**
+     * Saved combined narratives per accommodation type + component (for survey data page).
+     *
+     * @return array<int, array<string, array{content: string, component_id: int, input_hash: string|null}>>
+     */
+    public function getComponentSummariesForSurvey(Survey $survey): array
+    {
+        $rows = SurveyAccommodationComponentSummary::query()
+            ->where('survey_id', $survey->id)
+            ->with('component:id,key_name')
+            ->get();
+
+        $out = [];
+        foreach ($rows as $row) {
+            $keyName = $row->component->key_name ?? null;
+            if ($keyName === null) {
+                continue;
+            }
+            $out[$row->accommodation_type_id][$keyName] = [
+                'content' => (string) ($row->content ?? ''),
+                'component_id' => (int) $row->component_id,
+                'input_hash' => $row->input_hash,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Persist manually edited combined narrative (or after client-side generate).
+     */
+    public function saveComponentGroupSummaryContent(
+        Survey $survey,
+        int $accommodationTypeId,
+        int $componentId,
+        string $content
+    ): SurveyAccommodationComponentSummary {
+        $summary = SurveyAccommodationComponentSummary::updateOrCreate(
+            [
+                'survey_id' => $survey->id,
+                'accommodation_type_id' => $accommodationTypeId,
+                'component_id' => $componentId,
+            ],
+            [
+                'content' => $content,
+                'input_hash' => null,
+            ]
+        );
+
+        return $summary;
+    }
+
+    /**
+     * Regenerate GPT combined narratives for each component of an accommodation type (all rooms).
+     *
+     * @return array<string, array{content: string, input_hash: string}>
+     */
+    public function regenerateComponentGroupSummariesForType(Survey $survey, int $accommodationTypeId): array
+    {
+        $type = SurveyAccommodationType::with(['components' => function ($q) {
+            $q->where('is_active', true)->orderBy('sort_order');
+        }])->findOrFail($accommodationTypeId);
+
+        $assessments = $this->loadAssessmentsForAccommodationType($survey, $accommodationTypeId);
+
+        $byKey = [];
+
+        foreach ($type->components as $component) {
+            $one = $this->upsertGroupSummaryForComponent($survey, $type, $component, $assessments);
+            if ($one !== null) {
+                $byKey[$component->key_name] = $one;
+            }
+        }
+
+        return $byKey;
+    }
+
+    /**
+     * Regenerate a single component's combined narrative (all rooms of that type).
+     *
+     * @return array{content: string, input_hash: string, component_key: string}
+     */
+    public function regenerateSingleComponentGroupSummary(Survey $survey, int $accommodationTypeId, int $componentId): array
+    {
+        $type = SurveyAccommodationType::findOrFail($accommodationTypeId);
+        $component = SurveyAccommodationComponent::where('is_active', true)->findOrFail($componentId);
+
+        $attached = $type->components()->where('survey_accommodation_components.id', $component->id)->exists();
+        if (!$attached) {
+            throw new \InvalidArgumentException('This component is not configured for this accommodation type.');
+        }
+
+        $assessments = $this->loadAssessmentsForAccommodationType($survey, $accommodationTypeId);
+        $one = $this->upsertGroupSummaryForComponent($survey, $type, $component, $assessments);
+        if ($one === null) {
+            throw new \RuntimeException('No saved room data for this component yet. Save at least one accommodation section first.');
+        }
+
+        return array_merge($one, ['component_key' => $component->key_name]);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, SurveyAccommodationAssessment>
+     */
+    protected function loadAssessmentsForAccommodationType(Survey $survey, int $accommodationTypeId)
+    {
+        return SurveyAccommodationAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->where('accommodation_type_id', $accommodationTypeId)
+            ->with([
+                'componentAssessments.component',
+                'componentAssessments.material',
+                'componentAssessments.defects',
+                'accommodationType',
+            ])
+            ->orderBy('clone_index')
+            ->get();
+    }
+
+    /**
+     * @param \Illuminate\Support\Collection<int, SurveyAccommodationAssessment> $assessments
+     * @return array{content: string, input_hash: string}|null
+     */
+    protected function upsertGroupSummaryForComponent(
+        Survey $survey,
+        SurveyAccommodationType $type,
+        SurveyAccommodationComponent $component,
+        $assessments
+    ): ?array {
+        $rooms = [];
+        foreach ($assessments as $assessment) {
+            $ca = $assessment->componentAssessments->firstWhere('component_id', $component->id);
+            if (!$ca) {
+                continue;
+            }
+            $material = $ca->material !== null ? ($ca->material->value ?? '') : '';
+            $defects = $ca->defects->pluck('value')->toArray();
+            $rating = $assessment->condition_rating;
+            $rooms[] = [
+                'room_label' => $this->accommodationNumberedDisplayName($assessment),
+                'material' => $material,
+                'defects' => $defects,
+                'notes' => $assessment->notes ?? '',
+                'condition_rating' => $rating !== null ? (string) $rating : null,
+            ];
+        }
+
+        if ($rooms === []) {
+            return null;
+        }
+
+        $payload = [
+            'accommodation_type' => $type->display_name,
+            'component_name' => $component->display_name,
+            'component_key' => $component->key_name,
+            'rooms' => $rooms,
+        ];
+
+        $hash = $this->hashPayloadCanonical($payload);
+        $text = $this->chatGPTService->generateAccommodationGroupComponentReport($payload);
+
+        SurveyAccommodationComponentSummary::updateOrCreate(
+            [
+                'survey_id' => $survey->id,
+                'accommodation_type_id' => $type->id,
+                'component_id' => $component->id,
+            ],
+            [
+                'content' => $text,
+                'input_hash' => $hash,
+            ]
+        );
+
+        return [
+            'content' => $text,
+            'input_hash' => $hash,
+        ];
+    }
+
+    protected function hashPayloadCanonical(array $payload): string
+    {
+        return hash('sha256', json_encode($this->sortKeysRecursive($payload)));
+    }
+
+    /**
+     * @param mixed $value
+     * @return mixed
+     */
+    protected function sortKeysRecursive($value)
+    {
+        if (!is_array($value)) {
+            return $value;
+        }
+        if (array_values($value) === $value) {
+            return array_map([$this, 'sortKeysRecursive'], $value);
+        }
+        ksort($value);
+        $out = [];
+        foreach ($value as $k => $v) {
+            $out[$k] = $this->sortKeysRecursive($v);
+        }
+
+        return $out;
+    }
+
+    /**
      * Human-readable label per assessment (e.g. Bedroom 1, Bedroom 2).
      */
     protected function accommodationNumberedDisplayName(SurveyAccommodationAssessment $assessment): string
@@ -1012,26 +1237,41 @@ class SurveyAccommodationDataService
     }
 
     /**
-     * Prepare data for ChatGPT service (accommodation).
+     * Plain-text summary of saved selections for this room (no GPT; used in UI and PDF).
      */
-    protected function prepareAccommodationChatGPTData(SurveyAccommodationAssessment $assessment, array $formData): array
+    protected function buildAccommodationSelectionsSummary(SurveyAccommodationAssessment $assessment): string
     {
-        $components = [];
-        
-        foreach ($assessment->componentAssessments as $compAssessment) {
-            $components[] = [
-                'component' => $compAssessment->component->display_name ?? '',
-                'material' => $compAssessment->material->value ?? '',
-                'defects' => $compAssessment->defects->pluck('value')->toArray(),
-            ];
+        $lines = [];
+        $lines[] = $this->accommodationNumberedDisplayName($assessment);
+        $rating = $assessment->condition_rating;
+        $lines[] = 'Condition rating: ' . ($rating !== null ? (string) $rating : 'Not indicated');
+
+        $notes = trim((string) ($assessment->notes ?? ''));
+        if ($notes !== '') {
+            $lines[] = 'Additional notes: ' . $notes;
         }
 
-        return [
-            'accommodation_name' => $this->accommodationNumberedDisplayName($assessment),
-            'accommodation_type' => $assessment->accommodationType->display_name ?? '',
-            'components' => $components,
-            'notes' => $assessment->notes ?? $formData['notes'] ?? '',
-        ];
+        $lines[] = '';
+        $sorted = $assessment->componentAssessments->sortBy(function ($ca) {
+            return $ca->component->sort_order ?? 0;
+        });
+
+        foreach ($sorted as $compAssessment) {
+            $component = $compAssessment->component;
+            if (!$component) {
+                continue;
+            }
+            $name = $component->display_name ?? 'Component';
+            $material = $compAssessment->material !== null ? (string) ($compAssessment->material->value ?? '') : '';
+            $defects = $compAssessment->defects->pluck('value')->filter()->values()->all();
+
+            $lines[] = $name;
+            $lines[] = '  Material: ' . ($material !== '' ? $material : '—');
+            $lines[] = '  Defects: ' . (!empty($defects) ? implode(', ', $defects) : '—');
+            $lines[] = '';
+        }
+
+        return trim(implode("\n", $lines));
     }
 }
 

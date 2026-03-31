@@ -34,6 +34,8 @@ return [
     'openai' => [
         'key'          => env('OPENAI_API_KEY'),
         'assistant_id' => env('OPENAI_ASSISTANT_ID'),
+        /** Used when assistant_id is unset or Assistants API fails (accommodation + section reports). */
+        'chat_model'   => env('OPENAI_CHAT_MODEL', 'gpt-4o-mini'),
     ],
 
 ];

@@ -151,6 +151,7 @@ class SurveyController extends Controller
         // Get accommodation configuration data from database
         $accommodationDataService = app(\App\Services\SurveyAccommodationDataService::class);
         $accommodationSections = $accommodationDataService->getAccommodationConfigurationData($survey, $useMockData);
+        $accommodationComponentSummaries = $accommodationDataService->getComponentSummariesForSurvey($survey);
 
         // Get accommodation types with components (for form dropdowns)
         // Only types that have components configured will be available
@@ -185,6 +186,7 @@ class SurveyController extends Controller
             'survey',
             'categories',
             'accommodationSections',
+            'accommodationComponentSummaries',
             'accommodationTypesWithComponents',
             'hasAccommodationTypesWithComponents',
             'optionsMapping',
@@ -708,8 +710,13 @@ class SurveyController extends Controller
             ->count();
         $nextNumber = $existingCount + 1;
         
-        // Generate new unique ID for the clone
-        $newAccommodationId = 'clone_' . time() . '_' . mt_rand(1000, 9999);
+        // Temporary client ID until first save — must embed numeric source so save can resolve clone_src123_…
+        $sourceRaw = $validated['source_accommodation_id'] ?? '';
+        if (is_numeric($sourceRaw)) {
+            $newAccommodationId = 'clone_src' . (int) $sourceRaw . '_' . time() . '_' . mt_rand(1000, 9999);
+        } else {
+            $newAccommodationId = 'clone_' . time() . '_' . mt_rand(1000, 9999);
+        }
         
         // Get components from form data or use components linked to this accommodation type
         $components = $formData['components'] ?? [];
@@ -717,8 +724,9 @@ class SurveyController extends Controller
             // Get components linked to this accommodation type (not all components)
             $accommodationType->load('components');
             if ($accommodationType->components && $accommodationType->components->count() > 0) {
-                $components = $accommodationType->components->map(function($component) {
+                $components = $accommodationType->components->map(function ($component) {
                     return [
+                        'component_id' => $component->id,
                         'component_key' => $component->key_name,
                         'component_name' => $component->display_name,
                         'material' => '',
@@ -730,39 +738,59 @@ class SurveyController extends Controller
                 $components = [];
             }
         } else {
-            // Ensure component_name is populated for each component
+            // Ensure component_name and component_id are populated for each component
             $accommodationType->load('components');
             $componentMap = $accommodationType->components->keyBy('key_name');
-            
-            $components = array_map(function($component) use ($componentMap) {
-                // Add component_name if not present, using the component from the type
+
+            $components = array_map(function ($component) use ($componentMap) {
                 if (!isset($component['component_name']) && isset($component['component_key'])) {
                     $typeComponent = $componentMap->get($component['component_key']);
                     $component['component_name'] = $typeComponent ? $typeComponent->display_name : ucfirst(str_replace('_', ' ', $component['component_key']));
+                    if ($typeComponent) {
+                        $component['component_id'] = $typeComponent->id;
+                    }
+                } elseif (isset($component['component_key'])) {
+                    $typeComponent = $componentMap->get($component['component_key']);
+                    if ($typeComponent && empty($component['component_id'])) {
+                        $component['component_id'] = $typeComponent->id;
+                    }
                 }
+
                 return $component;
             }, $components);
         }
-        
-        // Determine accommodation name - use form data if provided, otherwise increment
-        $accommodationName = $formData['custom_name'] ?? null;
-        if (!$accommodationName) {
-            // Extract base name from source or use accommodation type name
-            $baseName = $accommodationType->display_name;
-            $accommodationName = $baseName . ' ' . $nextNumber;
+
+        // Always number by server-side count. The client sends the source row's custom_name (e.g. "Bedroom 1")
+        // for every clone, which would otherwise label every new row as "Bedroom 1".
+        $accommodationName = $accommodationType->display_name . ' ' . $nextNumber;
+        $displayLabel = $accommodationName;
+
+        $completedComponents = 0;
+        foreach ($components as $c) {
+            $mat = $c['material'] ?? '';
+            $def = $c['defects'] ?? [];
+            $hasDef = is_array($def) && count(array_filter($def)) > 0;
+            if (($mat !== '' && $mat !== null) || $hasDef) {
+                $completedComponents++;
+            }
         }
-        
+
         // Build accommodation data array (display_label matches Bedroom 1 / Bedroom 2 pattern)
         $accommodationData = [
             'id' => $newAccommodationId,
-            'name' => $accommodationName,
-            'display_label' => $accommodationName,
+            'name' => $displayLabel,
+            'display_label' => $displayLabel,
             'clone_index' => max(0, $nextNumber - 1),
             'accommodation_type_id' => $accommodationTypeId,
             'accommodation_type_name' => $accommodationType->display_name,
             'condition_rating' => $formData['condition_rating'] ?? 'ni',
             'notes' => $formData['notes'] ?? '',
             'photos' => [],
+            'report_content' => '',
+            'has_report' => false,
+            'form_submitted' => false,
+            'completed_components' => $completedComponents,
+            'total_components' => $accommodationType->components->count(),
             'components' => $components,
         ];
 
@@ -956,11 +984,12 @@ class SurveyController extends Controller
                         $isClone = $existingAssessment->clone_index > 0;
                     }
                 } elseif (strpos($accommodationId, 'clone_') === 0) {
-                    // New clone - extract source assessment ID
+                    // Pending clone: extract source assessment ID when embedded (clone_src123_…)
                     $isClone = true;
-                    $sourceIdStr = substr($accommodationId, 6); // Remove 'clone_' prefix
-                    if (is_numeric($sourceIdStr)) {
-                        $assessmentId = (int) $sourceIdStr; // Use source ID for cloning
+                    if (preg_match('/^clone_src(\d+)_/', $accommodationId, $m)) {
+                        $assessmentId = (int) $m[1];
+                    } elseif (preg_match('/^clone_(\d+)$/', $accommodationId, $m)) {
+                        $assessmentId = (int) $m[1];
                     }
                 }
             }
@@ -993,6 +1022,9 @@ class SurveyController extends Controller
                 'message' => $message,
                 'assessment_id' => $result['assessment']->id,
                 'report_content' => $result['report_content'],
+                'report_generation_error' => $result['report_generation_error'] ?? null,
+                'component_summaries' => $result['component_summaries'] ?? [],
+                'component_summaries_error' => $result['component_summaries_error'] ?? null,
                 'photos' => $photos,
             ], 200);
 
@@ -1011,6 +1043,138 @@ class SurveyController extends Controller
 
             return response()->json([
                 'error' => 'Failed to save accommodation assessment: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * GPT: regenerate combined narratives for every component of an accommodation type (all rooms).
+     */
+    public function generateAccommodationComponentSummaries(Request $request, Survey $survey)
+    {
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                'accommodation_type_id' => 'required|integer|exists:survey_accommodation_types,id',
+                'component_id' => 'nullable|integer|exists:survey_accommodation_components,id',
+                'component_key' => 'nullable|string|max:191',
+            ]);
+
+            $service = app(\App\Services\SurveyAccommodationDataService::class);
+            $typeId = (int) $validated['accommodation_type_id'];
+
+            $singleComponentId = $validated['component_id'] ?? null;
+            if (!$singleComponentId && !empty($validated['component_key'])) {
+                $c = \App\Models\SurveyAccommodationComponent::where('key_name', $validated['component_key'])->first();
+                if ($c) {
+                    $singleComponentId = $c->id;
+                }
+            }
+
+            if (!empty($singleComponentId)) {
+                $one = $service->regenerateSingleComponentGroupSummary($survey, $typeId, (int) $singleComponentId);
+                return response()->json([
+                    'success' => true,
+                    'component_summaries' => [
+                        $one['component_key'] => [
+                            'content' => $one['content'],
+                            'input_hash' => $one['input_hash'],
+                        ],
+                    ],
+                ], 200);
+            }
+
+            $summaries = $service->regenerateComponentGroupSummariesForType($survey, $typeId);
+
+            return response()->json([
+                'success' => true,
+                'component_summaries' => $summaries,
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Failed to generate accommodation component summaries', [
+                'survey_id' => $survey->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Save manually edited combined narrative for one component group.
+     */
+    public function saveAccommodationComponentSummary(Request $request, Survey $survey)
+    {
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                'accommodation_type_id' => 'required|integer|exists:survey_accommodation_types,id',
+                'component_id' => 'nullable|integer|exists:survey_accommodation_components,id',
+                'component_key' => 'nullable|string|max:191',
+                'content' => 'nullable|string',
+            ]);
+
+            $componentId = $validated['component_id'] ?? null;
+            if (!$componentId) {
+                $key = $validated['component_key'] ?? null;
+                if (!$key) {
+                    return response()->json([
+                        'error' => 'Validation failed',
+                        'errors' => ['component_id' => ['Provide component_id or component_key.']],
+                    ], 422);
+                }
+                $component = \App\Models\SurveyAccommodationComponent::where('key_name', $key)->first();
+                if (!$component) {
+                    return response()->json([
+                        'error' => 'Unknown component_key',
+                    ], 422);
+                }
+                $componentId = $component->id;
+            }
+
+            $type = \App\Models\SurveyAccommodationType::findOrFail((int) $validated['accommodation_type_id']);
+            if (!$type->components()->where('survey_accommodation_components.id', $componentId)->exists()) {
+                return response()->json([
+                    'error' => 'This component is not configured for this accommodation type.',
+                ], 422);
+            }
+
+            $service = app(\App\Services\SurveyAccommodationDataService::class);
+            $service->saveComponentGroupSummaryContent(
+                $survey,
+                (int) $validated['accommodation_type_id'],
+                (int) $componentId,
+                (string) ($validated['content'] ?? '')
+            );
+
+            return response()->json(['success' => true], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Failed to save accommodation component summary', [
+                'survey_id' => $survey->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to save: ' . $e->getMessage(),
             ], 500);
         }
     }

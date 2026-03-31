@@ -1,4 +1,7 @@
-<div class="survey-data-mock-section-item" data-section-id="{{ $accommodation['id'] }}" data-accommodation-id="{{ $accommodation['id'] }}" data-accommodation-type-id="{{ !empty($accommodation['accommodation_type_id']) ? $accommodation['accommodation_type_id'] : '' }}" data-clone-index="{{ $accommodation['clone_index'] ?? 0 }}" data-has-report="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}" data-saved="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}">
+@php
+    $accFormSubmitted = ($accommodation['form_submitted'] ?? false) || ($accommodation['has_report'] ?? false);
+@endphp
+<div class="survey-data-mock-section-item" data-section-id="{{ $accommodation['id'] }}" data-accommodation-id="{{ $accommodation['id'] }}" data-accommodation-type-id="{{ !empty($accommodation['accommodation_type_id']) ? $accommodation['accommodation_type_id'] : '' }}" data-clone-index="{{ $accommodation['clone_index'] ?? 0 }}" data-has-report="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}" data-saved="{{ $accFormSubmitted ? 'true' : 'false' }}">
     <div class="survey-data-mock-section-header" data-expandable="true">
         <div class="survey-data-mock-section-name">
             {{ $accommodation['display_label'] ?? $accommodation['name'] ?? ($accommodation['accommodation_type_name'] ?? '') }}
@@ -38,7 +41,7 @@
         </div>
     </div>
     
-    <!-- Expanded Carousel Content -->
+    <!-- Expanded: form (materials / defects / notes / photos) -->
     <div class="survey-data-mock-section-details" style="display: none;">
         <div class="survey-data-mock-section-details-content">
             <!-- Component Tabs Navigation -->
@@ -104,17 +107,6 @@
                                                     </button>
                                                 @endforeach
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="survey-data-mock-accommodation-component-report" style="display: none;">
-                                        <textarea class="survey-data-mock-report-textarea survey-data-mock-component-report-textarea" rows="10" placeholder="Component narrative will appear after save…" data-component-key="{{ $component['component_key'] }}"></textarea>
-                                        <div class="survey-data-mock-action-icons survey-data-mock-component-report-actions">
-                                            <button type="button" class="survey-data-mock-action-icon-btn" data-action="component-edit" data-component-key="{{ $component['component_key'] }}" title="Edit this component">
-                                                <i class="fas fa-pencil-alt"></i>
-                                            </button>
-                                            <button type="button" class="survey-data-mock-action-icon-btn" data-action="component-refresh" data-component-key="{{ $component['component_key'] }}" title="Regenerate this component">
-                                                <i class="fas fa-sync-alt"></i>
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -239,24 +231,22 @@
         </div>
     </div>
 
-    <!-- Report Content Area (shown after save) -->
-    <div class="survey-data-mock-report-content" style="display: none;" data-accommodation-id="{{ $accommodation['id'] }}" data-initial-has-report="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}">
+    <!-- Submitted: plain-text selection summary (read-only) + icon bar; AI narrative is in Combined narratives above -->
+    <div class="survey-data-mock-report-content survey-data-mock-report-content--accommodation" style="display: none;" data-accommodation-id="{{ $accommodation['id'] }}" data-initial-has-report="{{ $accFormSubmitted ? 'true' : 'false' }}">
+        <p class="survey-data-mock-accommodation-report-hint" style="margin: 0 0 0.75rem 0; padding: 0 0.25rem; font-size: 0.8125rem; color: #64748b;">
+            <i class="fas fa-check-circle" style="color:#22c55e;"></i> Submitted — summary of your selections below. Use <strong>Edit</strong> (pencil) to change materials, defects, or notes. For AI narrative across all rooms of this type, use <strong>Combined narratives</strong> above (or the arrow button).
+        </p>
         <div class="survey-data-mock-report-content-wrapper">
-            <textarea class="survey-data-mock-report-textarea" rows="12" placeholder="Report content will be generated after saving...">{{ $accommodation['report_content'] ?? '' }}</textarea>
-            
-            <!-- Action Icons Bar -->
+            <textarea class="survey-data-mock-report-textarea survey-data-mock-accommodation-report-textarea" rows="12" placeholder="Your selections will appear here after saving…" @if($accFormSubmitted) disabled @endif>{{ $accommodation['report_content'] ?? '' }}</textarea>
             <div class="survey-data-mock-action-icons">
                 <button type="button" class="survey-data-mock-action-icon-btn" data-action="speaker" title="Text to Speech">
                     <i class="fas fa-volume-up"></i>
                 </button>
-                <button type="button" class="survey-data-mock-action-icon-btn" data-action="lock" title="Lock/Unlock Editing">
-                    <i class="fas fa-lock"></i>
-                </button>
-                <button type="button" class="survey-data-mock-action-icon-btn" data-action="edit" title="Edit Form">
+                <button type="button" class="survey-data-mock-action-icon-btn" data-action="edit" title="Edit form">
                     <i class="fas fa-pencil-alt"></i>
                 </button>
-                <button type="button" class="survey-data-mock-action-icon-btn" data-action="refresh" title="Regenerate Content">
-                    <i class="fas fa-sync-alt"></i>
+                <button type="button" class="survey-data-mock-action-icon-btn survey-data-mock-accommodation-scroll-combined" title="Scroll to combined component reports for this accommodation type">
+                    <i class="fas fa-arrow-up"></i>
                 </button>
                 <button type="button" class="survey-data-mock-action-icon-btn" data-action="eye" title="Preview">
                     <i class="fas fa-eye"></i>

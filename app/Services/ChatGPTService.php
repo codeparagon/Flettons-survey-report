@@ -157,7 +157,93 @@ class ChatGPTService
     }
 
     /**
+     * Combined narrative for one component across all rooms of an accommodation type (e.g. all bedrooms).
+     *
+     * @param array $payload accommodation_type, component_name, component_key, rooms[], surveyor_name set inside
+     */
+    public function generateAccommodationGroupComponentReport(array $payload): string
+    {
+        try {
+            $surveyorName = $this->getSurveyorName();
+            $payload['surveyor_name'] = $surveyorName;
+
+            Log::info('ChatGPT accommodation group-component payload', [
+                'accommodation_type' => $payload['accommodation_type'] ?? null,
+                'component_key' => $payload['component_key'] ?? null,
+            ]);
+
+            $instruction = 'You are ' . $surveyorName . ', an experienced UK residential surveyor. '
+                . 'You will receive JSON with accommodation_type, component_name, component_key, and rooms (each room has room_label, material, defects, notes, condition_rating). '
+                . 'Write ONE combined UK-English narrative for this single component across all listed rooms. '
+                . 'Reference rooms by their room_label when comparing. Only use supplied data; do not invent defects or materials. '
+                . 'Keep a professional survey tone; no preamble.';
+
+            $responseText = $this->callAssistantApi($payload, $instruction);
+
+            return $responseText;
+        } catch (\Exception $e) {
+            Log::error('ChatGPT accommodation group-component report failed', [
+                'error' => $e->getMessage(),
+                'component_key' => $payload['component_key'] ?? null,
+            ]);
+
+            throw new \Exception('Failed to generate combined component narrative: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Chat Completions API — works with OPENAI_API_KEY only (no assistant required).
+     * Used when OPENAI_ASSISTANT_ID is not set or Assistants API fails.
+     *
+     * @param array $payload
+     * @param string $instruction
+     * @return string
+     * @throws \Exception
+     */
+    protected function callChatCompletionsApi(array $payload, string $instruction): string
+    {
+        $apiKey = config('services.openai.key');
+        if (empty($apiKey)) {
+            throw new \Exception('OpenAI API key is not configured.');
+        }
+
+        $model = config('services.openai.chat_model', 'gpt-4o-mini');
+        $baseUrl = 'https://api.openai.com/v1';
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type' => 'application/json',
+        ])->timeout(120)->post($baseUrl . '/chat/completions', [
+            'model' => $model,
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are a UK residential building surveyor. Reply with only the report narrative requested — no preamble, no markdown code fences unless the narrative itself needs them.',
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $instruction . "\n\nJSON:\n" . json_encode($payload),
+                ],
+            ],
+            'temperature' => 0.35,
+        ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('Chat Completions request failed: ' . $response->body());
+        }
+
+        $json = $response->json();
+        $text = $json['choices'][0]['message']['content'] ?? null;
+        if ($text === null || $text === '') {
+            throw new \Exception('Chat Completions returned an empty response.');
+        }
+
+        return trim($text);
+    }
+
+    /**
      * Call the OpenAI Assistants API with the structured assessment data.
+     * Falls back to Chat Completions when assistant_id is missing or the run fails.
      *
      * @param array $payload
      * @param string $instruction
@@ -172,14 +258,21 @@ class ChatGPTService
             throw new \Exception('OpenAI API key is not configured.');
         }
 
+        if (empty($assistantId)) {
+            Log::info('OPENAI_ASSISTANT_ID not set; using Chat Completions for report generation');
+
+            return $this->callChatCompletionsApi($payload, $instruction);
+        }
+
         $baseUrl = 'https://api.openai.com/v1';
 
+        try {
         // Create a new thread with the user message including our JSON payload
         $threadResponse = Http::withHeaders([
             'Authorization' => 'Bearer ' . $apiKey,
             'Content-Type' => 'application/json',
             'OpenAI-Beta' => 'assistants=v2',
-        ])->post($baseUrl . '/threads', [
+        ])->timeout(120)->post($baseUrl . '/threads', [
             'messages' => [
                 [
                     'role' => 'user',
@@ -286,6 +379,13 @@ class ChatGPTService
         }
 
         return trim($data);
+        } catch (\Exception $e) {
+            Log::warning('OpenAI Assistants API failed; falling back to Chat Completions', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->callChatCompletionsApi($payload, $instruction);
+        }
     }
 }
 
