@@ -78,9 +78,6 @@
                 </div>
                 
                 <div class="survey-data-mock-category-content collapse show">
-                    @if(isset($accommodationSections) && count($accommodationSections) > 0)
-                        @include('surveyor.surveys.mocks.partials.accommodation-group-summaries', ['accommodationSections' => $accommodationSections, 'accommodationComponentSummaries' => $accommodationComponentSummaries ?? []])
-                    @endif
                     <div class="survey-data-mock-sections" style="gap: 0.75rem;">
                         @if(isset($accommodationSections) && count($accommodationSections) > 0)
                             @foreach($accommodationSections as $accommodation)
@@ -88,6 +85,9 @@
                             @endforeach
                         @endif
                     </div>
+                    @if(isset($accommodationSections) && count($accommodationSections) > 0)
+                        @include('surveyor.surveys.mocks.partials.accommodation-group-summaries', ['accommodationSections' => $accommodationSections, 'accommodationComponentSummaries' => $accommodationComponentSummaries ?? []])
+                    @endif
                 </div>
             </section>
         @endif
@@ -120,6 +120,38 @@
             </a>
         </div>
     </div>
+
+    <!-- Bottom Navigation + Scrollable TOC Sidebar -->
+    <div class="survey-data-mock-toc-overlay" id="survey-data-mock-toc-overlay" aria-hidden="true"></div>
+    <aside class="survey-data-mock-toc" id="survey-data-mock-toc" aria-hidden="true">
+        <div class="survey-data-mock-toc-header">
+            <div class="survey-data-mock-toc-title">
+                <i class="fas fa-list"></i>
+                Categories & Sections
+            </div>
+            <button type="button" class="survey-data-mock-toc-close" id="survey-data-mock-toc-close" aria-label="Close navigation">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="survey-data-mock-toc-body">
+            <div class="survey-data-mock-toc-list" id="survey-data-mock-toc-list"></div>
+        </div>
+    </aside>
+
+    <nav class="survey-data-mock-bottom-nav" aria-label="Page actions">
+        <button type="button" class="survey-data-mock-bottom-nav-btn" id="survey-data-mock-collapse-all" title="Collapse all categories and open sections">
+            <i class="fas fa-compress-arrows-alt"></i>
+            <span>Collapse all</span>
+        </button>
+        <button type="button" class="survey-data-mock-bottom-nav-btn" id="survey-data-mock-scroll-top" title="Go to top">
+            <i class="fas fa-arrow-up"></i>
+            <span>Top</span>
+        </button>
+        <button type="button" class="survey-data-mock-bottom-nav-btn" id="survey-data-mock-open-toc" title="Open navigation sidebar">
+            <i class="fas fa-stream"></i>
+            <span>Navigate</span>
+        </button>
+    </nav>
 </div>
 
 <!-- Rating Modal -->
@@ -348,6 +380,189 @@
         flex-direction: column;
         overflow: visible;
         padding-top: var(--survey-data-mock-y);
+    }
+
+    /* Ensure fixed bottom bar doesn't cover content */
+    .survey-data-mock-body {
+        padding-bottom: calc(var(--survey-data-mock-block) + 90px);
+    }
+
+    /* Bottom nav */
+    .survey-data-mock-bottom-nav {
+        position: fixed;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        width: min(980px, calc(100vw - 28px));
+        z-index: 110000;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 14px;
+        background: rgba(27, 32, 43, 0.92);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+        pointer-events: auto;
+    }
+
+    .survey-data-mock-bottom-nav-btn {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+
+    .survey-data-mock-bottom-nav-btn i {
+        color: #C1EC4A;
+        font-size: 1rem;
+    }
+
+    .survey-data-mock-bottom-nav-btn:hover {
+        transform: translateY(-1px);
+        background: rgba(255, 255, 255, 0.10);
+        border-color: rgba(193, 236, 74, 0.35);
+    }
+
+    .survey-data-mock-bottom-nav-btn:active {
+        transform: translateY(0);
+    }
+
+    .survey-data-mock-bottom-nav-btn span {
+        white-space: nowrap;
+    }
+
+    /* Off-canvas TOC sidebar */
+    .survey-data-mock-toc-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1190;
+        background: rgba(15, 23, 42, 0.45);
+        opacity: 0;
+        pointer-events: none;
+        display: none;
+        transition: opacity 0.18s ease;
+    }
+
+    .survey-data-mock-toc {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: min(420px, calc(100vw - 40px));
+        z-index: 1195;
+        background: #0b1220;
+        color: #e5e7eb;
+        transform: translateX(102%);
+        transition: transform 0.22s ease;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: -16px 0 40px rgba(0, 0, 0, 0.35);
+        pointer-events: none;
+    }
+
+    .survey-data-mock-toc.is-open {
+        transform: translateX(0);
+        pointer-events: auto;
+    }
+
+    .survey-data-mock-toc-overlay.is-open {
+        opacity: 1;
+        pointer-events: auto;
+        display: block;
+    }
+
+    .survey-data-mock-toc-header {
+        padding: 14px 14px;
+        background: rgba(27, 32, 43, 0.92);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .survey-data-mock-toc-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .survey-data-mock-toc-title i {
+        color: #C1EC4A;
+    }
+
+    .survey-data-mock-toc-close {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .survey-data-mock-toc-body {
+        padding: 12px 10px 18px 10px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1 1 auto;
+    }
+
+    .survey-data-mock-toc-list a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: #e5e7eb;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        cursor: pointer;
+    }
+
+    .survey-data-mock-toc-list a:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .survey-data-mock-toc-list .toc-level-1 { font-weight: 700; }
+    .survey-data-mock-toc-list .toc-level-2 { padding-left: 18px; font-weight: 600; color: #cbd5e1; }
+    .survey-data-mock-toc-list .toc-level-3 { padding-left: 32px; font-weight: 500; color: #94a3b8; }
+    .survey-data-mock-toc-list .toc-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(193, 236, 74, 0.85);
+        flex: 0 0 auto;
+    }
+
+    @media (max-width: 520px) {
+        .survey-data-mock-bottom-nav-btn span {
+            display: none;
+        }
+        .survey-data-mock-bottom-nav {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
     }
 
     /* Category Section */
@@ -638,6 +853,9 @@
         display: inline-block !important;
         visibility: visible !important;
         opacity: 1 !important;
+        pointer-events: auto;
+        position: relative;
+        z-index: 250;
     }
 
     .survey-data-mock-section-title-collapse:hover {
@@ -1682,83 +1900,66 @@
         margin: 0 0 0.35rem 0;
         font-size: 1.05rem;
         font-weight: 600;
-        color: #f8fafc;
+        color: #1b202b;
     }
     .survey-data-mock-combined-narratives-lead {
         margin: 0 0 1rem 0;
         font-size: 0.8125rem;
-        color: rgba(226, 232, 240, 0.8);
+        color: #64748b;
         line-height: 1.45;
     }
 
-    /* Accommodation group summaries (combined narrative per component) */
+    /* Combined narratives: same card chrome as section report; sits after all accommodation rows */
     .survey-data-mock-accommodation-group-summaries {
-        margin-bottom: 1.25rem;
-        padding: 1rem 1rem 0.5rem;
-        background: rgba(15, 23, 42, 0.35);
-        border: 1px solid rgba(148, 163, 184, 0.25);
-        border-radius: 8px;
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.25);
     }
-    .survey-data-mock-accommodation-group-panel {
-        margin-bottom: 1.25rem;
-    }
-    .survey-data-mock-accommodation-group-panel-title {
+    .survey-data-mock-combined-narratives-type-heading {
         font-size: 0.9375rem;
         font-weight: 600;
-        color: #e2e8f0;
+        color: #1b202b;
         margin: 0 0 0.75rem 0;
     }
-    .survey-data-mock-accommodation-group-component {
-        margin-bottom: 1rem;
-        padding: 0.75rem;
-        background: rgba(30, 41, 59, 0.5);
-        border-radius: 6px;
-        border: 1px solid rgba(148, 163, 184, 0.15);
-    }
-    .survey-data-mock-accommodation-group-component-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
-        margin-bottom: 0.5rem;
-    }
-    .survey-data-mock-accommodation-group-component-label {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #f1f5f9;
-    }
-    .survey-data-mock-group-summary-status {
-        font-size: 0.75rem;
-        padding: 0.15rem 0.5rem;
-        border-radius: 4px;
-        background: rgba(100, 116, 139, 0.4);
-        color: #e2e8f0;
-    }
-    .survey-data-mock-group-summary-status.is-stale {
-        background: rgba(217, 119, 6, 0.35);
-        color: #fde68a;
-    }
-    .survey-data-mock-group-summary-status.is-fresh {
-        background: rgba(22, 163, 74, 0.35);
-        color: #bbf7d0;
-    }
-    .survey-data-mock-group-summary-textarea {
-        width: 100%;
+    .survey-data-mock-combined-narrative-item .survey-data-mock-group-summary-status {
         font-size: 0.8125rem;
-        line-height: 1.45;
-        padding: 0.5rem 0.65rem;
-        border-radius: 4px;
-        border: 1px solid rgba(148, 163, 184, 0.35);
-        background: #0f172a;
-        color: #f8fafc;
-        resize: vertical;
-        min-height: 120px;
+        color: #64748b;
     }
-    .survey-data-mock-accommodation-group-component-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
+    .survey-data-mock-combined-narrative-item .survey-data-mock-group-summary-status.is-stale {
+        color: #b45309;
+    }
+    .survey-data-mock-combined-narrative-item .survey-data-mock-group-summary-status.is-fresh {
+        color: #15803d;
+    }
+    /* Decorative only — no section id; avoids opening the rating modal */
+    .survey-data-mock-combined-narrative-item .survey-data-mock-condition-badge {
+        pointer-events: none;
+        cursor: default;
+    }
+    .survey-data-mock-combined-narrative-item .survey-data-mock-report-content-wrapper {
+        position: relative;
+    }
+    .survey-data-mock-combined-narrative-util {
+        margin: 0.5rem 0 0 0;
+        padding: 0;
+        font-size: 0.8125rem;
+        text-align: right;
+    }
+    .survey-data-mock-combined-util-link {
+        background: none;
+        border: none;
+        padding: 0;
+        color: #64748b;
+        text-decoration: underline;
+        cursor: pointer;
+        font: inherit;
+    }
+    .survey-data-mock-combined-util-link:hover {
+        color: #1b202b;
+    }
+    .survey-data-mock-combined-util-sep {
+        margin: 0 0.35rem;
+        color: #94a3b8;
     }
     .survey-data-mock-btn.survey-data-mock-btn--primary {
         padding: 0.35rem 0.75rem;
@@ -3108,6 +3309,422 @@ $(document).ready(function() {
         }
     });
 
+    // Bottom nav + TOC sidebar
+    const $toc = $('#survey-data-mock-toc');
+    const $tocOverlay = $('#survey-data-mock-toc-overlay');
+    const $tocList = $('#survey-data-mock-toc-list');
+
+    function openToc() {
+        $toc.addClass('is-open').attr('aria-hidden', 'false');
+        $tocOverlay.addClass('is-open').attr('aria-hidden', 'false');
+    }
+
+    function closeToc() {
+        $toc.removeClass('is-open').attr('aria-hidden', 'true');
+        $tocOverlay.removeClass('is-open').attr('aria-hidden', 'true');
+    }
+
+    // Safety: ensure TOC starts closed and cannot block clicks
+    closeToc();
+
+    // Track which element is actually scrolling (many admin layouts scroll a container, not window)
+    document.addEventListener('scroll', function(ev) {
+        const t = ev.target;
+        if (!t) return;
+        if (t === document) {
+            lastActiveScroller = document.scrollingElement || document.documentElement || document.body;
+            return;
+        }
+        if (t instanceof HTMLElement && isElementScrollable(t)) {
+            lastActiveScroller = t;
+        }
+    }, true);
+
+    // Keep "Configuration of Accommodation" rooms grouped by type (Bedrooms together, Bathrooms together)
+    function normalizeAccommodationOrderGlobal() {
+        const $accCategory = $('.survey-data-mock-category').filter(function() {
+            return $(this).find('.survey-data-mock-category-title').first().text().trim() === 'Configuration of Accommodation';
+        }).first();
+
+        if (!$accCategory.length) return;
+
+        const $container = $accCategory.find('> .survey-data-mock-category-content .survey-data-mock-sections').first();
+        if (!$container.length) return;
+
+        const $items = $container.children('.survey-data-mock-section-item[data-accommodation-id]');
+        if ($items.length < 2) return;
+
+        const typeOrder = [];
+        const byType = {};
+
+        $items.each(function() {
+            const $row = $(this);
+            const tid = String($row.attr('data-accommodation-type-id') || '');
+            if (!tid) return;
+            if (!byType[tid]) {
+                byType[tid] = [];
+                typeOrder.push(tid);
+            }
+            byType[tid].push($row);
+        });
+
+        function trailingNumber(text) {
+            const m = String(text || '').trim().match(/(\d+)\s*$/);
+            return m ? parseInt(m[1], 10) : null;
+        }
+
+        function rowSortKey($row) {
+            const cloneIndex = parseInt(String($row.attr('data-clone-index') || ''), 10);
+            const name = $row.find('.survey-data-mock-section-name').first().text();
+            const num = trailingNumber(name);
+            return {
+                idx: Number.isFinite(cloneIndex) ? cloneIndex : (Number.isFinite(num) ? num : 999999),
+                id: String($row.attr('data-accommodation-id') || '')
+            };
+        }
+
+        const ordered = [];
+        typeOrder.forEach(function(tid) {
+            const rows = byType[tid] || [];
+            rows.sort(function(a, b) {
+                const ka = rowSortKey(a);
+                const kb = rowSortKey(b);
+                if (ka.idx !== kb.idx) return ka.idx - kb.idx;
+                return ka.id.localeCompare(kb.id);
+            });
+            rows.forEach(function($r) { ordered.push($r); });
+        });
+
+        ordered.forEach(function($r) { $container.append($r.detach()); });
+    }
+
+    // Run once on load to fix any pre-interleaved ordering
+    normalizeAccommodationOrderGlobal();
+    $(window).on('load', function() {
+        setTimeout(normalizeAccommodationOrderGlobal, 0);
+    });
+
+    function ensureId($el, id) {
+        if (!$el || $el.length === 0) return null;
+        if ($el.attr('id')) return $el.attr('id');
+        $el.attr('id', id);
+        return id;
+    }
+
+    function slugify(input) {
+        return (input || '')
+            .toString()
+            .trim()
+            .toLowerCase()
+            .replace(/['"]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    function getScrollOffsetPx() {
+        const headerH = $('.survey-data-mock-header-bar').outerHeight() || 0;
+        return headerH + 18;
+    }
+
+    function getPrimaryScrollElement() {
+        // Some layouts scroll within a container (not window).
+        // Try the browser scrollingElement first, then fall back to common containers.
+        const se = document.scrollingElement || document.documentElement || document.body;
+        if (se && se.scrollHeight > se.clientHeight) return se;
+
+        const bodyEl = document.querySelector('.survey-data-mock-body');
+        if (bodyEl && bodyEl.scrollHeight > bodyEl.clientHeight) return bodyEl;
+
+        const contentEl = document.querySelector('.survey-data-mock-content');
+        if (contentEl && contentEl.scrollHeight > contentEl.clientHeight) return contentEl;
+
+        return se;
+    }
+
+    function isElementScrollable(el) {
+        if (!el || el === document || el === window) return false;
+        const style = window.getComputedStyle(el);
+        const overflowY = style.overflowY;
+        const canScroll = (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay');
+        return canScroll && el.scrollHeight > el.clientHeight + 1;
+    }
+
+    let lastActiveScroller = null;
+    function getActiveScrollElement() {
+        if (lastActiveScroller && isElementScrollable(lastActiveScroller)) return lastActiveScroller;
+
+        // Prefer the scrollable element within the survey container that currently has the most scrollTop
+        const candidates = Array.from(document.querySelectorAll('.survey-data-mock-content *'))
+            .filter(isElementScrollable);
+
+        let best = null;
+        let bestScrollTop = 0;
+        for (const el of candidates) {
+            if (el.scrollTop > bestScrollTop) {
+                best = el;
+                bestScrollTop = el.scrollTop;
+            }
+        }
+
+        return best || getPrimaryScrollElement();
+    }
+
+    function smoothScrollToElement(el) {
+        if (!el) return;
+        const offset = getScrollOffsetPx();
+
+        // Use the active scroller when available (sidebar/top button logic), otherwise primary.
+        const scroller = getActiveScrollElement ? getActiveScrollElement() : getPrimaryScrollElement();
+
+        // Compute top relative to the current viewport; supports window or container scrolling.
+        const rect = el.getBoundingClientRect();
+        const isWindowScroller = !scroller ||
+            scroller === document.documentElement ||
+            scroller === document.body ||
+            scroller === document.scrollingElement;
+
+        if (isWindowScroller) {
+            const top = rect.top + window.pageYOffset - offset;
+            window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+            return;
+        }
+
+        const scrollerRect = scroller.getBoundingClientRect();
+        const current = scroller.scrollTop;
+        const top = rect.top - scrollerRect.top + current - offset;
+
+        try {
+            scroller.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        } catch (_) {
+            scroller.scrollTop = Math.max(0, top);
+        }
+
+        // Fallback: ensure visibility even if offsets shift during animation
+        setTimeout(function() {
+            try {
+                if (typeof el.scrollIntoView === 'function') {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (_) {}
+        }, 50);
+    }
+
+    function expandCategoryContaining($target) {
+        const $category = $target.closest('.survey-data-mock-category');
+        if ($category.length === 0) return;
+        if ($category.hasClass('collapsed')) {
+            $category.find('[data-category-toggle]').first().trigger('click');
+        }
+    }
+
+    function expandSectionItemIfNeeded($target) {
+        const $item = $target.closest('.survey-data-mock-section-item');
+        if ($item.length === 0) return;
+        if (!$item.hasClass('expanded')) {
+            $item.find('.survey-data-mock-section-header[data-expandable="true"]').first().trigger('click');
+        }
+    }
+
+    function rebuildToc() {
+        if ($tocList.length === 0) return;
+
+        const html = [];
+        const usedIds = new Set();
+
+        function uniqueId(base) {
+            let id = base;
+            let i = 2;
+            while (usedIds.has(id) || document.getElementById(id)) {
+                id = `${base}-${i++}`;
+            }
+            usedIds.add(id);
+            return id;
+        }
+
+        $('.survey-data-mock-category').each(function(catIdx) {
+            const $cat = $(this);
+            const $catHeader = $cat.find('.survey-data-mock-category-header').first();
+            const catTitle = $catHeader.find('.survey-data-mock-category-title').text().trim() || `Category ${catIdx + 1}`;
+            const catId = ensureId($catHeader, uniqueId(`toc-cat-${catIdx}-${slugify(catTitle)}`));
+
+            html.push(
+                `<a class="toc-level-1" href="#" data-toc-target="#${catId}"><span class="toc-dot"></span>${$('<div>').text(catTitle).html()}</a>`
+            );
+
+            $cat.find('.survey-data-mock-sub-category').each(function(subIdx) {
+                const $sub = $(this);
+                const $subTitleEl = $sub.find('.survey-data-mock-sub-category-title').first();
+                const subTitle = $subTitleEl.text().trim() || `Subcategory ${subIdx + 1}`;
+                const subKey = $sub.data('sub-category-key') || slugify(subTitle) || `sub-${subIdx}`;
+                const subId = ensureId($subTitleEl, uniqueId(`toc-sub-${slugify(subKey)}`));
+
+                html.push(
+                    `<a class="toc-level-2" href="#" data-toc-target="#${subId}"><span class="toc-dot"></span>${$('<div>').text(subTitle).html()}</a>`
+                );
+
+                $sub.find('.survey-data-mock-section-item').each(function(itemIdx) {
+                    const $item = $(this);
+                    const name = $item.find('.survey-data-mock-section-name').first().text().trim() || `Item ${itemIdx + 1}`;
+
+                    let base = null;
+                    const sid = $item.data('section-id');
+                    const aid = $item.data('accommodation-id');
+                    const cid = $item.data('content-section-id');
+
+                    if (aid) base = `toc-acc-${aid}`;
+                    else if (cid) base = `toc-content-${cid}`;
+                    else if (sid) base = `toc-section-${sid}`;
+                    else base = `toc-item-${catIdx}-${subIdx}-${itemIdx}`;
+
+                    const itemId = ensureId($item, uniqueId(base));
+
+                    html.push(
+                        `<a class="toc-level-3" href="#" data-toc-target="#${itemId}"><span class="toc-dot"></span>${$('<div>').text(name).html()}</a>`
+                    );
+                });
+            });
+
+            // Also include section items directly under the category (e.g. accommodation sections)
+            // Avoid duplicates by excluding items that are inside a .survey-data-mock-sub-category.
+            $cat.find('> .survey-data-mock-category-content .survey-data-mock-section-item')
+                .filter(function() {
+                    return $(this).closest('.survey-data-mock-sub-category').length === 0;
+                })
+                .each(function(itemIdx) {
+                    const $item = $(this);
+                    const name = $item.find('.survey-data-mock-section-name').first().text().trim() || `Item ${itemIdx + 1}`;
+
+                    let base = null;
+                    const sid = $item.data('section-id');
+                    const aid = $item.data('accommodation-id');
+                    const cid = $item.data('content-section-id');
+
+                    if (aid) base = `toc-acc-${aid}`;
+                    else if (cid) base = `toc-content-${cid}`;
+                    else if (sid) base = `toc-section-${sid}`;
+                    else base = `toc-direct-${catIdx}-${itemIdx}`;
+
+                    const itemId = ensureId($item, uniqueId(base));
+                    html.push(
+                        `<a class="toc-level-3" href="#" data-toc-target="#${itemId}"><span class="toc-dot"></span>${$('<div>').text(name).html()}</a>`
+                    );
+                });
+        });
+
+        $tocList.html(html.join(''));
+    }
+
+    // Wire bottom bar buttons (delegated to avoid binding conflicts)
+    $(document).on('click', '#survey-data-mock-scroll-top', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        function scrollElToTop(el) {
+            if (!el) return;
+            try {
+                if (typeof el.scrollTo === 'function') {
+                    el.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    el.scrollTop = 0;
+                }
+            } catch (err) {
+                try { el.scrollTop = 0; } catch (_) {}
+            }
+        }
+
+        // 1) Scroll the active scroller (the element that's actually being scrolled)
+        const activeScroller = getActiveScrollElement();
+        scrollElToTop(activeScroller);
+
+        // 2) Try jQuery animate (works on many layouts where window.scrollTo is ignored)
+        try {
+            $('html, body').stop(true).animate({ scrollTop: 0 }, 250);
+        } catch (_) {}
+
+        // 3) Also try the window (classic pages)
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { try { window.scrollTo(0, 0); } catch (__) {} }
+
+        // 4) Also reset likely scroll containers (SPA/admin layouts often scroll these instead)
+        const candidates = [
+            document.scrollingElement,
+            document.documentElement,
+            document.body,
+            document.querySelector('.survey-data-mock-body'),
+            document.querySelector('.survey-data-mock-content'),
+            document.querySelector('main'),
+            document.querySelector('.content-wrapper'),
+            document.querySelector('.app-content'),
+        ].filter(Boolean);
+
+        candidates.forEach(scrollElToTop);
+
+        // 5) If we detected a primary scroller, scroll it too
+        const primary = getPrimaryScrollElement();
+        scrollElToTop(primary);
+
+        // 6) One extra tick to beat inertia / async layout changes
+        requestAnimationFrame(function() {
+            candidates.forEach(function(el) {
+                try { el.scrollTop = 0; } catch (_) {}
+            });
+            try { (primary || {}).scrollTop = 0; } catch (_) {}
+            try { (activeScroller || {}).scrollTop = 0; } catch (_) {}
+        });
+    });
+
+    $('#survey-data-mock-open-toc').on('click', function() {
+        rebuildToc();
+        openToc();
+    });
+
+    $('#survey-data-mock-toc-close').on('click', function() {
+        closeToc();
+    });
+
+    $tocOverlay.on('click', function() {
+        closeToc();
+    });
+
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape') closeToc();
+    });
+
+    $('#survey-data-mock-collapse-all').on('click', function() {
+        // Collapse all expanded section items (regular + accommodation + content)
+        $('.survey-data-mock-section-item.expanded').each(function() {
+            $(this).find('.survey-data-mock-section-header[data-expandable="true"]').first().trigger('click');
+        });
+
+        // Collapse all categories
+        $('.survey-data-mock-category').each(function() {
+            const $cat = $(this);
+            if (!$cat.hasClass('collapsed')) {
+                $cat.find('[data-category-toggle]').first().trigger('click');
+            }
+        });
+    });
+
+    // TOC click handler (expand category + expand item + scroll)
+    $(document).on('click', '[data-toc-target]', function(e) {
+        e.preventDefault();
+        const targetSel = $(this).attr('data-toc-target');
+        if (!targetSel) return;
+        const el = document.querySelector(targetSel);
+        if (!el) return;
+
+        const $target = $(el);
+        expandCategoryContaining($target);
+        expandSectionItemIfNeeded($target);
+
+        // Give expand animations a moment, then scroll precisely.
+        // Use a slightly longer delay because some sections have nested slideDowns.
+        setTimeout(function() {
+            smoothScrollToElement(el);
+        }, 650);
+
+        closeToc();
+    });
+
     // Options mapping from SurveyDataService
     const optionsMapping = @json($optionsMapping ?? []);
 
@@ -3381,6 +3998,24 @@ $(document).ready(function() {
         if ($sectionItem.hasClass('survey-data-mock-content-section-item')) {
             return;
         }
+
+        // Combined accommodation narratives: report-style body only (no form details)
+        if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
+            const $details = $sectionItem.find('.survey-data-mock-section-details');
+            const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
+            const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
+            $sectionItem.toggleClass('expanded');
+            if ($sectionItem.hasClass('expanded')) {
+                $titleBar.slideDown(300);
+                $details.hide();
+                $reportContent.slideDown(300);
+            } else {
+                $details.hide();
+                $reportContent.slideUp(300);
+                $titleBar.slideUp(300);
+            }
+            return;
+        }
         
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
@@ -3432,7 +4067,9 @@ $(document).ready(function() {
 
     // Collapse from title bar (exclude content sections)
     $(document).on('click', '.survey-data-mock-section-title-collapse', function(e) {
+        e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
         const $sectionItem = $(this).closest('.survey-data-mock-section-item');
         
         // Skip if this is a content section (handled separately)
@@ -3445,9 +4082,9 @@ $(document).ready(function() {
         const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
         
         $sectionItem.removeClass('expanded');
-        $details.slideUp(300);
-        $reportContent.slideUp(300);
-        $titleBar.slideUp(300);
+        $details.stop(true, true).slideUp(300);
+        $reportContent.stop(true, true).slideUp(300);
+        $titleBar.stop(true, true).slideUp(300);
     });
 
     // Rating Badge Click Handler
@@ -4029,6 +4666,9 @@ $(document).ready(function() {
     }
 
     function initOneSectionItemOptionButtons($sectionItem) {
+        if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
+            return;
+        }
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const rawSel = $details.attr('data-option-selections');
         let usedDynamic = false;
@@ -4081,6 +4721,13 @@ $(document).ready(function() {
             }
             const $details = $sectionItem.find('.survey-data-mock-section-details');
             const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
+            if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
+                $sectionItem.removeClass('expanded');
+                $sectionItem.find('.survey-data-mock-section-title-bar').hide();
+                $details.hide();
+                $reportContent.hide();
+                return;
+            }
             initOneSectionItemOptionButtons($sectionItem);
             $details.hide();
             $reportContent.hide();
@@ -4252,6 +4899,10 @@ $(document).ready(function() {
         
         // Skip accommodation sections - they use accommodation type name from server, not "Select Section"
         if ($sectionItem.attr('data-accommodation-id') !== undefined) {
+            return;
+        }
+
+        if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
             return;
         }
         
@@ -5121,12 +5772,30 @@ $(document).ready(function() {
                 break;
                 
             case 'lock':
+                // Combined narrative: save then lock, or unlock
+                if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
+                    const isCurrentlyLockedCombined = $sectionItem.attr('data-locked') === 'true';
+                    if (!isCurrentlyLockedCombined) {
+                        $sectionItem.data('lockAfterSave', true);
+                        $sectionItem.find('.survey-data-mock-group-summary-save').trigger('click');
+                    } else {
+                        updateLockState($sectionItem, false);
+                    }
+                    break;
+                }
                 // Toggle lock state
                 const isCurrentlyLocked = $sectionItem.attr('data-locked') === 'true';
                 updateLockState($sectionItem, !isCurrentlyLocked);
                 break;
                 
             case 'edit':
+                if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
+                    updateLockState($sectionItem, false);
+                    setTimeout(function() {
+                        $reportContent.find('.survey-data-mock-group-summary-textarea').trigger('focus');
+                    }, 50);
+                    break;
+                }
                 // Toggle back to form view - clear file state so existing images are not re-submitted
                 $sectionItem.data('selectedFiles', []);
                 $sectionItem.find('.survey-data-mock-file-input').val('');
@@ -5151,6 +5820,10 @@ $(document).ready(function() {
                 break;
                 
             case 'refresh':
+                if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
+                    $sectionItem.find('.survey-data-mock-group-summary-generate').trigger('click');
+                    break;
+                }
                 // Regenerate content
                 const $detailsForRefresh = $sectionItem.find('.survey-data-mock-section-details');
                 const isAccommodationRefresh = $sectionItem.attr('data-accommodation-id') !== undefined;
@@ -6677,12 +7350,17 @@ $(document).ready(function() {
             method: 'POST',
             data: saveData,
             success: function() {
-                $block.find('.survey-data-mock-group-summary-status').removeClass('is-stale').addClass('is-fresh').text('Saved');
+                $block.find('.survey-data-mock-group-summary-status').removeClass('is-stale').addClass('is-fresh').text('Up to date');
+                if ($block.data('lockAfterSave')) {
+                    $block.removeData('lockAfterSave');
+                    updateLockState($block, true);
+                }
                 if (typeof toastr !== 'undefined') {
                     toastr.success('Combined narrative saved');
                 }
             },
             error: function(xhr) {
+                $block.removeData('lockAfterSave');
                 let msg = 'Save failed';
                 if (xhr.responseJSON) {
                     if (xhr.responseJSON.error) {
@@ -7086,8 +7764,37 @@ $(document).ready(function() {
             },
             success: function(response) {
                 if (response.success && response.html) {
-                    // Insert cloned accommodation immediately after the source accommodation
-                    $item.after(response.html);
+                    // Insert cloned accommodation directly under the source room (Bedroom clone under that Bedroom),
+                    // not at the end of the accommodation list.
+                    let $insertAfter = $item;
+
+                    // Prefer grouping by clone source (clone_src{sourceId}_...), so Bedroom 1 clones stay under Bedroom 1,
+                    // even if there are multiple bedrooms of the same type.
+                    const rawSourceId = String(accommodationId || '');
+                    let sourceNumericId = null;
+                    if (/^\d+$/.test(rawSourceId)) {
+                        sourceNumericId = rawSourceId;
+                    } else {
+                        const m = rawSourceId.match(/^clone_src(\d+)_/);
+                        if (m && m[1]) sourceNumericId = m[1];
+                    }
+
+                    if (sourceNumericId) {
+                        const clonePrefix = `clone_src${sourceNumericId}_`;
+                        while (true) {
+                            const $next = $insertAfter.next('.survey-data-mock-section-item[data-accommodation-id]');
+                            if (!$next.length) break;
+                            const nextId = String($next.attr('data-accommodation-id') || '');
+                            // Keep stepping through existing clones of the same source row
+                            if (nextId.startsWith(clonePrefix)) {
+                                $insertAfter = $next;
+                                continue;
+                            }
+                            break;
+                        }
+                    }
+
+                    $insertAfter.after(response.html);
                     
                     // Get the new accommodation item
                     const $newAccommodationItem = $(`.survey-data-mock-section-item[data-accommodation-id="${response.accommodation_id}"]`);
@@ -7119,12 +7826,17 @@ $(document).ready(function() {
                         console.log('Accommodation cloned successfully');
                     }
                     
-                    // Scroll to new accommodation
+                    // Normalize order so other types (e.g. Bathroom) don't sit between Bedrooms
+                    normalizeAccommodationOrderGlobal();
+
+                    // Scroll to new accommodation (after normalization)
                     setTimeout(function() {
-                        $('html, body').animate({
-                            scrollTop: $newAccommodationItem.offset().top - 100
-                        }, 500);
-                    }, 200);
+                        if ($newAccommodationItem && $newAccommodationItem.length) {
+                            $('html, body').animate({
+                                scrollTop: $newAccommodationItem.offset().top - 100
+                            }, 500);
+                        }
+                    }, 50);
                     
                     // Reset button state
                     $button.prop('disabled', false).html('Save and Clone');
@@ -7750,15 +8462,17 @@ $(document).ready(function() {
 
     // Collapse from title bar for content sections
     $(document).on('click', '.survey-data-mock-content-section-item .survey-data-mock-section-title-collapse', function(e) {
+        e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
         const $sectionItem = $(this).closest('.survey-data-mock-content-section-item');
         const $contentDetails = $sectionItem.find('.survey-data-mock-content-section-details');
         const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
         const $expandIcon = $sectionItem.find('.survey-data-mock-expand-icon');
         
         $sectionItem.removeClass('expanded');
-        $contentDetails.slideUp(300);
-        $titleBar.slideUp(300);
+        $contentDetails.stop(true, true).slideUp(300);
+        $titleBar.stop(true, true).slideUp(300);
         $expandIcon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
     });
 
