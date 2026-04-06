@@ -139,17 +139,17 @@
     </aside>
 
     <nav class="survey-data-mock-bottom-nav" aria-label="Page actions">
+        <button type="button" class="survey-data-mock-bottom-nav-btn survey-data-mock-bottom-nav-btn--scroll-top" id="survey-data-mock-scroll-top" title="Go to top" aria-hidden="true" tabindex="-1">
+            <i class="fas fa-arrow-up" aria-hidden="true"></i>
+        </button>
         <button type="button" class="survey-data-mock-bottom-nav-btn" id="survey-data-mock-collapse-all" title="Collapse all categories and open sections">
-            <i class="fas fa-compress-arrows-alt"></i>
-            <span>Collapse all</span>
+            <i class="fas fa-compress-arrows-alt" aria-hidden="true"></i>
         </button>
-        <button type="button" class="survey-data-mock-bottom-nav-btn" id="survey-data-mock-scroll-top" title="Go to top">
-            <i class="fas fa-arrow-up"></i>
-            <span>Top</span>
-        </button>
-        <button type="button" class="survey-data-mock-bottom-nav-btn" id="survey-data-mock-open-toc" title="Open navigation sidebar">
-            <i class="fas fa-stream"></i>
-            <span>Navigate</span>
+        <a href="{{ route('surveyor.surveys.generate-pdf', $survey) }}" class="survey-data-mock-bottom-nav-btn survey-data-mock-bottom-nav-btn--link" id="survey-data-mock-generate-pdf" title="Generate PDF report" aria-label="Generate PDF report">
+            <i class="fas fa-file-pdf" aria-hidden="true"></i>
+        </a>
+        <button type="button" class="survey-data-mock-bottom-nav-btn" id="survey-data-mock-open-toc" title="Toggle navigation sidebar" aria-expanded="false" aria-controls="survey-data-mock-toc">
+            <i class="fas fa-stream" aria-hidden="true"></i>
         </button>
     </nav>
 </div>
@@ -384,64 +384,149 @@
 
     /* Ensure fixed bottom bar doesn't cover content */
     .survey-data-mock-body {
-        padding-bottom: calc(var(--survey-data-mock-block) + 90px);
+        padding-bottom: calc(var(--survey-data-mock-block) + 62px);
     }
 
-    /* Bottom nav */
+    /* Bottom nav — right-aligned compact pill, tight circular icon buttons */
     .survey-data-mock-bottom-nav {
+        --survey-data-mock-bottom-nav-border: #1b202b;
+        --survey-data-mock-bottom-nav-gap: 5px;
         position: fixed;
-        left: 50%;
-        bottom: 14px;
-        transform: translateX(-50%);
-        width: min(980px, calc(100vw - 28px));
+        left: auto;
+        right: calc(12px + env(safe-area-inset-right, 0px));
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        transform: none;
         z-index: 110000;
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-        padding: 10px;
-        border-radius: 14px;
-        background: rgba(27, 32, 43, 0.92);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--survey-data-mock-bottom-nav-gap);
+        padding: 3px 5px;
+        max-width: calc(100vw - 20px);
+        width: max-content;
+        border-radius: 9999px;
+        background: #ffffff;
+        border: 1px solid rgba(27, 32, 43, 0.22);
+        box-shadow:
+            0 2px 8px rgba(27, 32, 43, 0.08),
+            0 8px 24px rgba(27, 32, 43, 0.12);
         pointer-events: auto;
     }
 
     .survey-data-mock-bottom-nav-btn {
         appearance: none;
-        border: 1px solid rgba(255, 255, 255, 0.10);
-        background: rgba(255, 255, 255, 0.06);
-        color: #fff;
-        border-radius: 12px;
-        padding: 10px 12px;
-        display: flex;
+        box-sizing: border-box;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        flex: 0 0 auto;
+        border: 1px solid var(--survey-data-mock-bottom-nav-border);
+        background: #ffffff;
+        color: var(--survey-data-mock-bottom-nav-border);
+        border-radius: 50%;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        font-weight: 600;
-        font-size: 0.875rem;
-        line-height: 1;
         cursor: pointer;
-        transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
 
     .survey-data-mock-bottom-nav-btn i {
-        color: #C1EC4A;
-        font-size: 1rem;
+        color: var(--survey-data-mock-bottom-nav-border);
+        font-size: 1.05rem;
+        line-height: 1;
     }
 
     .survey-data-mock-bottom-nav-btn:hover {
         transform: translateY(-1px);
-        background: rgba(255, 255, 255, 0.10);
-        border-color: rgba(193, 236, 74, 0.35);
+        box-shadow: 0 3px 10px rgba(27, 32, 43, 0.12);
+        border-color: #2d3545;
+        background: #f8f9fb;
     }
 
     .survey-data-mock-bottom-nav-btn:active {
         transform: translateY(0);
+        box-shadow: 0 1px 4px rgba(27, 32, 43, 0.08);
     }
 
-    .survey-data-mock-bottom-nav-btn span {
-        white-space: nowrap;
+    a.survey-data-mock-bottom-nav-btn--link,
+    a.survey-data-mock-bottom-nav-btn--link:visited {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    a.survey-data-mock-bottom-nav-btn--link:hover,
+    a.survey-data-mock-bottom-nav-btn--link:focus {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    a.survey-data-mock-bottom-nav-btn--link:focus-visible {
+        outline: 2px solid rgba(27, 32, 43, 0.45);
+        outline-offset: 2px;
+    }
+
+    /* Scroll-to-top: animated reveal (no display:none — allows transitions) */
+    .survey-data-mock-bottom-nav-btn--scroll-top {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        margin: 0;
+        max-width: 0;
+        width: 0;
+        min-width: 0;
+        height: 38px;
+        opacity: 0;
+        transform: scale(0.82) translateY(10px);
+        visibility: hidden;
+        pointer-events: none;
+        border-width: 0;
+        padding: 0;
+        transition:
+            opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+            transform 0.34s cubic-bezier(0.34, 1.2, 0.64, 1),
+            max-width 0.34s cubic-bezier(0.4, 0, 0.2, 1),
+            border-width 0.24s ease,
+            margin 0.34s ease,
+            visibility 0s linear 0.34s;
+        /* Offset flex gap so a 0-width slot does not leave a stray gap before sibling buttons */
+        margin-right: calc(-1 * var(--survey-data-mock-bottom-nav-gap));
+    }
+
+    .survey-data-mock-bottom-nav-btn--scroll-top.is-visible {
+        max-width: 38px;
+        width: 38px;
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        visibility: visible;
+        pointer-events: auto;
+        border-width: 1px;
+        margin-right: 0;
+        transition:
+            opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+            transform 0.34s cubic-bezier(0.34, 1.2, 0.64, 1),
+            max-width 0.34s cubic-bezier(0.4, 0, 0.2, 1),
+            border-width 0.2s ease,
+            margin 0.34s ease,
+            visibility 0s linear 0s;
+    }
+
+    .survey-data-mock-bottom-nav-btn--scroll-top.is-visible:hover {
+        transform: translateY(-1px);
+    }
+
+    .survey-data-mock-bottom-nav-btn--scroll-top.is-visible:active {
+        transform: translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .survey-data-mock-bottom-nav-btn--scroll-top,
+        .survey-data-mock-bottom-nav-btn--scroll-top.is-visible {
+            transition-duration: 0.01ms;
+        }
     }
 
     /* Off-canvas TOC sidebar */
@@ -557,11 +642,25 @@
     }
 
     @media (max-width: 520px) {
-        .survey-data-mock-bottom-nav-btn span {
-            display: none;
-        }
         .survey-data-mock-bottom-nav {
-            grid-template-columns: 1fr 1fr 1fr;
+            --survey-data-mock-bottom-nav-gap: 4px;
+            right: calc(10px + env(safe-area-inset-right, 0px));
+            bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            padding: 3px 4px;
+        }
+        .survey-data-mock-bottom-nav-btn {
+            width: 36px;
+            height: 36px;
+        }
+        .survey-data-mock-bottom-nav-btn i {
+            font-size: 1rem;
+        }
+        .survey-data-mock-bottom-nav-btn--scroll-top {
+            height: 36px;
+        }
+        .survey-data-mock-bottom-nav-btn--scroll-top.is-visible {
+            max-width: 36px;
+            width: 36px;
         }
     }
 
@@ -3317,28 +3416,17 @@ $(document).ready(function() {
     function openToc() {
         $toc.addClass('is-open').attr('aria-hidden', 'false');
         $tocOverlay.addClass('is-open').attr('aria-hidden', 'false');
+        $('#survey-data-mock-open-toc').attr('aria-expanded', 'true');
     }
 
     function closeToc() {
         $toc.removeClass('is-open').attr('aria-hidden', 'true');
         $tocOverlay.removeClass('is-open').attr('aria-hidden', 'true');
+        $('#survey-data-mock-open-toc').attr('aria-expanded', 'false');
     }
 
     // Safety: ensure TOC starts closed and cannot block clicks
     closeToc();
-
-    // Track which element is actually scrolling (many admin layouts scroll a container, not window)
-    document.addEventListener('scroll', function(ev) {
-        const t = ev.target;
-        if (!t) return;
-        if (t === document) {
-            lastActiveScroller = document.scrollingElement || document.documentElement || document.body;
-            return;
-        }
-        if (t instanceof HTMLElement && isElementScrollable(t)) {
-            lastActiveScroller = t;
-        }
-    }, true);
 
     // Keep "Configuration of Accommodation" rooms grouped by type (Bedrooms together, Bathrooms together)
     function normalizeAccommodationOrderGlobal() {
@@ -3468,6 +3556,64 @@ $(document).ready(function() {
 
         return best || getPrimaryScrollElement();
     }
+
+    const $bottomNavScrollTopBtn = $('#survey-data-mock-scroll-top');
+    const BOTTOM_NAV_SCROLL_TOP_THRESHOLD_PX = 56;
+
+    function getWindowScrollY() {
+        return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    }
+
+    function safeScrollTop(el) {
+        if (!el) return 0;
+        try {
+            return el.scrollTop || 0;
+        } catch (_) {
+            return 0;
+        }
+    }
+
+    function shouldShowBottomNavScrollTop() {
+        if (getWindowScrollY() > BOTTOM_NAV_SCROLL_TOP_THRESHOLD_PX) return true;
+        try {
+            const primary = getPrimaryScrollElement();
+            if (safeScrollTop(primary) > BOTTOM_NAV_SCROLL_TOP_THRESHOLD_PX) return true;
+            const active = getActiveScrollElement();
+            if (active && active !== primary && safeScrollTop(active) > BOTTOM_NAV_SCROLL_TOP_THRESHOLD_PX) return true;
+        } catch (_) {}
+        const extraSelectors = ['.survey-data-mock-body', '.survey-data-mock-content', 'main', '.content-wrapper', '.app-content'];
+        for (let i = 0; i < extraSelectors.length; i++) {
+            const el = document.querySelector(extraSelectors[i]);
+            if (el && safeScrollTop(el) > BOTTOM_NAV_SCROLL_TOP_THRESHOLD_PX) return true;
+        }
+        return false;
+    }
+
+    function updateBottomNavScrollTopVisibility() {
+        if (!$bottomNavScrollTopBtn.length) return;
+        const show = shouldShowBottomNavScrollTop();
+        $bottomNavScrollTopBtn.toggleClass('is-visible', show);
+        if (show) {
+            $bottomNavScrollTopBtn.attr('aria-hidden', 'false').removeAttr('tabindex');
+        } else {
+            $bottomNavScrollTopBtn.attr({ 'aria-hidden': 'true', tabindex: '-1' });
+        }
+    }
+
+    // Track which element is scrolling + refresh scroll-to-top visibility (capture: includes nested scrollers)
+    document.addEventListener('scroll', function(ev) {
+        const t = ev.target;
+        if (t) {
+            if (t === document) {
+                lastActiveScroller = document.scrollingElement || document.documentElement || document.body;
+            } else if (t instanceof HTMLElement && isElementScrollable(t)) {
+                lastActiveScroller = t;
+            }
+        }
+        updateBottomNavScrollTopVisibility();
+    }, true);
+    $(window).on('resize load', updateBottomNavScrollTopVisibility);
+    setTimeout(updateBottomNavScrollTopVisibility, 0);
 
     function smoothScrollToElement(el) {
         if (!el) return;
@@ -3673,6 +3819,10 @@ $(document).ready(function() {
     });
 
     $('#survey-data-mock-open-toc').on('click', function() {
+        if ($toc.hasClass('is-open')) {
+            closeToc();
+            return;
+        }
         rebuildToc();
         openToc();
     });

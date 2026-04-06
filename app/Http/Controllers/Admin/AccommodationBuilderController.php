@@ -113,6 +113,7 @@ class AccommodationBuilderController extends Controller
         $validated['key_name'] = Str::slug($validated['key_name'], '_');
         $validated['sort_order'] = $validated['sort_order'] ?? SurveyAccommodationType::max('sort_order') + 1;
         $validated['is_active'] = true;
+        $validated['counts_toward_property'] = $request->boolean('counts_toward_property');
         
         $type = SurveyAccommodationType::create($validated);
         
@@ -145,10 +146,15 @@ class AccommodationBuilderController extends Controller
             'display_name' => 'sometimes|string|max:100',
             'sort_order' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
+            'counts_toward_property' => 'nullable|boolean',
             'levels' => 'nullable|array',
             'levels.*' => 'integer|exists:survey_levels,id',
         ]);
-        
+
+        if ($request->has('counts_toward_property')) {
+            $validated['counts_toward_property'] = $request->boolean('counts_toward_property');
+        }
+
         $type->update($validated);
         
         // Update level associations

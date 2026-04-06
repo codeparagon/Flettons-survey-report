@@ -14,6 +14,9 @@
         </div>
         <div class="item-meta">
             Key: {{ $type->key_name }}
+            @if(!empty($type->counts_toward_property))
+                <span class="status-badge ml-2" title="Shown in surveyor property counts">Property count</span>
+            @endif
             @if(!$type->is_active)
                 <span class="status-badge inactive ml-2">Inactive</span>
             @endif

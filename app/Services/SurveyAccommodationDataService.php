@@ -11,6 +11,7 @@ use App\Models\SurveyAccommodationAssessment;
 use App\Models\SurveyAccommodationType;
 use App\Models\SurveyAccommodationComponentAssessment;
 use App\Models\SurveyAccommodationComponentSummary;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -133,14 +134,6 @@ class SurveyAccommodationDataService
     }
 
     /**
-     * Get real accommodation data from database.
-     * Automatically renders sections for all accommodation types with components configured.
-     * Returns existing assessments if they exist, otherwise creates default sections for each configured type.
-     * 
-     * @param Survey $survey
-     * @return array
-     */
-    /**
      * Find SurveyLevel by matching survey level value.
      * Handles formats like "Level 1", "level_1", "Level 1 - Condition Report", etc.
      */
@@ -174,6 +167,114 @@ class SurveyAccommodationDataService
         }
         
         return null;
+    }
+
+    /**
+     * Accommodation types assigned to the given survey level that count toward property summary.
+     * Does not require components to be configured on the type.
+     */
+    public function getPropertyCountTypesForLevel(?string $levelValue): Collection
+    {
+        if ($levelValue === null || $levelValue === '') {
+            return collect();
+        }
+
+        $surveyLevel = $this->findSurveyLevelByValue($levelValue);
+        if (!$surveyLevel) {
+            return collect();
+        }
+
+        $typeIds = $surveyLevel->accommodationTypes()->pluck('survey_accommodation_types.id')->unique()->filter();
+
+        if ($typeIds->isEmpty()) {
+            return collect();
+        }
+
+        return SurveyAccommodationType::query()
+            ->whereIn('id', $typeIds)
+            ->where('is_active', true)
+            ->where('counts_toward_property', true)
+            ->orderBy('sort_order')
+            ->orderBy('display_name')
+            ->get();
+    }
+
+    /**
+     * Resolved counts (type id => int) from JSON with legacy column fallback for flagged types.
+     *
+     * @return array<int, int>
+     */
+    public function getResolvedPropertyAccommodationCounts(Survey $survey): array
+    {
+        $types = $this->getPropertyCountTypesForLevel($survey->level ?? '');
+        $raw = $survey->property_accommodation_counts;
+        $stored = is_array($raw) ? $raw : [];
+
+        $out = [];
+        foreach ($types as $type) {
+            $id = $type->id;
+            $keyStr = (string) $id;
+            $val = null;
+            if (array_key_exists($keyStr, $stored)) {
+                $val = $stored[$keyStr];
+            } elseif (array_key_exists($id, $stored)) {
+                $val = $stored[$id];
+            }
+
+            if ($val !== null && $val !== '') {
+                $out[$id] = max(0, (int) $val);
+                continue;
+            }
+
+            if ($type->key_name === 'bedroom') {
+                $out[$id] = (int) ($survey->number_of_bedrooms ?? 0);
+            } elseif ($type->key_name === 'bathroom') {
+                $out[$id] = (int) ($survey->bathrooms ?? 0);
+            } elseif (in_array($type->key_name, ['living_room', 'reception', 'receptions'], true)) {
+                $out[$id] = (int) ($survey->receptions ?? 0);
+            } else {
+                $out[$id] = 0;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Update legacy number_of_bedrooms / receptions / bathrooms from accommodation count map.
+     *
+     * @param  array<int|string, int>  $countsByTypeId
+     */
+    public function syncLegacyPropertyCountColumns(Survey $survey, array $countsByTypeId): void
+    {
+        if ($countsByTypeId === []) {
+            return;
+        }
+
+        $ids = array_map('intval', array_keys($countsByTypeId));
+        $types = SurveyAccommodationType::whereIn('id', $ids)->get()->keyBy('id');
+
+        $updates = [];
+        foreach ($countsByTypeId as $tid => $val) {
+            $type = $types->get((int) $tid);
+            if (!$type) {
+                continue;
+            }
+            $n = max(0, (int) $val);
+            if ($type->key_name === 'bedroom') {
+                $updates['number_of_bedrooms'] = $n;
+            }
+            if ($type->key_name === 'bathroom') {
+                $updates['bathrooms'] = (string) $n;
+            }
+            if (in_array($type->key_name, ['living_room', 'reception', 'receptions'], true)) {
+                $updates['receptions'] = (string) $n;
+            }
+        }
+
+        if ($updates !== []) {
+            $survey->update($updates);
+        }
     }
 
     protected function getRealAccommodationData(Survey $survey): array

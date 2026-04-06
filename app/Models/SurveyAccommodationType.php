@@ -16,10 +16,12 @@ class SurveyAccommodationType extends Model
         'display_name',
         'sort_order',
         'is_active',
+        'counts_toward_property',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'counts_toward_property' => 'boolean',
         'sort_order' => 'integer',
     ];
 

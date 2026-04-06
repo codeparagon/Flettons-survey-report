@@ -211,53 +211,20 @@
                                 </select>
                             </div>
                             <div class="survey-detail-mock-counts">
+                                @foreach ($propertyCountTypesForSurvey ?? [] as $pc)
                                 <div class="survey-detail-mock-count">
-                                    <span class="survey-detail-mock-count-label">Beds</span>
+                                    <span class="survey-detail-mock-count-label">{{ $pc['display_name'] }}</span>
                                     <span class="survey-detail-mock-count-value editable-count"
-                                        data-field="number_of_bedrooms"
-                                        data-original="{{ $survey->number_of_bedrooms ?? 2 }}">
-                                        <span class="count-display"  style="display: none;">{{ $survey->number_of_bedrooms ?? 2 }}</span>
+                                        data-field="property_accommodation_count"
+                                        data-accommodation-type-id="{{ $pc['id'] }}"
+                                        data-original="{{ $pc['count'] }}">
+                                        <span class="count-display" style="display: none;">{{ $pc['count'] }}</span>
                                         <input type="number" class="count-input"
-                                            value="{{ $survey->number_of_bedrooms ?? 2 }}"
+                                            value="{{ $pc['count'] }}"
                                             min="0" max="20">
-                                        {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
-                                            title="Edit"
-                                            style="display: flex !important; visibility: visible !important;">
-                                            <i class="fas fa-pencil-alt"
-                                                style="display: inline-block !important; visibility: visible !important;"></i>
-                                        </button> --}}
                                     </span>
                                 </div>
-                                <div class="survey-detail-mock-count">
-                                    <span class="survey-detail-mock-count-label">Baths</span>
-                                    <span class="survey-detail-mock-count-value editable-count" data-field="bathrooms"
-                                        data-original="{{ $survey->bathrooms ?? 2 }}">
-                                        <span class="count-display"  style="display: none;">{{ $survey->bathrooms ?? 2 }}</span>
-                                        <input type="number" class="count-input" value="{{ $survey->bathrooms ?? 2 }}"
-                                            min="0" max="20">
-                                        {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
-                                            title="Edit"
-                                            style="display: flex !important; visibility: visible !important;">
-                                            <i class="fas fa-pencil-alt"
-                                                style="display: inline-block !important; visibility: visible !important;"></i>
-                                        </button> --}}
-                                    </span>
-                                </div>
-                                <div class="survey-detail-mock-count">
-                                    <span class="survey-detail-mock-count-label">Receptions</span>
-                                    <span class="survey-detail-mock-count-value editable-count" data-field="receptions"
-                                        data-original="{{ $survey->receptions ?? 1 }}">
-                                        <span class="count-display" style="display: none;">{{ $survey->receptions ?? 1 }}</span>
-                                        <input type="number" class="count-input" value="{{ $survey->receptions ?? 1 }}"
-                                             min="0" max="20">
-                                        {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
-                                            title="Edit"
-                                            style="display: flex !important; visibility: visible !important;">
-                                            <i class="fas fa-pencil-alt"
-                                                style="display: inline-block !important; visibility: visible !important;"></i>
-                                        </button> --}}
-                                    </span>
-                                </div>
+                                @endforeach
                                 <div class="survey-detail-mock-count">
                                     <span class="survey-detail-mock-count-label">Garage</span>
                                     <span class="survey-detail-mock-count-value editable-count" data-field="garage"
@@ -1418,21 +1385,30 @@
 
             function saveCountField($count, $display, $input, originalValue) {
                 let newValue = $input.val().trim();
-                if (newValue === '' || newValue === null) {
+                const isPropertyAccCount = $count.data('field') === 'property_accommodation_count';
+                if (isPropertyAccCount) {
+                    if (newValue === '' || newValue === null || newValue === '-') {
+                        newValue = '0';
+                    }
+                } else if (newValue === '' || newValue === null) {
                     newValue = '-';
                 }
                 $display.text(newValue);
                 $count.data('original', newValue);
-                // Here you would typically send to server via AJAX
+                const ajaxData = {
+                    _token: "{{ csrf_token() }}",
+                    survey_id: "{{ $survey->id }}",
+                    field: $count.data('field'),
+                    value: newValue
+                };
+                const accTypeId = $count.attr('data-accommodation-type-id');
+                if (isPropertyAccCount && accTypeId !== undefined && accTypeId !== '') {
+                    ajaxData.accommodation_type_id = accTypeId;
+                }
                 $.ajax({
                     url: "{{ url('surveyor/survey/update') }}",
                     method: "POST",
-                    data: {
-                        _token: "{{ csrf_token() }}",
-                        survey_id: "{{ $survey->id }}",
-                        field: $count.data('field'),
-                        value: newValue
-                    },
+                    data: ajaxData,
                     success: function(response) {
                         toastr.success('Count updated successfully');
                         console.log('Count field saved successfully:', response);

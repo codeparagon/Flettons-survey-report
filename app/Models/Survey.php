@@ -91,6 +91,7 @@ class Survey extends Model
         // extra fields
         'receptions',
         'bathrooms',
+        'property_accommodation_counts',
         'job_reference',
         'access_contact',
         'access_role',
@@ -112,6 +113,7 @@ class Survey extends Model
         'level4_price' => 'decimal:2',
         'current_step' => 'integer',
         'scheduled_date' => 'date',
+        'property_accommodation_counts' => 'array',
     ];
 
     /**

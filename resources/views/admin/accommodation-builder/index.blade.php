@@ -1126,6 +1126,13 @@
                     <p class="form-hint">Select which survey levels should include this accommodation type.</p>
                 </div>
                 @endif
+                <div class="form-group">
+                    <label class="checkbox-item" onclick="toggleCheckbox(this)" style="cursor: pointer;">
+                        <input type="checkbox" name="counts_toward_property" id="addTypeCountsTowardProperty" value="1">
+                        <span>Include in property counts (surveyor create &amp; property type summary)</span>
+                    </label>
+                    <p class="form-hint">When checked, surveyors set a count for this type when creating a survey (for the selected level).</p>
+                </div>
             </form>
         </div>
         <div class="modal-footer">
@@ -1165,6 +1172,13 @@
                     <p class="form-hint">Select which survey levels should include this accommodation type.</p>
                 </div>
                 @endif
+                <div class="form-group">
+                    <label class="checkbox-item" onclick="toggleCheckbox(this)" style="cursor: pointer;">
+                        <input type="checkbox" name="counts_toward_property" id="editTypeCountsTowardProperty" value="1">
+                        <span>Include in property counts (surveyor create &amp; property type summary)</span>
+                    </label>
+                    <p class="form-hint">When checked, surveyors set a count for this type when creating a survey (for the selected level).</p>
+                </div>
             </form>
         </div>
         <div class="modal-footer">
@@ -1404,6 +1418,15 @@ async function openEditTypeModal(typeId) {
                     }
                 });
             }
+
+            const countsCb = document.getElementById('editTypeCountsTowardProperty');
+            if (countsCb) {
+                countsCb.checked = !!result.type.counts_toward_property;
+                const wrap = countsCb.closest('.checkbox-item');
+                if (wrap) {
+                    wrap.classList.toggle('selected', countsCb.checked);
+                }
+            }
             
             openModal('editTypeModal');
         } else {
@@ -1452,6 +1475,9 @@ async function updateType() {
     // Collect selected levels
     const levelCheckboxes = form.querySelectorAll('input[name="levels[]"]:checked');
     data.levels = Array.from(levelCheckboxes).map(cb => parseInt(cb.value));
+
+    const editCountsCb = document.getElementById('editTypeCountsTowardProperty');
+    data.counts_toward_property = editCountsCb ? !!editCountsCb.checked : false;
     
     try {
         const result = await apiCall(`/admin/api/accommodation-types/${typeId}`, 'PUT', data);
@@ -1508,6 +1534,9 @@ async function saveType() {
     if (levelCheckboxes.length > 0) {
         data.levels = Array.from(levelCheckboxes).map(cb => parseInt(cb.value));
     }
+
+    const addCountsCb = document.getElementById('addTypeCountsTowardProperty');
+    data.counts_toward_property = addCountsCb ? !!addCountsCb.checked : false;
     
     try {
         const result = await apiCall('/admin/api/accommodation-types', 'POST', data);

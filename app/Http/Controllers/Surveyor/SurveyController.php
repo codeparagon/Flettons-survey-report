@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Surveyor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Survey;
+use App\Models\SurveyAccommodationType;
 use App\Models\SurveyNote;
 use App\Models\SurveySectionDefinition;
+use App\Services\SurveyAccommodationDataService;
 use App\Services\SurveyDataService;
 use App\Services\SurveyPdfService;
 use Illuminate\Http\Request;
@@ -28,7 +30,25 @@ class SurveyController extends Controller
             ->limit(10)
             ->get();
 
-        return view('surveyor.surveys.index', compact('assignedSurveys', 'unassignedSurveys'));
+        $accService = app(SurveyAccommodationDataService::class);
+        $levelOptionValues = ['Level 1', 'Level 2', 'Level 3', 'Specialist'];
+        $propertyCountTypesByLevel = [];
+        foreach ($levelOptionValues as $levelKey) {
+            $propertyCountTypesByLevel[$levelKey] = $accService->getPropertyCountTypesForLevel($levelKey)
+                ->map(fn ($t) => [
+                    'id' => $t->id,
+                    'display_name' => $t->display_name,
+                    'sort_order' => $t->sort_order,
+                ])
+                ->values()
+                ->all();
+        }
+
+        return view('surveyor.surveys.index', compact(
+            'assignedSurveys',
+            'unassignedSurveys',
+            'propertyCountTypesByLevel'
+        ));
     }
 
     public function updateStatus(Request $request, Survey $survey)
@@ -81,15 +101,35 @@ class SurveyController extends Controller
         // Load relationships if needed
         $survey->load('surveyor');
 
-        return view('surveyor.surveys.mocks.detail', compact('survey'));
+        $propertyCountTypesForSurvey = $this->buildPropertyCountTypesForSurveyView($survey);
+
+        return view('surveyor.surveys.mocks.detail', compact('survey', 'propertyCountTypesForSurvey'));
     }
 
     public function surveyDetails($id)
     {
-        $data = [
-            'survey' => Survey::find($id),
-        ];
-        return view('surveyor.surveys.mocks.detail', $data);
+        $survey = Survey::findOrFail($id);
+        $propertyCountTypesForSurvey = $this->buildPropertyCountTypesForSurveyView($survey);
+
+        return view('surveyor.surveys.mocks.detail', compact('survey', 'propertyCountTypesForSurvey'));
+    }
+
+    /**
+     * @return list<array{id: int, display_name: string, count: int}>
+     */
+    protected function buildPropertyCountTypesForSurveyView(Survey $survey): array
+    {
+        $acc = app(SurveyAccommodationDataService::class);
+        $types = $acc->getPropertyCountTypesForLevel($survey->level ?? '');
+        $resolved = $acc->getResolvedPropertyAccommodationCounts($survey);
+
+        return $types->map(function ($t) use ($resolved) {
+            return [
+                'id' => $t->id,
+                'display_name' => $t->display_name,
+                'count' => $resolved[$t->id] ?? 0,
+            ];
+        })->values()->all();
     }
 
     /**
@@ -472,19 +512,57 @@ class SurveyController extends Controller
 
     public function createNewSurvey(Request $request)
     {
-        Survey::create([
-            'surveyor_id' => auth()->id(),
-            'level' => $request->level,
-            'scheduled_date' => $request->scheduled_date,
-            'full_address' => $request->full_address,
-            'postcode' => $request->postcode,
-            'job_reference' => $request->job_reference,
-            'house_or_flat' => $request->house_or_flat,
-            'listed_building' => $request->listed_building,
-            'number_of_bedrooms' => $request->number_of_bedrooms,
-            'receptions' => $request->receptions,
-            'bathrooms' => $request->bathrooms,
+        $accService = app(SurveyAccommodationDataService::class);
+        $allowedTypes = $accService->getPropertyCountTypesForLevel($request->input('level'));
+        $allowedIds = $allowedTypes->pluck('id')->all();
+
+        $validated = $request->validate([
+            'level' => 'required|string|max:100',
+            'scheduled_date' => 'nullable|date',
+            'full_address' => 'nullable|string|max:500',
+            'postcode' => 'nullable|string|max:20',
+            'job_reference' => 'nullable|string|max:100',
+            'house_or_flat' => 'nullable|string|max:50',
+            'listed_building' => 'nullable|string|max:50',
+            'property_accommodation_counts' => 'nullable|array',
+            'property_accommodation_counts.*' => 'nullable|integer|min:0|max:100',
         ]);
+
+        $rawCounts = $request->input('property_accommodation_counts', []);
+        $normalized = [];
+        foreach ($rawCounts as $key => $val) {
+            $id = (int) $key;
+            if (! in_array($id, $allowedIds, true)) {
+                continue;
+            }
+            if ($val === null || $val === '') {
+                continue;
+            }
+            $normalized[(string) $id] = max(0, min(100, (int) $val));
+        }
+
+        foreach ($allowedIds as $aid) {
+            $sk = (string) $aid;
+            if (! array_key_exists($sk, $normalized)) {
+                $normalized[$sk] = 0;
+            }
+        }
+
+        $survey = Survey::create([
+            'surveyor_id' => auth()->id(),
+            'level' => $validated['level'],
+            'scheduled_date' => $validated['scheduled_date'] ?? null,
+            'full_address' => $validated['full_address'] ?? null,
+            'postcode' => $validated['postcode'] ?? null,
+            'job_reference' => $validated['job_reference'] ?? null,
+            'house_or_flat' => $validated['house_or_flat'] ?? null,
+            'listed_building' => $validated['listed_building'] ?? null,
+            'property_accommodation_counts' => $normalized === [] ? null : $normalized,
+        ]);
+
+        if ($normalized !== []) {
+            $accService->syncLegacyPropertyCountColumns($survey, $normalized);
+        }
 
         return redirect()->back()->with('success', 'New Survey Created Successfully.');
     }
@@ -500,6 +578,47 @@ class SurveyController extends Controller
                 return response()->json(['status' => 'success', 'message' => 'Survey note updated successfully.']);
             }
             $survey = Survey::find($request->survey_id);
+            if (! $survey) {
+                return response()->json(['status' => 'error', 'message' => 'Survey not found'], 404);
+            }
+
+            if ($request->field === 'property_accommodation_count') {
+                $request->validate([
+                    'accommodation_type_id' => 'required|integer|exists:survey_accommodation_types,id',
+                    'value' => 'nullable|string|max:10',
+                ]);
+
+                $accService = app(SurveyAccommodationDataService::class);
+                $typeId = (int) $request->accommodation_type_id;
+                $allowedIds = $accService->getPropertyCountTypesForLevel($survey->level ?? '')->pluck('id')->all();
+
+                if (! in_array($typeId, $allowedIds, true)) {
+                    return response()->json(['status' => 'error', 'message' => 'Invalid type for this survey level'], 422);
+                }
+
+                $type = SurveyAccommodationType::find($typeId);
+                if (! $type || ! $type->counts_toward_property) {
+                    return response()->json(['status' => 'error', 'message' => 'Type is not used for property counts'], 422);
+                }
+
+                $rawVal = $request->value;
+                $num = 0;
+                if ($rawVal !== null && $rawVal !== '' && $rawVal !== '-') {
+                    $num = max(0, min(100, (int) $rawVal));
+                }
+
+                $counts = $survey->property_accommodation_counts;
+                if (! is_array($counts)) {
+                    $counts = [];
+                }
+                $counts[(string) $typeId] = $num;
+                $survey->property_accommodation_counts = $counts;
+                $survey->save();
+                $accService->syncLegacyPropertyCountColumns($survey, [$typeId => $num]);
+
+                return response()->json(['status' => 'success', 'message' => 'Survey updated successfully.', 'survey' => $survey]);
+            }
+
             if ($request->field == 'client_name') {
                 $parts = explode(' ', trim($request->value));
                 $first_name = $parts[0];

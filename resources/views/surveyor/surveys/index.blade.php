@@ -172,33 +172,12 @@
                     </div>
                 </div>
 
-                <div class="survey-create-row">
+                <div class="survey-create-row" id="survey-create-property-counts-row">
                     <label class="survey-create-label">Property Counts</label>
-                    <div class="survey-create-control survey-create-count-row">
-                        <div class="survey-create-count">
-                            <span class="survey-create-count-label">Bedrooms</span>
-                            <select id="create-bedrooms" name="number_of_bedrooms" class="survey-create-count-select">
-                                @for ($i = 0; $i <= 10; $i++)
-                                    <option value="{{ $i }}" {{ $i === 2 ? 'selected' : '' }}>{{ $i }}</option>
-                                @endfor
-                            </select>
-                        </div>
-                        <div class="survey-create-count">
-                            <span class="survey-create-count-label">Receptions</span>
-                            <select id="create-receptions" name="receptions" class="survey-create-count-select">
-                                @for ($i = 0; $i <= 10; $i++)
-                                    <option value="{{ $i }}" {{ $i === 2 ? 'selected' : '' }}>{{ $i }}</option>
-                                @endfor
-                            </select>
-                        </div>
-                        <div class="survey-create-count">
-                            <span class="survey-create-count-label">Baths/Showers</span>
-                            <select id="create-baths" name="bathrooms" class="survey-create-count-select">
-                                @for ($i = 0; $i <= 10; $i++)
-                                    <option value="{{ $i }}" {{ $i === 2 ? 'selected' : '' }}>{{ $i }}</option>
-                                @endfor
-                            </select>
-                        </div>
+                    <div class="survey-create-control survey-create-count-row" id="survey-create-property-counts-container">
+                        <p class="survey-create-helper" id="survey-create-property-counts-empty" style="margin:0;color:#64748b;font-size:0.875rem;">
+                            No property count fields for this survey level. Mark accommodation types for property counts in admin and assign them to this level.
+                        </p>
                     </div>
                 </div>
 
@@ -313,6 +292,9 @@
 
 @push('scripts')
 <script>
+window.__propertyCountTypesByLevel = @json($propertyCountTypesByLevel ?? []);
+</script>
+<script>
         $(document).ready(function() {
             // Header search functionality
             const headerSearchInput = document.getElementById('survey-header-search');
@@ -381,12 +363,58 @@
             const createClose = document.getElementById('survey-create-close');
             const createCancel = document.getElementById('survey-create-cancel');
             const createForm = document.getElementById('survey-create-form');
+            const propertyCountsContainer = document.getElementById('survey-create-property-counts-container');
+            const propertyCountsEmpty = document.getElementById('survey-create-property-counts-empty');
+            const createLevelSelect = document.getElementById('create-survey-level');
+
+            function renderPropertyCountFields() {
+                if (!propertyCountsContainer || !createLevelSelect) {
+                    return;
+                }
+                const levelVal = createLevelSelect.value;
+                const map = window.__propertyCountTypesByLevel || {};
+                const types = map[levelVal] || [];
+                propertyCountsContainer.querySelectorAll('.survey-create-count.dynamic-pc').forEach(function (el) {
+                    el.remove();
+                });
+                if (propertyCountsEmpty) {
+                    propertyCountsEmpty.style.display = types.length ? 'none' : 'block';
+                }
+                types.forEach(function (t) {
+                    const div = document.createElement('div');
+                    div.className = 'survey-create-count dynamic-pc';
+                    const label = document.createElement('span');
+                    label.className = 'survey-create-count-label';
+                    label.textContent = t.display_name;
+                    const sel = document.createElement('select');
+                    sel.className = 'survey-create-count-select';
+                    sel.name = 'property_accommodation_counts[' + t.id + ']';
+                    for (let i = 0; i <= 10; i++) {
+                        const opt = document.createElement('option');
+                        opt.value = String(i);
+                        opt.textContent = String(i);
+                        if (i === 2) {
+                            opt.selected = true;
+                        }
+                        sel.appendChild(opt);
+                    }
+                    div.appendChild(label);
+                    div.appendChild(sel);
+                    propertyCountsContainer.appendChild(div);
+                });
+            }
+
+            if (createLevelSelect) {
+                createLevelSelect.addEventListener('change', renderPropertyCountFields);
+            }
+            renderPropertyCountFields();
 
             const openCreateModal = () => {
                 if (!createOverlay) return;
                 createOverlay.classList.add('show');
                 createOverlay.setAttribute('aria-hidden', 'false');
                 document.body.classList.add('modal-open-lite');
+                renderPropertyCountFields();
                 const firstField = document.getElementById('create-survey-level');
                 if (firstField) {
                     setTimeout(() => firstField.focus(), 120);
