@@ -21,6 +21,21 @@
     </div>
 
     <!-- Main Content Area -->
+    <div class="survey-data-mock-body-wrap">
+    <div class="survey-data-mock-body-skeleton" id="survey-data-mock-body-skeleton" aria-busy="true" aria-label="Loading survey sections">
+        <div class="survey-data-mock-body-skeleton-inner">
+            @for ($si = 0; $si < 6; $si++)
+            <div class="survey-data-mock-skeleton-block">
+                <div class="survey-data-mock-skeleton-cat" aria-hidden="true"></div>
+                <div class="survey-data-mock-skeleton-lines" aria-hidden="true">
+                    <span class="survey-data-mock-skeleton-line survey-data-mock-skeleton-line--lg"></span>
+                    <span class="survey-data-mock-skeleton-line"></span>
+                    <span class="survey-data-mock-skeleton-line survey-data-mock-skeleton-line--sm"></span>
+                </div>
+            </div>
+            @endfor
+        </div>
+    </div>
     <div class="survey-data-mock-body">
         @foreach($categories as $categoryName => $subCategories)
             <section class="survey-data-mock-category">
@@ -119,6 +134,7 @@
                 <span>Generate PDF Report</span>
             </a>
         </div>
+    </div>
     </div>
 
     <!-- Bottom Navigation + Scrollable TOC Sidebar -->
@@ -294,6 +310,7 @@
     /* Consistent spacing - use throughout the page. Headers use survey-dark (#1b202b) only on this page. */
     .survey-data-mock-content {
         --survey-data-mock-x: 1.5rem;
+        --survey-data-mock-x-0: 1.5rem;
         --survey-data-mock-y: 1rem;
         --survey-data-mock-block: 2rem;
         --survey-data-mock-header-bg: #1b202b;
@@ -370,9 +387,117 @@
         border-radius: 6px;
     }
 
+    /* Main body + loading skeleton */
+    .survey-data-mock-body-wrap {
+        position: relative;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        width: 100%;
+    }
+
+    .survey-data-mock-body-skeleton {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        background: #f9fafb;
+        padding: var(--survey-data-mock-block) var(--survey-data-mock-x-0);
+        padding-top: var(--survey-data-mock-y);
+        padding-bottom: calc(var(--survey-data-mock-block) + 62px);
+        overflow: hidden;
+        pointer-events: none;
+        transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    .survey-data-mock-body-skeleton.is-done {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    .survey-data-mock-body-skeleton-inner {
+        display: flex;
+        flex-direction: column;
+        gap: var(--survey-data-mock-block);
+        max-width: 960px;
+        margin: 0 auto;
+    }
+
+    .survey-data-mock-skeleton-block {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .survey-data-mock-skeleton-cat {
+        height: 52px;
+        border-radius: 6px;
+        background: var(--survey-data-mock-header-bg);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .survey-data-mock-skeleton-cat::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+        transform: translateX(-100%);
+        animation: survey-data-mock-skeleton-sweep 1.35s ease-in-out infinite;
+    }
+
+    .survey-data-mock-skeleton-lines {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0 0.25rem 0.5rem;
+    }
+
+    .survey-data-mock-skeleton-line {
+        display: block;
+        height: 12px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 45%, #e5e7eb 90%);
+        background-size: 200% 100%;
+        animation: survey-data-mock-skeleton-shimmer 1.1s ease-in-out infinite;
+        width: 85%;
+    }
+
+    .survey-data-mock-skeleton-line--lg {
+        width: 100%;
+        height: 14px;
+    }
+
+    .survey-data-mock-skeleton-line--sm {
+        width: 55%;
+    }
+
+    @keyframes survey-data-mock-skeleton-shimmer {
+        0% { background-position: 100% 0; }
+        100% { background-position: -100% 0; }
+    }
+
+    @keyframes survey-data-mock-skeleton-sweep {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .survey-data-mock-skeleton-cat::after,
+        .survey-data-mock-skeleton-line {
+            animation: none;
+        }
+        .survey-data-mock-skeleton-line {
+            background: #e5e7eb;
+        }
+        .survey-data-mock-body-skeleton {
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+    }
+
     /* Main Body */
     .survey-data-mock-body {
-        padding: var(--survey-data-mock-block) var(--survey-data-mock-x-0);
+        padding: var(--survey-data-mock-block) 0;
         min-height: calc(100vh - 120px);
         height: auto;
         flex: 1;
@@ -722,6 +847,7 @@
     }
 
     .survey-data-mock-category-content.show {
+        max-height: none;
         opacity: 1;
         transition: max-height 0.3s ease, opacity 0.2s ease;
         background: transparent;
@@ -3351,6 +3477,32 @@
         // Fallback: avoid alert() popups
         console.error(message);
     }
+
+    window._surveyDataSkeletonT0 = Date.now();
+    (function () {
+        var surveySkeletonHidden = false;
+        function hideSurveyDataSkeleton() {
+            if (surveySkeletonHidden) {
+                return;
+            }
+            surveySkeletonHidden = true;
+            var $sk = $('#survey-data-mock-body-skeleton');
+            if (!$sk.length) {
+                return;
+            }
+            var minMs = 450;
+            var wait = Math.max(0, minMs - (Date.now() - window._surveyDataSkeletonT0));
+            setTimeout(function () {
+                $sk.addClass('is-done').attr('aria-busy', 'false');
+            }, wait);
+        }
+        $(window).one('load', hideSurveyDataSkeleton);
+        if (document.readyState === 'complete') {
+            hideSurveyDataSkeleton();
+        }
+        setTimeout(hideSurveyDataSkeleton, 12000);
+    })();
+
 $(document).ready(function() {
     // Category Collapse/Expand Functionality
     $('[data-category-toggle]').on('click', function() {
