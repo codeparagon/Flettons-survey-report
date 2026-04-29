@@ -968,7 +968,8 @@
                     @include('admin.accommodation-builder.partials.component-item', [
                         'component' => $component,
                         'materials' => $materialsByComponent[$component->id] ?? [],
-                        'defects' => $defectsByComponent[$component->id] ?? []
+                        'defects' => $defectsByComponent[$component->id] ?? [],
+                        'locations' => $locationsByComponent[$component->id] ?? []
                     ])
                 @empty
                     <p style="color: #9ca3af; text-align: center; padding: 20px;">No components yet. Add your first component above.</p>
@@ -993,6 +994,26 @@
                     </span>
                 @endforeach
                 <input type="text" class="tag-input" placeholder="Type and press Enter to add..." onkeydown="handleDefectInput(event)">
+            </div>
+        </div>
+
+        <!-- Global Locations Section -->
+        <div class="builder-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Global Locations</h2>
+                    <p class="section-subtitle">Location options for each accommodation room (e.g. Front, Rear). One selection per room on the surveyor form.</p>
+                </div>
+            </div>
+
+            <div class="tags-container" id="locationsContainer">
+                @foreach($globalLocations ?? [] as $loc)
+                    <span class="tag" data-id="{{ $loc->id }}">
+                        {{ $loc->value }}
+                        <span class="tag-remove" onclick="deleteLocation({{ $loc->id }})">&times;</span>
+                    </span>
+                @endforeach
+                <input type="text" class="tag-input" placeholder="Type and press Enter to add..." onkeydown="handleLocationInput(event)">
             </div>
         </div>
 
@@ -1077,6 +1098,18 @@
                         @endforeach
                         @if($globalDefects->isEmpty())
                             <span class="preview-button" style="color: #9ca3af;">No defects</span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="preview-field">
+                    <div class="preview-field-label">Location</div>
+                    <div class="preview-buttons">
+                        @foreach($globalLocations ?? [] as $loc)
+                            <span class="preview-button">{{ $loc->value }}</span>
+                        @endforeach
+                        @if(empty($globalLocations) || $globalLocations->isEmpty())
+                            <span class="preview-button" style="color: #9ca3af;">No locations</span>
                         @endif
                     </div>
                 </div>
@@ -1715,10 +1748,95 @@ async function addDefect(value) {
 async function deleteDefect(id) {
     try {
         await apiCall(`/admin/api/accommodation-options/${id}`, 'DELETE');
-        document.querySelector(`.tag[data-id="${id}"]`).remove();
+        const el = document.querySelector(`.tag[data-id="${id}"]`);
+        if (el) el.remove();
         showToast('Defect removed', 'success');
     } catch (error) {
         showToast('Error removing defect', 'error');
+    }
+}
+
+// Global locations (accommodation room)
+async function handleLocationInput(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const value = event.target.value.trim();
+        if (value) {
+            await addLocation(value);
+            event.target.value = '';
+        }
+    }
+}
+
+async function addLocation(value) {
+    try {
+        const result = await apiCall('/admin/api/accommodation-options', 'POST', {
+            option_type: 'location',
+            value: value
+        });
+        if (result.success) {
+            const container = document.getElementById('locationsContainer');
+            const input = container.querySelector('input');
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.dataset.id = result.option.id;
+            tag.innerHTML = `${value}<span class="tag-remove" onclick="deleteLocation(${result.option.id})">&times;</span>`;
+            container.insertBefore(tag, input);
+            showToast('Location added', 'success');
+        }
+    } catch (error) {
+        showToast('Error adding location', 'error');
+    }
+}
+
+async function deleteLocation(id) {
+    try {
+        await apiCall(`/admin/api/accommodation-options/${id}`, 'DELETE');
+        const elGlobal = document.querySelector(`#locationsContainer .tag[data-id="${id}"]`);
+        if (elGlobal) elGlobal.remove();
+        // Also remove from any component location container (same delete endpoint)
+        document.querySelectorAll(`.component-locations-container .tag[data-id="${id}"]`).forEach(el => el.remove());
+        showToast('Location removed', 'success');
+    } catch (error) {
+        showToast('Error removing location', 'error');
+    }
+}
+
+// Component-specific locations
+async function handleComponentLocationInput(event, componentId) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const value = event.target.value.trim();
+        if (value) {
+            await addComponentLocation(componentId, value);
+            event.target.value = '';
+        }
+    }
+}
+
+async function addComponentLocation(componentId, value) {
+    try {
+        const result = await apiCall('/admin/api/accommodation-options', 'POST', {
+            option_type: 'location',
+            value: value,
+            component_id: componentId
+        });
+        if (result.success) {
+            const container = document.querySelector(`.component-item[data-component-id="${componentId}"] .component-locations-container`);
+            if (!container) {
+                showToast('Unable to find locations container', 'error');
+                return;
+            }
+            const input = container.querySelector('input');
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.dataset.id = result.option.id;
+            tag.innerHTML = `${value}<span class="tag-remove" onclick="deleteLocation(${result.option.id})">&times;</span>`;
+            container.insertBefore(tag, input);
+            showToast('Location added', 'success');
+        }
+    } catch (error) {
+        showToast('Error adding location', 'error');
     }
 }
 

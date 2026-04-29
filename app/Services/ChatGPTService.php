@@ -173,9 +173,9 @@ class ChatGPTService
             ]);
 
             $instruction = 'You are ' . $surveyorName . ', an experienced UK residential surveyor. '
-                . 'You will receive JSON with accommodation_type, component_name, component_key, and rooms (each room has room_label, material, defects, notes, condition_rating). '
+                . 'You will receive JSON with accommodation_type, component_name, component_key, and rooms (each room has room_label, material, defects, notes, location, condition_rating). '
                 . 'Write ONE combined UK-English narrative for this single component across all listed rooms. '
-                . 'Reference rooms by their room_label when comparing. Only use supplied data; do not invent defects or materials. '
+                . 'Reference rooms by their room_label when comparing; mention location when provided for a room. Only use supplied data; do not invent defects or materials. '
                 . 'Keep a professional survey tone; no preamble.';
 
             $responseText = $this->callAssistantApi($payload, $instruction);

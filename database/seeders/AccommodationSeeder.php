@@ -46,6 +46,7 @@ class AccommodationSeeder extends Seeder
         $optionTypes = [
             ['key_name' => 'material', 'label' => 'Material', 'is_multiple' => false, 'sort_order' => 1, 'is_active' => true],
             ['key_name' => 'defects', 'label' => 'Defects', 'is_multiple' => true, 'sort_order' => 2, 'is_active' => true],
+            ['key_name' => 'location', 'label' => 'Location', 'is_multiple' => false, 'sort_order' => 3, 'is_active' => true],
         ];
 
         foreach ($optionTypes as $optionType) {

@@ -93,15 +93,160 @@
                 </div>
                 
                 <div class="survey-data-mock-category-content collapse show">
-                    <div class="survey-data-mock-sections" style="gap: 0.75rem;">
-                        @if(isset($accommodationSections) && count($accommodationSections) > 0)
-                            @foreach($accommodationSections as $accommodation)
-                                @include('surveyor.surveys.mocks.partials.accommodation-section-item', ['accommodation' => $accommodation])
+                    @php
+                        $accSections = $accommodationSections ?? [];
+                        $accGrouped = collect($accSections)->groupBy(function ($row) {
+                            return (string) ($row['accommodation_type_id'] ?? '');
+                        })->filter(function ($rows, $tid) {
+                            return $tid !== '' && $rows && count($rows) > 0;
+                        });
+
+                        $accTypeLabel = function ($rows, $fallback = 'Accommodation') {
+                            $first = is_array($rows) ? ($rows[0] ?? null) : (is_object($rows) ? $rows->first() : null);
+                            if (is_array($first)) {
+                                return $first['accommodation_type_name'] ?? $first['name'] ?? $fallback;
+                            }
+                            return $fallback;
+                        };
+
+                        $accTabOrder = $accGrouped->keys()->values();
+                        $firstAccTab = $accTabOrder->first();
+                    @endphp
+
+                    @if($accGrouped->isNotEmpty())
+                        <div class="survey-data-mock-accommodation-shell" data-accommodation-shell>
+                            <div class="survey-data-mock-accommodation-shell-header">
+                                <div class="survey-data-mock-accommodation-tabs" role="tablist" aria-label="Accommodation types">
+                                    @foreach($accGrouped as $typeId => $rows)
+                                        @php $label = $accTypeLabel($rows); @endphp
+                                        <button
+                                            type="button"
+                                            class="survey-data-mock-accommodation-tab {{ (string) $typeId === (string) $firstAccTab ? 'active' : '' }}"
+                                            role="tab"
+                                            aria-selected="{{ (string) $typeId === (string) $firstAccTab ? 'true' : 'false' }}"
+                                            data-acc-tab="{{ $typeId }}"
+                                        >
+                                            <span class="survey-data-mock-accommodation-tab-label">{{ $label }}</span>
+                                            <span class="survey-data-mock-accommodation-tab-count">{{ count($rows) }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+
+                                <div class="survey-data-mock-accommodation-shell-actions">
+                                    <button type="button" class="survey-data-mock-accommodation-add-row" data-acc-add-row disabled title="Add Row (coming soon)">
+                                        <i class="fas fa-plus"></i>
+                                        Add Row
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="survey-data-mock-accommodation-panels">
+                                @foreach($accGrouped as $typeId => $rows)
+                                    @php
+                                        $label = $accTypeLabel($rows);
+                                        $sortedRows = collect($rows)->sortBy(function ($r) {
+                                            return (int) ($r['clone_index'] ?? 0);
+                                        })->values();
+                                    @endphp
+                                    <div
+                                        class="survey-data-mock-accommodation-panel {{ (string) $typeId === (string) $firstAccTab ? 'active' : '' }}"
+                                        role="tabpanel"
+                                        data-acc-panel="{{ $typeId }}"
+                                        aria-label="{{ $label }}"
+                                    >
+                                        <div class="survey-data-mock-accommodation-table-wrap">
+                                            <table class="survey-data-mock-accommodation-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="col-room">Room Area</th>
+                                                        <th class="col-location">Location</th>
+                                                        <th class="col-position">Front Rear Centre</th>
+                                                        <th class="col-photos">Photos and Obs.</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($sortedRows as $accommodation)
+                                                        @php
+                                                            $rowId = $accommodation['id'] ?? '';
+                                                            $roomLabel = $accommodation['display_label'] ?? $accommodation['name'] ?? $label;
+                                                            $photoCount = count($accommodation['photos'] ?? []);
+                                                            $notes = trim((string) ($accommodation['notes'] ?? ''));
+                                                            $notesPreview = $notes !== '' ? \Illuminate\Support\Str::limit($notes, 44) : '—';
+                                                            $completed = (int) ($accommodation['completed_components'] ?? 0);
+                                                            $total = (int) ($accommodation['total_components'] ?? 0);
+                                                        @endphp
+                                                        <tr
+                                                            class="survey-data-mock-accommodation-row"
+                                                            data-acc-row="{{ $rowId }}"
+                                                            data-accommodation-id="{{ $rowId }}"
+                                                            data-accommodation-type-id="{{ $typeId }}"
+                                                            tabindex="0"
+                                                        >
+                                                            <td class="cell-room">
+                                                                <div class="room-title">{{ $roomLabel }}</div>
+                                                                <div class="room-sub">
+                                                                    <span class="room-sub-item"><i class="fas fa-sticky-note"></i> {{ $completed }}/{{ $total }}</span>
+                                                                    <span class="room-sub-sep">·</span>
+                                                                    <span class="room-sub-item"><i class="fas fa-camera"></i> {{ $photoCount }}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td class="cell-location">—</td>
+                                                            <td class="cell-position">—</td>
+                                                            <td class="cell-photos">
+                                                                <span class="photo-chip">
+                                                                    <i class="fas fa-images"></i>
+                                                                    {{ $photoCount }}
+                                                                </span>
+                                                                <span class="obs-preview">{{ $notesPreview }}</span>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div class="survey-data-mock-accommodation-sidebar" id="survey-data-mock-accommodation-sidebar" aria-hidden="true">
+                                <div class="survey-data-mock-accommodation-sidebar-header">
+                                    <div class="survey-data-mock-accommodation-sidebar-title">
+                                        <span class="title" data-acc-sidebar-title>Accommodation</span>
+                                        <span class="subtitle" data-acc-sidebar-subtitle>Select a room to view details.</span>
+                                    </div>
+                                    <button type="button" class="survey-data-mock-accommodation-sidebar-close" data-acc-sidebar-close aria-label="Close">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="survey-data-mock-accommodation-sidebar-body" data-acc-sidebar-body>
+                                    <div class="survey-data-mock-accommodation-sidebar-empty">
+                                        <p class="m-0">Click a room row to open the sidebar.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="survey-data-mock-accommodation-sidebar-overlay" data-acc-sidebar-overlay aria-hidden="true"></div>
+                        </div>
+
+                        <!-- Keep the original accommodation DOM in the page (hidden) so existing handlers keep working -->
+                        <div class="survey-data-mock-sections survey-data-mock-accommodation-dom-pool" style="display:none;" data-acc-dom-pool>
+                            @foreach($accSections as $accommodation)
+                                @include('surveyor.surveys.mocks.partials.accommodation-section-item', [
+                                    'accommodation' => $accommodation,
+                                    'accommodationLocationOptions' => $accommodationLocationOptions ?? [],
+                                ])
                             @endforeach
-                        @endif
-                    </div>
-                    @if(isset($accommodationSections) && count($accommodationSections) > 0)
-                        @include('surveyor.surveys.mocks.partials.accommodation-group-summaries', ['accommodationSections' => $accommodationSections, 'accommodationComponentSummaries' => $accommodationComponentSummaries ?? []])
+                        </div>
+
+                        @include('surveyor.surveys.mocks.partials.accommodation-group-summaries', ['accommodationSections' => $accSections, 'accommodationComponentSummaries' => $accommodationComponentSummaries ?? []])
+                    @else
+                        <div class="survey-data-mock-sections" style="gap: 0.75rem;">
+                            <div class="survey-data-mock-section-item">
+                                <div class="survey-data-mock-section-header">
+                                    <div class="survey-data-mock-section-name">No accommodation types configured</div>
+                                </div>
+                            </div>
+                        </div>
                     @endif
                 </div>
             </section>
@@ -2954,6 +3099,513 @@
         border-top: 2px solid rgba(148, 163, 184, 0.2);
     }
 
+    /* Accommodation (new): tabs + table + sidebar (reference screenshot) */
+    .survey-data-mock-accommodation-shell {
+        position: relative;
+        display: block;
+        background: #fff;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .survey-data-mock-accommodation-shell-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.75rem 0.9rem;
+        background: #F8FAFC;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .survey-data-mock-accommodation-tabs {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        overflow: auto;
+        padding: 0.15rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    .survey-data-mock-accommodation-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: #fff;
+        color: #0f172a;
+        border-radius: 999px;
+        padding: 0.45rem 0.75rem;
+        font-size: 13px;
+        line-height: 1;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        white-space: nowrap;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-data-mock-accommodation-tab:hover {
+        border-color: rgba(148, 163, 184, 0.35);
+        background: rgba(148, 163, 184, 0.08);
+    }
+
+    .survey-data-mock-accommodation-tab.active {
+        border-color: rgba(193, 236, 74, 0.7);
+        background: rgba(193, 236, 74, 0.16);
+        color: #1b202b;
+    }
+    .survey-data-mock-accommodation-tab:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(193, 236, 74, 0.45);
+    }
+
+    .survey-data-mock-accommodation-tab-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 18px;
+        padding: 0 6px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.16);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        font-size: 12px;
+        color: #334155;
+    }
+
+    .survey-data-mock-accommodation-shell-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .survey-data-mock-accommodation-add-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.9rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: #1b202b;
+        color: #fff;
+        font-size: 13px;
+        cursor: not-allowed;
+        opacity: 0.55;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-data-mock-accommodation-panels {
+        position: relative;
+        padding: 0;
+    }
+
+    .survey-data-mock-accommodation-panel {
+        display: none;
+    }
+    .survey-data-mock-accommodation-panel.active {
+        display: block;
+    }
+
+    .survey-data-mock-accommodation-table-wrap {
+        width: 100%;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .survey-data-mock-accommodation-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-family: 'Poppins', sans-serif;
+        min-width: 760px;
+    }
+
+    .survey-data-mock-accommodation-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #1b202b;
+        color: #fff;
+        font-size: 12px;
+        text-transform: none;
+        font-weight: 500;
+        padding: 0.75rem 0.85rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        white-space: nowrap;
+    }
+
+    .survey-data-mock-accommodation-table tbody td {
+        padding: 0.85rem 0.85rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        font-size: 13px;
+        color: #0f172a;
+        background: #fff;
+        vertical-align: middle;
+    }
+
+    .survey-data-mock-accommodation-row {
+        cursor: pointer;
+        outline: none;
+    }
+    .survey-data-mock-accommodation-row:hover td {
+        background: rgba(148, 163, 184, 0.06);
+    }
+    .survey-data-mock-accommodation-row.is-selected td {
+        background: rgba(193, 236, 74, 0.14);
+    }
+    .survey-data-mock-accommodation-row:focus-visible td {
+        box-shadow: inset 0 0 0 2px rgba(193, 236, 74, 0.65);
+    }
+
+    .survey-data-mock-accommodation-table .cell-room .room-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: #0f172a;
+        margin-bottom: 0.2rem;
+    }
+
+    .survey-data-mock-accommodation-table .cell-room .room-sub {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 12px;
+        color: #64748b;
+        white-space: nowrap;
+    }
+    .survey-data-mock-accommodation-table .cell-room .room-sub i {
+        color: #64748b;
+        font-size: 12px;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    .survey-data-mock-accommodation-table .cell-room .room-sub-sep {
+        opacity: 0.6;
+    }
+
+    .photo-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.14);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        font-size: 12px;
+        color: #334155;
+        margin-right: 0.55rem;
+        white-space: nowrap;
+    }
+    .photo-chip i {
+        font-size: 12px;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .obs-preview {
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    /* Sidebar (desktop drawer + mobile panel) */
+    .survey-data-mock-accommodation-sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: min(560px, 92vw);
+        background: #fff;
+        border-left: 1px solid rgba(148, 163, 184, 0.22);
+        box-shadow: -14px 0 36px rgba(15, 23, 42, 0.18);
+        transform: translateX(102%);
+        transition: transform 0.22s ease;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        pointer-events: none;
+    }
+    .survey-data-mock-accommodation-sidebar.is-open {
+        transform: translateX(0);
+        pointer-events: auto;
+    }
+
+    .survey-data-mock-accommodation-sidebar-header {
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        background: #F8FAFC;
+    }
+    .survey-data-mock-accommodation-sidebar-title .title {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: #0f172a;
+        font-family: 'Poppins', sans-serif;
+    }
+    .survey-data-mock-accommodation-sidebar-title .subtitle {
+        display: block;
+        margin-top: 0.15rem;
+        font-size: 12px;
+        color: #64748b;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-data-mock-accommodation-sidebar-close {
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: #fff;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #334155;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .survey-data-mock-accommodation-sidebar-close:hover {
+        background: rgba(148, 163, 184, 0.08);
+        border-color: rgba(148, 163, 184, 0.35);
+    }
+    .survey-data-mock-accommodation-sidebar-close:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(193, 236, 74, 0.45);
+    }
+
+    .survey-data-mock-accommodation-sidebar-body {
+        padding: 1rem;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1;
+    }
+
+    /* Sidebar: simplify form presentation (no "scrollable select" carousels) */
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-section-title-bar,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-section-details {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-section-details-content {
+        padding: 0.75rem 0.75rem 0.9rem 0.75rem;
+    }
+
+    /* Force button groups to wrap normally in sidebar (disable Swiper look) */
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-button-group,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-button-group.swiper {
+        flex-wrap: wrap !important;
+        overflow: visible !important;
+        padding: 0 !important;
+        gap: 0.375rem !important;
+    }
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-button-group .swiper-button-next,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-button-group .swiper-button-prev {
+        display: none !important;
+    }
+
+    /* Keep actions always reachable while scrolling */
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-actions {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        margin-top: 1rem;
+        padding: 0.9rem 0;
+        border-top: 1px solid rgba(148, 163, 184, 0.16);
+        z-index: 5;
+    }
+
+    /* Sidebar: searchable select input (chips + dropdown) */
+    .survey-data-mock-accommodation-sidebar .sdm-select {
+        position: relative;
+        width: 100%;
+        font-family: 'Poppins', sans-serif;
+        z-index: 1;
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-control {
+        min-height: 44px;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 12px;
+        padding: 6px 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        background: #fff;
+        cursor: text;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-control:focus-within {
+        border-color: rgba(193, 236, 74, 0.9);
+        box-shadow: 0 0 0 3px rgba(193, 236, 74, 0.25);
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(148, 163, 184, 0.12);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: #0f172a;
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 13px;
+        line-height: 1;
+        max-width: 100%;
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-chip-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 360px;
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-chip-remove {
+        border: none;
+        background: transparent;
+        color: #334155;
+        padding: 0;
+        width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-chip-remove:hover {
+        background: rgba(148, 163, 184, 0.18);
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-input {
+        border: none;
+        outline: none;
+        flex: 1 1 140px;
+        min-width: 140px;
+        font-size: 14px;
+        padding: 6px 4px;
+        color: #0f172a;
+        background: transparent;
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-dropdown {
+        position: static;
+        width: 100%;
+        margin-top: 8px;
+        background: #fff;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 12px;
+        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
+        max-height: 260px;
+        overflow: auto;
+        z-index: 2;
+        display: none;
+        padding: 6px;
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select.is-open .sdm-select-dropdown {
+        display: block;
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-option {
+        padding: 10px 10px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid transparent;
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-option:hover {
+        background: rgba(148, 163, 184, 0.12);
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-option.is-selected {
+        background: rgba(193, 236, 74, 0.12);
+        border-color: rgba(193, 236, 74, 0.9);
+        box-shadow: 0 0 0 3px rgba(193, 236, 74, 0.18);
+    }
+    .survey-data-mock-accommodation-sidebar .sdm-select-option-check {
+        color: #0f172a;
+        opacity: 0.7;
+        font-size: 12px;
+        flex: 0 0 auto;
+    }
+
+    /* Prevent parent overflow from clipping the dropdown in the sidebar */
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-section-details,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-section-details-content,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-accommodation-form-grid,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-accommodation-form-column-left,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-carousel-wrapper,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-carousel-track,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-carousel-slide,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-accommodation-component-form,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-field-group {
+        overflow: visible !important;
+    }
+
+    /* Ensure Location uses the exact same full-width input box */
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-accommodation-location-field .sdm-select,
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-accommodation-location-field .sdm-select-control {
+        width: 100%;
+    }
+
+    /* Hide original button groups in sidebar (kept for compatibility/state) */
+    .survey-data-mock-accommodation-sidebar .survey-data-mock-button-group[data-enhanced-select="true"] {
+        display: none !important;
+    }
+
+    /* Accommodation: hide legacy Location button inputs (use enhanced search input instead) */
+    .survey-data-mock-accommodation-location-field .survey-data-mock-button-group,
+    .survey-data-mock-accommodation-component-location-field .survey-data-mock-button-group {
+        display: none !important;
+    }
+
+    .survey-data-mock-accommodation-sidebar-empty {
+        border: 1px dashed rgba(148, 163, 184, 0.35);
+        border-radius: 12px;
+        padding: 1rem;
+        color: #64748b;
+        background: rgba(148, 163, 184, 0.04);
+        font-family: 'Poppins', sans-serif;
+        font-size: 13px;
+    }
+
+    .survey-data-mock-accommodation-sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        opacity: 0;
+        pointer-events: none;
+        display: none;
+        transition: opacity 0.18s ease;
+        z-index: 9998;
+    }
+    .survey-data-mock-accommodation-sidebar-overlay.is-open {
+        opacity: 1;
+        pointer-events: auto;
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .survey-data-mock-accommodation-sidebar {
+            width: 100vw;
+            max-width: 100vw;
+            border-left: none;
+            box-shadow: 0 -14px 36px rgba(15, 23, 42, 0.18);
+            top: auto;
+            bottom: 0;
+            height: 92vh;
+            transform: translateY(102%);
+        }
+        .survey-data-mock-accommodation-sidebar.is-open {
+            transform: translateY(0);
+        }
+    }
+
     .survey-data-mock-accommodation-item {
         background: #FFFFFF;
         border: 1px solid rgba(148, 163, 184, 0.2);
@@ -3200,15 +3852,17 @@
         max-width: 100%;
         box-sizing: border-box;
         overflow: hidden;
+        /* New: single-column layout (stack all inputs) */
+        flex-direction: column;
     }
 
     .survey-data-mock-accommodation-form-column-left {
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        flex: 0 0 50%;
+        flex: 0 0 auto;
         min-width: 0;
-        padding-right: 0.75rem;
+        padding-right: 0;
         box-sizing: border-box;
         overflow-x: auto;
         overflow-y: auto;
@@ -3218,10 +3872,10 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        flex: 0 0 50%;
-        min-width: 300px;
-        padding-left: 0.75rem;
-        padding-right: 1rem;
+        flex: 0 0 auto;
+        min-width: 0;
+        padding-left: 0;
+        padding-right: 0;
         box-sizing: border-box;
         overflow: visible;
     }
@@ -3229,6 +3883,7 @@
 
     /* Accommodation Form Grid Divider */
     .survey-data-mock-accommodation-form-grid-divider {
+        display: none;
         width: 4px;
         background: rgba(148, 163, 184, 0.2);
         cursor: col-resize;
@@ -3643,6 +4298,392 @@ $(document).ready(function() {
     $(window).on('load', function() {
         setTimeout(normalizeAccommodationOrderGlobal, 0);
     });
+
+    // Accommodation (new) — tabs + table + sidebar drawer/panel
+    (function initAccommodationShell() {
+        const $shell = $('[data-accommodation-shell]').first();
+        if (!$shell.length) return;
+
+        const $pool = $shell.closest('.survey-data-mock-category-content').find('[data-acc-dom-pool]').first();
+        const $sidebar = $('#survey-data-mock-accommodation-sidebar');
+        const $overlay = $shell.find('[data-acc-sidebar-overlay]').first();
+        const $sidebarBody = $sidebar.find('[data-acc-sidebar-body]').first();
+        const $title = $sidebar.find('[data-acc-sidebar-title]').first();
+        const $subtitle = $sidebar.find('[data-acc-sidebar-subtitle]').first();
+
+        function buildSidebarSelectFromButtonGroup($buttonGroup, opts) {
+            if (!$buttonGroup || !$buttonGroup.length) return;
+            if ($buttonGroup.attr('data-enhanced-select') === 'true') return;
+
+            const multiple = !!(opts && opts.multiple);
+            const placeholder = (opts && opts.placeholder) ? String(opts.placeholder) : 'Type to search…';
+            const allowClear = !!(opts && opts.allowClear);
+            const clearLabel = (opts && opts.clearLabel) ? String(opts.clearLabel) : 'Use global location';
+            const onClear = (opts && typeof opts.onClear === 'function') ? opts.onClear : null;
+
+            const $buttons = $buttonGroup.find('.survey-data-mock-button');
+            if (!$buttons.length) return;
+
+            const items = $buttons.map(function () {
+                const $b = $(this);
+                const val = String($b.attr('data-value') || $b.text() || '').trim();
+                const label = String($b.text() || val).trim();
+                const selected = $b.hasClass('active');
+                return { value: val, label: label, selected: selected };
+            }).get();
+
+            const $select = $(`
+                <div class="sdm-select" data-sdm-select="true">
+                    <div class="sdm-select-control" tabindex="0">
+                        <input class="sdm-select-input" type="text" autocomplete="off" spellcheck="false" />
+                    </div>
+                    <div class="sdm-select-dropdown" role="listbox"></div>
+                </div>
+            `);
+
+            const $control = $select.find('.sdm-select-control');
+            const $input = $select.find('.sdm-select-input');
+            const $dropdown = $select.find('.sdm-select-dropdown');
+
+            $input.attr('placeholder', placeholder);
+
+            function getButtonByValue(value) {
+                const target = String(value || '').trim();
+                return $buttons.filter(function () {
+                    return String($(this).attr('data-value') || '').trim() === target;
+                }).first();
+            }
+
+            function setSelected(value, isSelected) {
+                const $btn = getButtonByValue(value);
+                if (!$btn.length) return;
+                const want = !!isSelected;
+                const has = $btn.hasClass('active');
+
+                // Keep existing click-driven logic intact, but avoid double-toggling.
+                // Many handlers toggle `.active` themselves; if we both toggle and click,
+                // the final state can revert (e.g. "remove selected" won't clear).
+                if (multiple) {
+                    if (has !== want) {
+                        try { $btn.trigger('click', [{ sdmDesiredSelected: want }]); } catch (_) {}
+                    }
+                } else {
+                    if (want) {
+                        if (!has) {
+                            try { $btn.trigger('click', [{ sdmDesiredSelected: want }]); } catch (_) {}
+                        }
+                    } else {
+                        $buttons.removeClass('active');
+                    }
+                }
+            }
+
+            function clearSelection() {
+                $buttons.removeClass('active');
+                if (onClear) {
+                    try { onClear(); } catch (_) {}
+                }
+            }
+
+            function selectedValues() {
+                return $buttons.filter('.active').map(function () {
+                    return String($(this).attr('data-value') || '').trim();
+                }).get().filter(Boolean);
+            }
+
+            function renderChips() {
+                $control.find('.sdm-select-chip').remove();
+                const values = selectedValues();
+                values.forEach(function (v) {
+                    let label = v;
+                    for (let ii = 0; ii < items.length; ii++) {
+                        if (items[ii] && items[ii].value === v) {
+                            label = items[ii].label || v;
+                            break;
+                        }
+                    }
+                    const $chip = $(`
+                        <span class="sdm-select-chip" data-value="${$('<div/>').text(v).html()}">
+                            <span class="sdm-select-chip-text"></span>
+                            <button type="button" class="sdm-select-chip-remove" aria-label="Remove">×</button>
+                        </span>
+                    `);
+                    $chip.find('.sdm-select-chip-text').text(label);
+                    $chip.find('.sdm-select-chip-remove').on('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelected(v, false);
+                        renderAll();
+                    });
+                    $chip.insertBefore($input);
+                });
+            }
+
+            function renderOptions(filterText) {
+                const f = String(filterText || '').toLowerCase();
+                const selectedSet = new Set(selectedValues());
+                $dropdown.empty();
+
+                // Optional clear option for single-select (used for component-scoped location override)
+                if (allowClear && !multiple) {
+                    const hasAny = selectedSet.size > 0;
+                    const $clear = $(`
+                        <div class="sdm-select-option" role="option">
+                            <span class="sdm-select-option-label"></span>
+                            <span class="sdm-select-option-check">${hasAny ? '' : 'Selected'}</span>
+                        </div>
+                    `);
+                    $clear.toggleClass('is-selected', !hasAny);
+                    $clear.find('.sdm-select-option-label').text(clearLabel);
+                    $clear.on('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        clearSelection();
+                        $input.val('');
+                        close();
+                        renderAll();
+                    });
+                    $dropdown.append($clear);
+                }
+
+                items
+                    .filter(function (it) {
+                        if (!f) return true;
+                        return it.label.toLowerCase().includes(f) || it.value.toLowerCase().includes(f);
+                    })
+                    .forEach(function (it) {
+                        const isSel = selectedSet.has(it.value);
+                        const $opt = $(`
+                            <div class="sdm-select-option" role="option">
+                                <span class="sdm-select-option-label"></span>
+                                <span class="sdm-select-option-check">${isSel ? 'Selected' : ''}</span>
+                            </div>
+                        `);
+                        $opt.toggleClass('is-selected', isSel);
+                        $opt.find('.sdm-select-option-label').text(it.label);
+                        $opt.on('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            if (!multiple) {
+                                setSelected(it.value, true);
+                                close();
+                            } else {
+                                setSelected(it.value, !isSel);
+                            }
+
+                            $input.val('');
+                            renderAll();
+                        });
+                        $dropdown.append($opt);
+                    });
+            }
+
+            function renderAll() {
+                renderChips();
+                renderOptions($input.val());
+            }
+
+            function open() {
+                $select.addClass('is-open');
+                renderAll();
+            }
+
+            function close() {
+                $select.removeClass('is-open');
+            }
+
+            $control.on('click', function () {
+                open();
+                $input.trigger('focus');
+            });
+            $input.on('input', function () {
+                if (!$select.hasClass('is-open')) open();
+                renderOptions($input.val());
+            });
+            $input.on('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    close();
+                    $input.blur();
+                }
+            });
+
+            // Click outside to close (scoped to document once per control)
+            $(document).on('mousedown', function (e) {
+                if (!$select.hasClass('is-open')) return;
+                if ($(e.target).closest($select).length) return;
+                if ($(e.target).closest($dropdown).length) return;
+                close();
+            });
+
+            // Mount: insert select UI before the original group, then hide group.
+            $buttonGroup.before($select);
+            $buttonGroup.attr('data-enhanced-select', 'true');
+            renderAll();
+        }
+
+        function enhanceMountedSidebarItem($item) {
+            if (!$item || !$item.length) return;
+
+            // Component location (single) + Material (single) + Defects (multi) per slide
+            $item.find('.survey-data-mock-carousel-slide').each(function () {
+                const $slide = $(this);
+                const $compLocField = $slide.find('.survey-data-mock-accommodation-component-location-field').first();
+                const $compLocGroup = $slide.find('[data-group="location"]').closest('.survey-data-mock-button-group').first();
+                const $matGroup = $slide.find('[data-group="material"]').closest('.survey-data-mock-button-group').first();
+                const $defGroup = $slide.find('[data-group="defects"]').closest('.survey-data-mock-button-group').first();
+                if ($compLocGroup.length) buildSidebarSelectFromButtonGroup($compLocGroup, {
+                    multiple: false,
+                    placeholder: 'Search location…',
+                    allowClear: true,
+                    clearLabel: 'Use global location'
+                });
+                if ($matGroup.length) buildSidebarSelectFromButtonGroup($matGroup, { multiple: false, placeholder: 'Search material…' });
+                if ($defGroup.length) buildSidebarSelectFromButtonGroup($defGroup, { multiple: true, placeholder: 'Search defects…' });
+            });
+        }
+
+        // Create home slots so we can move DOM nodes in/out safely
+        if ($pool.length) {
+            $pool.find('.survey-data-mock-section-item[data-accommodation-id]').each(function() {
+                const $item = $(this);
+                const id = String($item.attr('data-accommodation-id') || '');
+                if (!id) return;
+                if ($pool.find(`[data-acc-home-for="${id}"]`).length) return;
+                $(`<div class="survey-data-mock-acc-home-slot" data-acc-home-for="${id}" style="display:none;"></div>`).insertBefore($item);
+            });
+        }
+
+        function setTabActive(typeId) {
+            $shell.find('.survey-data-mock-accommodation-tab').each(function() {
+                const $btn = $(this);
+                const isActive = String($btn.attr('data-acc-tab')) === String(typeId);
+                $btn.toggleClass('active', isActive).attr('aria-selected', isActive ? 'true' : 'false');
+            });
+            $shell.find('.survey-data-mock-accommodation-panel').each(function() {
+                const $p = $(this);
+                $p.toggleClass('active', String($p.attr('data-acc-panel')) === String(typeId));
+            });
+        }
+
+        function closeSidebar() {
+            // Return any mounted accommodation item back to pool
+            const $mounted = $sidebarBody.find('.survey-data-mock-section-item[data-accommodation-id]').first();
+            if ($mounted.length && $pool.length) {
+                const id = String($mounted.attr('data-accommodation-id') || '');
+                const $home = $pool.find(`[data-acc-home-for="${id}"]`).first();
+                if ($home.length) {
+                    $mounted.detach().insertAfter($home);
+                } else {
+                    $mounted.detach().appendTo($pool);
+                }
+            }
+
+            $sidebar.removeClass('is-open').attr('aria-hidden', 'true');
+            $overlay.removeClass('is-open').attr('aria-hidden', 'true');
+            $shell.find('.survey-data-mock-accommodation-row').removeClass('is-selected');
+        }
+
+        function openSidebar() {
+            $sidebar.addClass('is-open').attr('aria-hidden', 'false');
+            $overlay.addClass('is-open').attr('aria-hidden', 'false');
+        }
+
+        function mountAccommodationById(accommodationId) {
+            const id = String(accommodationId || '');
+            if (!id) return;
+
+            // Swap: return current before mounting next
+            const $current = $sidebarBody.find('.survey-data-mock-section-item[data-accommodation-id]').first();
+            if ($current.length) {
+                const currentId = String($current.attr('data-accommodation-id') || '');
+                if (currentId !== id) {
+                    if ($pool.length) {
+                        const $home = $pool.find(`[data-acc-home-for="${currentId}"]`).first();
+                        $current.detach().insertAfter($home.length ? $home : $pool);
+                    } else {
+                        $current.detach();
+                    }
+                }
+            }
+
+            let $item = $sidebarBody.find(`.survey-data-mock-section-item[data-accommodation-id="${id}"]`).first();
+            if (!$item.length && $pool.length) {
+                $item = $pool.find(`.survey-data-mock-section-item[data-accommodation-id="${id}"]`).first();
+            }
+            if (!$item.length) return;
+
+            // Clear any empty state
+            $sidebarBody.find('.survey-data-mock-accommodation-sidebar-empty').remove();
+            $sidebarBody.children().not($item).remove();
+
+            $item.detach().appendTo($sidebarBody);
+
+            // Ensure carousel handlers exist for mounted content
+            try {
+                if (typeof initializeAccommodationCarousel === 'function') {
+                    initializeAccommodationCarousel($item);
+                }
+            } catch (_) {}
+
+            // Make sure it's expanded inside the sidebar for immediate editing
+            if (!$item.hasClass('expanded')) {
+                $item.find('.survey-data-mock-section-header[data-expandable="true"]').first().trigger('click');
+            }
+
+            // Unify Location/Material/Defects into a searchable input + dropdown + chips
+            enhanceMountedSidebarItem($item);
+
+            // Update header text
+            const roomName = $item.find('.survey-data-mock-section-name').first().text().trim() || 'Accommodation';
+            $title.text(roomName);
+            const pc = $item.find('.fa-camera').closest('.survey-data-mock-status-info').find('.survey-data-mock-status-text').first().text().trim();
+            const cc = $item.find('.fa-sticky-note').closest('.survey-data-mock-status-info').find('.survey-data-mock-status-text').last().text().trim();
+            $subtitle.text((pc ? `${pc} photos` : 'Photos') + (cc ? ` · ${cc} components` : ''));
+
+            openSidebar();
+        }
+
+        // Tabs
+        $shell.on('click', '.survey-data-mock-accommodation-tab', function(e) {
+            e.preventDefault();
+            const typeId = $(this).attr('data-acc-tab');
+            setTabActive(typeId);
+        });
+
+        // Row click (table)
+        $shell.on('click', '.survey-data-mock-accommodation-row', function(e) {
+            e.preventDefault();
+            const $row = $(this);
+            const id = $row.attr('data-accommodation-id') || $row.attr('data-acc-row');
+            $shell.find('.survey-data-mock-accommodation-row').removeClass('is-selected');
+            $row.addClass('is-selected');
+            mountAccommodationById(id);
+        });
+
+        // Keyboard activate
+        $shell.on('keydown', '.survey-data-mock-accommodation-row', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                $(this).trigger('click');
+            }
+        });
+
+        // Close behavior
+        $shell.on('click', '[data-acc-sidebar-close]', function(e) {
+            e.preventDefault();
+            closeSidebar();
+        });
+        $overlay.on('click', function() {
+            closeSidebar();
+        });
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape' && $sidebar.hasClass('is-open')) {
+                closeSidebar();
+            }
+        });
+    })();
 
     function ensureId($el, id) {
         if (!$el || $el.length === 0) return null;
@@ -4131,10 +5172,14 @@ $(document).ready(function() {
     // Mock GPT Content Generator for Accommodation Sections
     function generateAccommodationReportContent(formData, accommodationName) {
         const notes = formData.notes || '';
+        const accLocation = (formData.accommodation_location || formData.location || '').trim();
         const components = formData.components || [];
         
         let report = `**${accommodationName}**\n\n`;
         report += `The ${accommodationName.toLowerCase()} has been inspected and assessed as part of the property survey.\n\n`;
+        if (accLocation) {
+            report += `**Location:** ${accLocation}\n\n`;
+        }
         
         if (components.length > 0) {
             report += `**Component Assessment:**\n\n`;
@@ -4398,6 +5443,11 @@ $(document).ready(function() {
         e.preventDefault();
         
         const $badge = $(this);
+        // Accommodation does NOT use conditional/manual rating (content sections only)
+        const $badgeSectionItem = $badge.closest('.survey-data-mock-section-item');
+        if ($badgeSectionItem.length && $badgeSectionItem.attr('data-accommodation-id') !== undefined) {
+            return;
+        }
         // Check for section-id first, then accommodation-id as fallback
         let sectionId = $badge.data('section-id');
         if (!sectionId) {
@@ -4577,8 +5627,33 @@ $(document).ready(function() {
         });
     }
 
+    function teardownSwiperToWrappedButtons($buttonGroup) {
+        if (!$buttonGroup || !$buttonGroup.length) return;
+        const el = $buttonGroup[0];
+        if (el && el.swiper) {
+            try { el.swiper.destroy(true, true); } catch (_) {}
+        }
+
+        // If markup is in swiper structure, flatten it back to plain buttons.
+        if ($buttonGroup.hasClass('swiper')) {
+            const $buttons = $buttonGroup.find('.survey-data-mock-button').detach();
+            $buttonGroup.empty().removeClass('swiper swiper-initialized');
+            $buttons.each(function() { $buttonGroup.append($(this)); });
+        }
+    }
+
+    function isInsideAccommodationSidebar($el) {
+        return $el && $el.length && $el.closest('#survey-data-mock-accommodation-sidebar').length > 0;
+    }
+
     // Initialize a single carousel/button group
     function initializeSingleCarousel($buttonGroup) {
+        // In accommodation sidebar: keep it simple (no horizontal scroll/select carousel)
+        if (isInsideAccommodationSidebar($buttonGroup)) {
+            teardownSwiperToWrappedButtons($buttonGroup);
+            return;
+        }
+
         // Skip if already initialized as Swiper
         if ($buttonGroup.hasClass('swiper-initialized')) {
             // If already a swiper, just update it
@@ -5084,7 +6159,7 @@ $(document).ready(function() {
 
 
     // Button Selection (Single selection within each group) - Using event delegation for dynamically added sections
-    $(document).on('click', '.survey-data-mock-button', function() {
+    $(document).on('click', '.survey-data-mock-button', function(e, meta) {
         const $button = $(this);
         const group = $button.data('group');
         const isMultiple = $button.data('multiple') === true;
@@ -5092,9 +6167,13 @@ $(document).ready(function() {
         const $sectionItem = $button.closest('.survey-data-mock-section-item');
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const buttonValue = $button.data('value');
+        const desiredSelected = meta && Object.prototype.hasOwnProperty.call(meta, 'sdmDesiredSelected')
+            ? !!meta.sdmDesiredSelected
+            : null;
         
         // Validate location selection - check for duplicate section + location combination
-        if (group === 'location') {
+        // Skip for accommodation rows: they reuse data-group="location" but are not survey sections.
+        if (group === 'location' && !$sectionItem.is('[data-accommodation-id]')) {
             const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
             const currentSection = $details.find('[data-group="section"].active').data('value') || '';
             const currentSectionId = $sectionItem.data('section-id');
@@ -5123,7 +6202,7 @@ $(document).ready(function() {
         }
         
         // Validate section selection - check for duplicate section + location combination
-        if (group === 'section') {
+        if (group === 'section' && !$sectionItem.is('[data-accommodation-id]')) {
             const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
             const currentLocation = $details.find('[data-group="location"].active').data('value') || '';
             const currentSectionId = $sectionItem.data('section-id');
@@ -5156,18 +6235,22 @@ $(document).ready(function() {
         if (isMultiple) {
             // Special handling for defects group
             if (group === 'defects') {
+                const willSelect = (desiredSelected === null) ? !$button.hasClass('active') : desiredSelected;
                 if (buttonValue === 'None') {
-                    // If "None" is clicked, deselect all other defects and toggle "None"
+                    // If "None" is chosen, deselect all other defects and set "None"
                     $group.not($button).removeClass('active');
-                    $button.toggleClass('active');
+                    $button.toggleClass('active', willSelect);
                 } else {
-                    // If any other defect is clicked, deselect "None" and toggle the clicked button
-                    $group.filter('[data-value="None"]').removeClass('active');
-                    $button.toggleClass('active');
+                    // If any other defect is chosen, deselect "None" and set this defect
+                    if (willSelect) {
+                        $group.filter('[data-value="None"]').removeClass('active');
+                    }
+                    $button.toggleClass('active', willSelect);
                 }
             } else {
-                // Toggle for other multiple selection groups
-                $button.toggleClass('active');
+                // Toggle for other multiple selection groups (or set explicitly if requested)
+                const willSelect = (desiredSelected === null) ? !$button.hasClass('active') : desiredSelected;
+                $button.toggleClass('active', willSelect);
             }
         } else {
             // Single selection for other groups
@@ -7462,26 +8545,35 @@ $(document).ready(function() {
         });
 
         // Material and Defects button handlers - use event delegation to ensure clicks work
-        $accommodationItem.on('click', '[data-group="material"]', function(e) {
+        $accommodationItem.on('click', '[data-group="material"]', function(e, meta) {
             e.preventDefault();
             e.stopPropagation();
             const $button = $(this);
             const componentKey = $button.data('component-key');
+            const desiredSelected = meta && Object.prototype.hasOwnProperty.call(meta, 'sdmDesiredSelected')
+                ? !!meta.sdmDesiredSelected
+                : null;
             
             // Remove active from other material buttons in same component
             $accommodationItem.find('[data-group="material"][data-component-key="' + componentKey + '"]').removeClass('active');
-            $button.addClass('active');
+            if (desiredSelected === null || desiredSelected === true) {
+                $button.addClass('active');
+            }
         });
 
-        $accommodationItem.on('click', '[data-group="defects"]', function(e) {
+        $accommodationItem.on('click', '[data-group="defects"]', function(e, meta) {
             e.preventDefault();
             e.stopPropagation();
             const $button = $(this);
             const componentKey = $button.data('component-key');
             const value = $button.data('value');
+            const desiredSelected = meta && Object.prototype.hasOwnProperty.call(meta, 'sdmDesiredSelected')
+                ? !!meta.sdmDesiredSelected
+                : null;
             
             // Toggle active state
-            $button.toggleClass('active');
+            const willSelect = (desiredSelected === null) ? !$button.hasClass('active') : desiredSelected;
+            $button.toggleClass('active', willSelect);
             
             // Only handle "No Defects" logic - allow all other defects to be selected freely
             if (value === 'No Defects') {
@@ -7719,10 +8811,25 @@ $(document).ready(function() {
     $(document).on('click', '.survey-data-mock-section-item[data-accommodation-id] .survey-data-mock-action-delete', function(e) {
         e.stopPropagation();
         const $item = $(this).closest('.survey-data-mock-section-item[data-accommodation-id]');
+        const accommodationId = String($item.attr('data-accommodation-id') || '');
         const typeIdForGroup = $item.attr('data-accommodation-type-id');
         if (confirm('Are you sure you want to delete this accommodation?')) {
             $item.fadeOut(300, function() {
                 $(this).remove();
+                if (accommodationId) {
+                    // Remove table row
+                    $(`[data-accommodation-shell] .survey-data-mock-accommodation-row[data-accommodation-id="${accommodationId}"]`).remove();
+                    // Remove home slot (if exists)
+                    const $pool = $('[data-acc-dom-pool]').first();
+                    if ($pool.length) {
+                        $pool.find(`[data-acc-home-for="${accommodationId}"]`).remove();
+                    }
+                    // If deleted from sidebar, close it
+                    const $sidebar = $('#survey-data-mock-accommodation-sidebar');
+                    if ($sidebar.length && $sidebar.find(`.survey-data-mock-section-item[data-accommodation-id="${accommodationId}"]`).length) {
+                        $sidebar.find('[data-acc-sidebar-close]').first().trigger('click');
+                    }
+                }
                 if (typeIdForGroup && window.SurveyorAccommodationImprovements) {
                     window.SurveyorAccommodationImprovements.refreshGroupStaleForType(typeIdForGroup);
                 }
@@ -7796,6 +8903,9 @@ $(document).ready(function() {
             
             // Get material for this component
             const material = $slide.find('[data-group="material"].active').data('value') || '';
+
+            // Optional per-component location override
+            const componentLocation = $slide.find('[data-group="location"].active').data('value') || '';
             
             // Get defects for this component (multiple selection)
             const defects = $slide.find('[data-group="defects"].active').map(function() {
@@ -7804,36 +8914,14 @@ $(document).ready(function() {
             
             formData.components.push({
                 component_key: componentKey,
+                location: componentLocation,
                 material: material,
                 defects: defects
             });
         });
         
-        // Automatically derive accommodation condition rating from components unless manually overridden
-        const $accommodationBadges = $(`.survey-data-mock-condition-badge[data-accommodation-id="${accommodationId}"]`);
-        const firstAccommodationBadge = $accommodationBadges.first();
-        const isAccommodationManual = firstAccommodationBadge.length &&
-            (firstAccommodationBadge.data('manual-rating') === true ||
-             firstAccommodationBadge.data('manual-rating') === 1 ||
-             firstAccommodationBadge.data('manual-rating') === '1');
-
-        if (!isAccommodationManual) {
-            const autoAccommodationRating = calculateAutoConditionRatingFromComponents(formData.components);
-            conditionRating = autoAccommodationRating;
-            formData.condition_rating = conditionRating;
-
-            const ratingClass = conditionRating === 'ni'
-                ? 'survey-data-mock-condition-badge--ni'
-                : `survey-data-mock-condition-badge--${conditionRating}`;
-
-            $accommodationBadges.each(function() {
-                const $badge = $(this);
-                $badge.removeClass('survey-data-mock-condition-badge--1 survey-data-mock-condition-badge--2 survey-data-mock-condition-badge--3 survey-data-mock-condition-badge--ni');
-                $badge.addClass(ratingClass);
-                $badge.data('current-rating', conditionRating);
-                $badge.attr('data-current-rating', conditionRating);
-            });
-        }
+        // Accommodation condition rating is NOT auto-derived (content sections only).
+        // Preserve whatever is currently on the badge (default NI).
         
         // Get selected image files
         const selectedFiles = $item.data('selectedFiles') || [];
@@ -7850,6 +8938,7 @@ $(document).ready(function() {
         // Append components array (even if empty, send empty array)
         formData.components.forEach((component, index) => {
             formDataObj.append(`components[${index}][component_key]`, component.component_key || '');
+            formDataObj.append(`components[${index}][location]`, component.location || '');
             formDataObj.append(`components[${index}][material]`, component.material || '');
             if (component.defects && component.defects.length > 0) {
                 component.defects.forEach((defect, defectIndex) => {
@@ -8038,6 +9127,9 @@ $(document).ready(function() {
             
             // Get material for this component
             const material = $slide.find('[data-group="material"].active').data('value') || '';
+
+            // Optional per-component location override
+            const componentLocation = $slide.find('[data-group="location"].active').data('value') || '';
             
             // Get defects for this component (multiple selection)
             const defects = $slide.find('[data-group="defects"].active').map(function() {
@@ -8046,6 +9138,7 @@ $(document).ready(function() {
             
             formData.components.push({
                 component_key: componentKey,
+                location: componentLocation,
                 material: material,
                 defects: defects
             });
@@ -8066,13 +9159,32 @@ $(document).ready(function() {
             },
             success: function(response) {
                 if (response.success && response.html) {
-                    // Insert cloned accommodation directly under the source room (Bedroom clone under that Bedroom),
-                    // not at the end of the accommodation list.
-                    let $insertAfter = $item;
+                    // Insert cloned accommodation into the hidden DOM pool (not into the sidebar),
+                    // so it remains part of the accommodation data set used by the tables.
+                    const $pool = $('[data-acc-dom-pool]').first();
+                    const rawSourceId = String(accommodationId || '');
+
+                    // IMPORTANT:
+                    // The "active" accommodation item can be mounted into the sidebar (detached from $pool).
+                    // If we insert relative to $item (sidebar), the sidebar swap/cleanup can remove the clone.
+                    // Always anchor inserts inside $pool using the stable "home slot" placeholder.
+                    let $insertAfter = null;
+                    if ($pool.length) {
+                        const $home = $pool.find(`[data-acc-home-for="${rawSourceId}"]`).first();
+                        if ($home.length) {
+                            $insertAfter = $home;
+                        } else {
+                            // Fallback: try to find the source item if it still exists in the pool
+                            const $srcInPool = $pool.find(`.survey-data-mock-section-item[data-accommodation-id="${rawSourceId}"]`).first();
+                            $insertAfter = $srcInPool.length ? $srcInPool : $pool.children().last();
+                        }
+                    } else {
+                        // No pool in DOM (shouldn't happen in new UI), fallback to current item
+                        $insertAfter = $item;
+                    }
 
                     // Prefer grouping by clone source (clone_src{sourceId}_...), so Bedroom 1 clones stay under Bedroom 1,
                     // even if there are multiple bedrooms of the same type.
-                    const rawSourceId = String(accommodationId || '');
                     let sourceNumericId = null;
                     if (/^\d+$/.test(rawSourceId)) {
                         sourceNumericId = rawSourceId;
@@ -8099,10 +9211,18 @@ $(document).ready(function() {
                     $insertAfter.after(response.html);
                     
                     // Get the new accommodation item
-                    const $newAccommodationItem = $(`.survey-data-mock-section-item[data-accommodation-id="${response.accommodation_id}"]`);
+                    const newAccId = String(response.accommodation_id || '');
+                    const $newAccommodationItem = $pool.length
+                        ? $pool.find(`.survey-data-mock-section-item[data-accommodation-id="${newAccId}"]`).first()
+                        : $(`.survey-data-mock-section-item[data-accommodation-id="${newAccId}"]`).first();
                     
                     // Initialize carousel for the new accommodation
                     if ($newAccommodationItem.length) {
+                        // Ensure it has a home slot so the sidebar swap logic can return it
+                        if ($pool.length && newAccId && !$pool.find(`[data-acc-home-for="${newAccId}"]`).length) {
+                            $(`<div class="survey-data-mock-acc-home-slot" data-acc-home-for="${newAccId}" style="display:none;"></div>`).insertBefore($newAccommodationItem);
+                        }
+
                         initializeAccommodationCarousel($newAccommodationItem);
                         
                         // Initialize event handlers for expand/collapse
@@ -8120,6 +9240,47 @@ $(document).ready(function() {
                             window.initEnhancedUpload($newAccommodationItem);
                         }
                     }
+
+                    // Add a new table row for the cloned accommodation (so the new UI reflects it immediately)
+                    try {
+                        const typeIdStr = String(finalAccommodationTypeId);
+                        const $shell = $('[data-accommodation-shell]').first();
+                        const $tbody = $shell.find(`.survey-data-mock-accommodation-panel[data-acc-panel="${typeIdStr}"] tbody`).first();
+                        if ($shell.length && $tbody.length && $newAccommodationItem.length) {
+                            const roomLabel = $newAccommodationItem.find('.survey-data-mock-section-name').first().text().trim() || 'Accommodation';
+                            const photoCount = $newAccommodationItem.find('.fa-camera').closest('.survey-data-mock-status-info').find('.survey-data-mock-status-text').first().text().trim() || '0';
+                            const compCount = $newAccommodationItem.find('.fa-sticky-note').closest('.survey-data-mock-status-info').find('.survey-data-mock-status-text').last().text().trim() || '0/0';
+                            const notes = ($newAccommodationItem.find('.survey-data-mock-notes-input').val() || '').toString().trim();
+                            const notesPreview = notes ? (notes.length > 44 ? notes.slice(0, 41) + '…' : notes) : '—';
+                            const newId = String(response.accommodation_id);
+
+                            const rowHtml = `
+                                <tr class="survey-data-mock-accommodation-row" data-acc-row="${newId}" data-accommodation-id="${newId}" data-accommodation-type-id="${typeIdStr}" tabindex="0">
+                                    <td class="cell-room">
+                                        <div class="room-title">${$('<div>').text(roomLabel).html()}</div>
+                                        <div class="room-sub">
+                                            <span class="room-sub-item"><i class="fas fa-sticky-note"></i> ${$('<div>').text(compCount).html()}</span>
+                                            <span class="room-sub-sep">·</span>
+                                            <span class="room-sub-item"><i class="fas fa-camera"></i> ${$('<div>').text(photoCount).html()}</span>
+                                        </div>
+                                    </td>
+                                    <td class="cell-location">—</td>
+                                    <td class="cell-position">—</td>
+                                    <td class="cell-photos">
+                                        <span class="photo-chip"><i class="fas fa-images"></i> ${$('<div>').text(photoCount).html()}</span>
+                                        <span class="obs-preview">${$('<div>').text(notesPreview).html()}</span>
+                                    </td>
+                                </tr>
+                            `;
+                            $tbody.append(rowHtml);
+
+                            // Switch to the correct tab and open the new row in the sidebar
+                            $shell.find(`.survey-data-mock-accommodation-tab[data-acc-tab="${typeIdStr}"]`).trigger('click');
+                            setTimeout(function() {
+                                $shell.find(`.survey-data-mock-accommodation-row[data-accommodation-id="${newId}"]`).first().trigger('click');
+                            }, 0);
+                        }
+                    } catch (_) {}
                     
                     // Show success message
                     if (typeof toastr !== 'undefined') {
@@ -8131,14 +9292,7 @@ $(document).ready(function() {
                     // Normalize order so other types (e.g. Bathroom) don't sit between Bedrooms
                     normalizeAccommodationOrderGlobal();
 
-                    // Scroll to new accommodation (after normalization)
-                    setTimeout(function() {
-                        if ($newAccommodationItem && $newAccommodationItem.length) {
-                            $('html, body').animate({
-                                scrollTop: $newAccommodationItem.offset().top - 100
-                            }, 500);
-                        }
-                    }, 50);
+                    // No auto-scroll: new UI uses table + sidebar
                     
                     // Reset button state
                     $button.prop('disabled', false).html('Save and Clone');

@@ -78,6 +78,31 @@ class AccommodationBuilderController extends Controller
                 $defectsByComponent[$defect->scope_id][] = $defect;
             }
         }
+
+        // Global location options (per-room, same list for all accommodation types)
+        $locationType = SurveyAccommodationOptionType::where('key_name', 'location')->first();
+        $globalLocations = collect();
+        $locationsByComponent = [];
+        if ($locationType) {
+            $globalLocations = SurveyAccommodationOption::where('option_type_id', $locationType->id)
+                ->where('scope_type', 'global')
+                ->whereNull('scope_id')
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get();
+
+            $componentLocations = SurveyAccommodationOption::where('option_type_id', $locationType->id)
+                ->where('scope_type', 'component')
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get();
+            foreach ($componentLocations as $loc) {
+                if (!isset($locationsByComponent[$loc->scope_id])) {
+                    $locationsByComponent[$loc->scope_id] = [];
+                }
+                $locationsByComponent[$loc->scope_id][] = $loc;
+            }
+        }
         
         // Get survey levels for level selection
         $levels = SurveyLevel::active()->ordered()->get();
@@ -88,6 +113,8 @@ class AccommodationBuilderController extends Controller
             'optionTypes',
             'materialsByComponent',
             'globalDefects',
+            'globalLocations',
+            'locationsByComponent',
             'defectsByComponent',
             'levels'
         ));
@@ -446,7 +473,7 @@ class AccommodationBuilderController extends Controller
     public function storeOption(Request $request)
     {
         $validated = $request->validate([
-            'option_type' => 'required|in:material,defects',
+            'option_type' => 'required|in:material,defects,location',
             'value' => 'required|string|max:255',
             'component_id' => 'nullable|exists:survey_accommodation_components,id',
             'sort_order' => 'nullable|integer|min:0',
@@ -457,7 +484,7 @@ class AccommodationBuilderController extends Controller
             // Create option type if it doesn't exist
             $optionType = SurveyAccommodationOptionType::create([
                 'key_name' => $validated['option_type'],
-                'label' => ucfirst($validated['option_type']),
+                'label' => $validated['option_type'] === 'location' ? 'Location' : ucfirst($validated['option_type']),
                 'is_multiple' => $validated['option_type'] === 'defects',
                 'sort_order' => 0,
                 'is_active' => true,
@@ -466,9 +493,9 @@ class AccommodationBuilderController extends Controller
         
         $scopeType = 'global';
         $scopeId = null;
-        
-        // Materials and defects can both be component-specific; fall back to global when no component is provided
+
         if (!empty($validated['component_id'])) {
+            // Materials and defects can both be component-specific; fall back to global when no component is provided
             $scopeType = 'component';
             $scopeId = $validated['component_id'];
         }

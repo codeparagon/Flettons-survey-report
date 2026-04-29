@@ -13,6 +13,7 @@ class SurveyAccommodationComponentAssessment extends Model
         'accommodation_assessment_id',
         'component_id',
         'material_id',
+        'location_id',
     ];
 
     public function accommodationAssessment()
@@ -38,6 +39,11 @@ class SurveyAccommodationComponentAssessment extends Model
             'component_assessment_id',
             'defect_option_id'
         );
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(SurveyAccommodationOption::class, 'location_id');
     }
 }
 

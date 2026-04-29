@@ -56,10 +56,10 @@
                 @endforeach
             </div>
 
-            <!-- Form Grid: Left Carousel, Right Shared Content -->
-            <div class="survey-data-mock-form-grid">
-                <!-- Left Column: Carousel with Material and Defects -->
-                <div class="survey-data-mock-form-column survey-data-mock-form-column-left" data-column="left">
+            <!-- Form Grid: single-column layout (stacked) -->
+            <div class="survey-data-mock-accommodation-form-grid">
+                <!-- Top: Carousel with Material and Defects -->
+                <div class="survey-data-mock-accommodation-form-column-left" data-column="left">
                     <div class="survey-data-mock-carousel-wrapper">
                         <div class="survey-data-mock-carousel-track" data-carousel-track>
                             @foreach($accommodation['components'] as $index => $component)
@@ -67,6 +67,27 @@
                                      data-slide-index="{{ $index }}"
                                      data-component-key="{{ $component['component_key'] }}">
                                     <div class="survey-data-mock-accommodation-component-form">
+                                        @php
+                                            $componentLocationOptions = app(\App\Services\SurveyAccommodationDataService::class)
+                                                ->getComponentLocations($component['component_key']);
+                                            $selectedComponentLocation = $component['location'] ?? '';
+                                        @endphp
+                                        @if(!empty($componentLocationOptions))
+                                            <div class="survey-data-mock-field-group survey-data-mock-accommodation-component-location-field">
+                                                <label class="survey-data-mock-field-label">Location</label>
+                                                <div class="survey-data-mock-button-group">
+                                                    @foreach($componentLocationOptions as $loc)
+                                                        <button type="button"
+                                                                class="survey-data-mock-button {{ $selectedComponentLocation === $loc ? 'active' : '' }}"
+                                                                data-value="{{ $loc }}"
+                                                                data-group="location"
+                                                                data-component-key="{{ $component['component_key'] }}">
+                                                            {{ $loc }}
+                                                        </button>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endif
                                         <!-- Material Buttons -->
                                         <div class="survey-data-mock-field-group">
                                             <label class="survey-data-mock-field-label">
@@ -125,15 +146,8 @@
                     </div>
                 </div>
 
-                <!-- Draggable Divider -->
-                <div class="survey-data-mock-form-grid-divider" data-divider>
-                    <div class="survey-data-mock-form-grid-divider-handle">
-                        <i class="fas fa-grip-vertical"></i>
-                    </div>
-                </div>
-
-                <!-- Right Column: Shared Additional Notes and Images -->
-                <div class="survey-data-mock-form-column survey-data-mock-form-column-right" data-column="right">
+                <!-- Bottom: Shared Additional Notes and Images -->
+                <div class="survey-data-mock-accommodation-form-column-right" data-column="right">
                     <!-- Additional Notes -->
                     <div class="survey-data-mock-field-group">
                         <label class="survey-data-mock-field-label">Additional Notes</label>

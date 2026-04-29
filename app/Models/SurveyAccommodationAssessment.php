@@ -15,6 +15,7 @@ class SurveyAccommodationAssessment extends Model
         'custom_name',
         'clone_index',
         'notes',
+        'location_id',
         'condition_rating',
         'report_content',
         'is_completed',
@@ -45,6 +46,11 @@ class SurveyAccommodationAssessment extends Model
     public function photos()
     {
         return $this->hasMany(SurveyAccommodationPhoto::class, 'accommodation_assessment_id');
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(SurveyAccommodationOption::class, 'location_id');
     }
 }
 

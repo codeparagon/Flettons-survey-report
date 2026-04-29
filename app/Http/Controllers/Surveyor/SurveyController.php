@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Surveyor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Survey;
+use App\Models\SurveyDeskStudy;
 use App\Models\SurveyAccommodationType;
 use App\Models\SurveyNote;
 use App\Models\SurveySectionDefinition;
@@ -144,32 +145,156 @@ class SurveyController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Build desk study data from survey or use defaults
-        $deskStudy = [
-            'address' => $survey->full_address ?? '123, Sample Street, Kent DA9 9ZT',
-            'job_reference' => $survey->job_reference ?? '12SE39DT-SH',
-            'map' => [
-                'image' => 'https://images.pexels.com/photos/439391/pexels-photo-439391.jpeg?auto=compress&cs=tinysrgb&w=800',
+        $defaultsFlood = [
+            ['label' => 'Rivers and Seas', 'value' => 'Very Low'],
+            ['label' => 'Surface Water', 'value' => 'Low'],
+            ['label' => 'Reservoirs', 'value' => 'Yes'],
+            ['label' => 'Ground Water', 'value' => 'No'],
+        ];
+
+        $defaultsPlanning = [
+            ['label' => 'Council Tax', 'value' => 'Band C'],
+            ['label' => 'EPC Rating', 'value' => 'D'],
+            ['label' => 'Soil Type', 'value' => 'Soilscope 7 (High Risk)'],
+            ['label' => 'Listed Building', 'value' => $survey->listed_building ?? 'N/A'],
+            ['label' => 'Conservation Area', 'value' => 'Yes'],
+            ['label' => 'Article 4', 'value' => 'No'],
+        ];
+
+        $desk = SurveyDeskStudy::firstOrCreate(
+            ['survey_id' => $survey->id],
+            [
+                'address' => $survey->full_address ?? '123, Sample Street, Kent DA9 9ZT',
+                'job_reference' => $survey->job_reference ?? '12SE39DT-SH',
                 'longitude' => '-0.3112',
                 'latitude' => '51.4728',
+                'map_image_path' => null,
+                'flood_risks' => $defaultsFlood,
+                'planning' => $defaultsPlanning,
+            ]
+        );
+
+        $mapImageUrl = null;
+        if (!empty($desk->map_image_path)) {
+            try {
+                $mapImageUrl = Storage::disk('public')->url($desk->map_image_path);
+            } catch (\Throwable $e) {
+                $mapImageUrl = null;
+            }
+        }
+
+        $deskStudy = [
+            'address' => $desk->address,
+            'job_reference' => $desk->job_reference,
+            'map' => [
+                'image_url' => $mapImageUrl,
+                'longitude' => $desk->longitude,
+                'latitude' => $desk->latitude,
             ],
-            'flood_risks' => [
-                ['label' => 'Rivers and Seas', 'value' => 'Very Low'],
-                ['label' => 'Surface Water', 'value' => 'Low'],
-                ['label' => 'Reservoirs', 'value' => 'Yes'],
-                ['label' => 'Ground Water', 'value' => 'No'],
-            ],
-            'planning' => [
-                ['label' => 'Council Tax', 'value' => 'Band C'],
-                ['label' => 'EPC Rating', 'value' => 'D'],
-                ['label' => 'Soil Type', 'value' => 'Soilscope 7 (High Risk)'],
-                ['label' => 'Listed Building', 'value' => $survey->listed_building ?? 'N/A'],
-                ['label' => 'Conservation Area', 'value' => 'Yes'],
-                ['label' => 'Article 4', 'value' => 'No'],
-            ],
+            'flood_risks' => $desk->flood_risks ?: $defaultsFlood,
+            'planning' => $desk->planning ?: $defaultsPlanning,
+            'updated_at' => optional($desk->updated_at)->toIso8601String(),
         ];
 
         return view('surveyor.surveys.mocks.desk_study', compact('survey', 'deskStudy'));
+    }
+
+    public function saveDeskStudyMock(Request $request, Survey $survey)
+    {
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        $validated = $request->validate([
+            'address' => ['nullable', 'string', 'max:255'],
+            'job_reference' => ['nullable', 'string', 'max:255'],
+            'longitude' => ['nullable', 'string', 'max:255'],
+            'latitude' => ['nullable', 'string', 'max:255'],
+            'flood_risks' => ['nullable', 'array'],
+            'flood_risks.*.label' => ['required_with:flood_risks', 'string', 'max:255'],
+            'flood_risks.*.value' => ['required_with:flood_risks', 'string', 'max:255'],
+            'planning' => ['nullable', 'array'],
+            'planning.*.label' => ['required_with:planning', 'string', 'max:255'],
+            'planning.*.value' => ['required_with:planning', 'string', 'max:255'],
+        ]);
+
+        $desk = SurveyDeskStudy::firstOrCreate(['survey_id' => $survey->id]);
+        $desk->fill([
+            'address' => $validated['address'] ?? null,
+            'job_reference' => $validated['job_reference'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
+            'latitude' => $validated['latitude'] ?? null,
+            'flood_risks' => $validated['flood_risks'] ?? [],
+            'planning' => $validated['planning'] ?? [],
+        ]);
+        $desk->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Desk study saved',
+            'updated_at' => optional($desk->updated_at)->toIso8601String(),
+        ]);
+    }
+
+    public function uploadDeskStudyMockMapImage(Request $request, Survey $survey)
+    {
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        $validated = $request->validate([
+            'map_image' => ['required', 'file', 'image', 'max:5120'], // 5MB
+        ]);
+
+        $desk = SurveyDeskStudy::firstOrCreate(['survey_id' => $survey->id]);
+
+        // delete old
+        if (!empty($desk->map_image_path)) {
+            try {
+                Storage::disk('public')->delete($desk->map_image_path);
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
+
+        $file = $validated['map_image'];
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $path = $file->storeAs('desk-studies/' . $survey->id, 'map.' . $ext, 'public');
+
+        $desk->map_image_path = $path;
+        $desk->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Map image uploaded',
+            'map_image_url' => Storage::disk('public')->url($path),
+            'updated_at' => optional($desk->updated_at)->toIso8601String(),
+        ]);
+    }
+
+    public function deleteDeskStudyMockMapImage(Request $request, Survey $survey)
+    {
+        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        $desk = SurveyDeskStudy::firstOrCreate(['survey_id' => $survey->id]);
+        if (!empty($desk->map_image_path)) {
+            try {
+                Storage::disk('public')->delete($desk->map_image_path);
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
+        $desk->map_image_path = null;
+        $desk->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Map image removed',
+            'map_image_url' => null,
+            'updated_at' => optional($desk->updated_at)->toIso8601String(),
+        ]);
     }
 
     public function dataMock(Survey $survey)
@@ -192,6 +317,7 @@ class SurveyController extends Controller
         $accommodationDataService = app(\App\Services\SurveyAccommodationDataService::class);
         $accommodationSections = $accommodationDataService->getAccommodationConfigurationData($survey, $useMockData);
         $accommodationComponentSummaries = $accommodationDataService->getComponentSummariesForSurvey($survey);
+        $accommodationLocationOptions = $accommodationDataService->getGlobalLocations();
 
         // Get accommodation types with components (for form dropdowns)
         // Only types that have components configured will be available
@@ -227,6 +353,7 @@ class SurveyController extends Controller
             'categories',
             'accommodationSections',
             'accommodationComponentSummaries',
+            'accommodationLocationOptions',
             'accommodationTypesWithComponents',
             'hasAccommodationTypesWithComponents',
             'optionsMapping',
@@ -797,8 +924,10 @@ class SurveyController extends Controller
                 'form_data.components' => 'nullable|array',
                 'form_data.components.*.component_key' => 'nullable|string',
                 'form_data.components.*.material' => 'nullable|string',
+                'form_data.components.*.location' => 'nullable|string|max:255',
                 'form_data.components.*.defects' => 'nullable|array',
                 'form_data.condition_rating' => 'nullable|string',
+                'form_data.location' => 'nullable|string|max:255',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('Accommodation clone validation failed', [
@@ -848,6 +977,7 @@ class SurveyController extends Controller
                         'component_id' => $component->id,
                         'component_key' => $component->key_name,
                         'component_name' => $component->display_name,
+                        'location' => '',
                         'material' => '',
                         'defects' => [],
                     ];
@@ -904,6 +1034,7 @@ class SurveyController extends Controller
             'accommodation_type_name' => $accommodationType->display_name,
             'condition_rating' => $formData['condition_rating'] ?? 'ni',
             'notes' => $formData['notes'] ?? '',
+            'location' => $formData['location'] ?? '',
             'photos' => [],
             'report_content' => '',
             'has_report' => false,
@@ -916,6 +1047,7 @@ class SurveyController extends Controller
         // Render the accommodation-section-item partial
         $html = view('surveyor.surveys.mocks.partials.accommodation-section-item', [
             'accommodation' => $accommodationData,
+            'accommodationLocationOptions' => $accommodationDataService->getGlobalLocations(),
         ])->render();
 
         return response()->json([
@@ -1065,10 +1197,12 @@ class SurveyController extends Controller
                 'custom_name' => 'nullable|string|max:150',
                 'components' => 'nullable|array', // Made optional - form can submit even if components are not filled
                 'components.*.component_key' => 'nullable|string', // Allow missing or empty component_key - components can be incomplete
+                'components.*.location' => 'nullable|string|max:255',
                 'components.*.material' => 'nullable|string',
                 'components.*.defects' => 'nullable|array',
                 'components.*.defects.*' => 'nullable|string',
                 'notes' => 'nullable|string',
+                'location' => 'nullable|string|max:255',
                 'condition_rating' => 'nullable|string|in:1,2,3,ni',
                 'photos' => 'nullable|array',
                 'photos.*' => 'nullable|image|max:10240', // Max 10MB per image

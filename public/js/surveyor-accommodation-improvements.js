@@ -45,6 +45,7 @@
         var formData = {
             custom_name: accommodationName,
             notes: $details.find('.survey-data-mock-notes-input').val() || '',
+            location: '',
             components: []
         };
 
@@ -55,6 +56,7 @@
                 return;
             }
             var componentName = $item.find('.survey-data-mock-component-tab[data-component-key="' + componentKey + '"]').text().trim() || componentKey;
+            var componentLocation = $slide.find('[data-group="location"].active').data('value') || '';
             var material = $slide.find('[data-group="material"].active').data('value') || '';
             var defects = $slide.find('[data-group="defects"].active').map(function () {
                 return $(this).data('value');
@@ -62,6 +64,7 @@
             formData.components.push({
                 component_key: componentKey,
                 component_name: componentName,
+                location: componentLocation,
                 material: material,
                 defects: defects
             });
@@ -73,9 +76,11 @@
     function inputHashFromFormData(formData) {
         var forHash = {
             notes: formData.notes || '',
+            location: formData.location || '',
             components: (formData.components || []).map(function (c) {
                 return {
                     component_key: c.component_key,
+                    location: c.location || '',
                     material: c.material || '',
                     defects: (c.defects || []).slice().sort()
                 };
@@ -158,6 +163,7 @@
                 accommodation_id: rid,
                 room_label: fd.custom_name || typeName,
                 notes: fd.notes || '',
+                location: fd.location || '',
                 components_by_key: {}
             });
             var last = rooms[rooms.length - 1];
@@ -180,7 +186,8 @@
                     room_label: r.room_label,
                     material: comp.material,
                     defects: comp.defects.slice().sort(),
-                    notes: r.notes
+                    notes: r.notes,
+                    location: r.location || ''
                 };
             });
             out.push({

@@ -62,6 +62,7 @@ class SurveyController extends Controller
         // Get accommodation configuration data from database
         $accommodationDataService = app(SurveyAccommodationDataService::class);
         $accommodationSections = $accommodationDataService->getAccommodationConfigurationData($survey, $useMockData);
+        $accommodationLocationOptions = $accommodationDataService->getGlobalLocations();
 
         // Get accommodation types with components (for form dropdowns)
         $accommodationTypesWithComponents = $accommodationDataService->getAccommodationTypesWithComponents();
@@ -75,7 +76,7 @@ class SurveyController extends Controller
         // Get content sections
         $contentSections = $this->getContentSectionsForSurvey($survey, $categories);
 
-        return view('surveyor.surveys.mocks.data', compact('survey', 'categories', 'accommodationSections', 'accommodationTypesWithComponents', 'hasAccommodationTypesWithComponents', 'optionsMapping', 'contentSections'));
+        return view('surveyor.surveys.mocks.data', compact('survey', 'categories', 'accommodationSections', 'accommodationLocationOptions', 'accommodationTypesWithComponents', 'hasAccommodationTypesWithComponents', 'optionsMapping', 'contentSections'));
     }
 
     /**

@@ -113,6 +113,7 @@ class SurveyAccommodationDataService
                     'accommodation_type_name' => $accommodationTypeName,
                     'notes' => '', // Shared notes for all components
                     'photos' => [], // Shared photos for all components
+                    'location' => '',
                     'completed_components' => 0,
                     'total_components' => $configuredType->components->count(),
                     'components' => $configuredType->components->map(function($component) {
@@ -122,6 +123,7 @@ class SurveyAccommodationDataService
                             'component_name' => $component->display_name,
                             'material' => '',
                             'defects' => [],
+                            'location' => '',
                         ];
                     })->toArray(),
                     'form_submitted' => false,
@@ -342,9 +344,11 @@ class SurveyAccommodationDataService
                         $q->where('is_active', true);
                     }]);
                 },
-                'componentAssessments.component', 
-                'componentAssessments.material', 
-                'componentAssessments.defects', 
+                'componentAssessments.component',
+                'componentAssessments.material',
+                'componentAssessments.defects',
+                'componentAssessments.location',
+                'location',
                 'photos'
             ])
             ->orderBy('clone_index')
@@ -405,6 +409,7 @@ class SurveyAccommodationDataService
                     'accommodation_type_name' => $type->display_name,
                     'condition_rating' => 'ni',
                     'notes' => '',
+                    'location' => '',
                     'photos' => [],
                     'report_content' => '',
                     'has_report' => false,
@@ -418,6 +423,7 @@ class SurveyAccommodationDataService
                             'component_name' => $component->display_name,
                             'material' => '',
                             'defects' => [],
+                            'location' => '',
                         ];
                     })->toArray(),
                 ];
@@ -483,6 +489,7 @@ class SurveyAccommodationDataService
 
             $materialValue = '';
             $defectsValues = [];
+            $componentLocationValue = '';
 
             if ($componentAssessment) {
                 $hasMaterial = $componentAssessment->material !== null;
@@ -496,6 +503,13 @@ class SurveyAccommodationDataService
                     $defectsValues = $componentAssessment->defects->pluck('value')->toArray();
                 }
 
+                if ($componentAssessment->relationLoaded('location') && $componentAssessment->location) {
+                    $componentLocationValue = (string) ($componentAssessment->location->value ?? '');
+                } elseif (!empty($componentAssessment->location_id)) {
+                    $componentAssessment->loadMissing('location');
+                    $componentLocationValue = (string) ($componentAssessment->location->value ?? '');
+                }
+
                 if ($hasMaterial || $hasDefectsRelation) {
                     $completedComponents++;
                 }
@@ -507,6 +521,7 @@ class SurveyAccommodationDataService
                 'component_name' => $component->display_name,
                 'material' => $materialValue,
                 'defects' => $defectsValues,
+                'location' => $componentLocationValue,
             ];
         }
 
@@ -515,6 +530,14 @@ class SurveyAccommodationDataService
         // Get report content from database (if exists)
         $reportContent = $assessment->report_content ?? '';
         $hasReport = !empty(trim($reportContent));
+
+        $locationValue = '';
+        if ($assessment->relationLoaded('location') && $assessment->location) {
+            $locationValue = (string) ($assessment->location->value ?? '');
+        } elseif ($assessment->location_id) {
+            $assessment->loadMissing('location');
+            $locationValue = (string) ($assessment->location->value ?? '');
+        }
         
         return [
             'id' => $assessment->id,
@@ -525,6 +548,7 @@ class SurveyAccommodationDataService
             'accommodation_type_name' => $accommodationTypeName,
             'condition_rating' => $conditionRating,
             'notes' => $assessment->notes ?? '',
+            'location' => $locationValue,
             'photos' => $assessment->photos ? $assessment->photos->sortBy('sort_order')->map(function($photo) {
                 // Use storage disk URL so production gets absolute URL from APP_URL
                 $url = \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path);
@@ -675,6 +699,101 @@ class SurveyAccommodationDataService
     }
 
     /**
+     * Location options for accommodation rooms/components from database.
+     * Returns global locations plus any component-specific locations when a component key is provided.
+     *
+     * @return array<int, string>
+     */
+    public function getComponentLocations(?string $componentKey = null): array
+    {
+        $locationType = SurveyAccommodationOptionType::where('key_name', 'location')->first();
+        if (!$locationType) {
+            return [];
+        }
+
+        $globalLocations = SurveyAccommodationOption::where('option_type_id', $locationType->id)
+            ->where('scope_type', 'global')
+            ->whereNull('scope_id')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray();
+
+        if ($componentKey === null) {
+            return $globalLocations;
+        }
+
+        $component = SurveyAccommodationComponent::where('key_name', $componentKey)->first();
+        if (!$component) {
+            return $globalLocations;
+        }
+
+        $componentLocations = SurveyAccommodationOption::where('option_type_id', $locationType->id)
+            ->where('scope_type', 'component')
+            ->where('scope_id', $component->id)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray();
+
+        return array_values(array_unique(array_merge($globalLocations, $componentLocations)));
+    }
+
+    /**
+     * Global location options for accommodation rooms (admin-managed).
+     *
+     * @return array<int, string>
+     */
+    public function getGlobalLocations(): array
+    {
+        $locationType = SurveyAccommodationOptionType::where('key_name', 'location')->first();
+        if (! $locationType) {
+            return [];
+        }
+
+        return SurveyAccommodationOption::where('option_type_id', $locationType->id)
+            ->where('scope_type', 'global')
+            ->whereNull('scope_id')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('value')
+            ->toArray();
+    }
+
+    /**
+     * Resolve admin option row id for a global location value.
+     */
+    protected function resolveLocationOptionId(?string $locationValue): ?int
+    {
+        $trimmed = trim((string) $locationValue);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $locationType = SurveyAccommodationOptionType::where('key_name', 'location')->first();
+        if (! $locationType) {
+            return null;
+        }
+
+        return $this->findAccommodationOptionId($locationType->id, $trimmed, null);
+    }
+
+    protected function resolveComponentLocationOptionId(?string $locationValue, ?int $componentId): ?int
+    {
+        $trimmed = trim((string) $locationValue);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $locationType = SurveyAccommodationOptionType::where('key_name', 'location')->first();
+        if (! $locationType) {
+            return null;
+        }
+
+        return $this->findAccommodationOptionId($locationType->id, $trimmed, $componentId);
+    }
+
+    /**
      * Save accommodation assessment, persist a plain-text selection summary (no per-room GPT), and regenerate combined component narratives.
      */
     public function saveAccommodationAssessment(Survey $survey, int $accommodationTypeId, array $formData, bool $isClone = false, ?int $assessmentId = null): array
@@ -692,7 +811,7 @@ class SurveyAccommodationDataService
                     $sourceAssessment = SurveyAccommodationAssessment::where('id', $assessmentId)
                         ->where('survey_id', $survey->id)
                         ->where('accommodation_type_id', $accommodationTypeId)
-                        ->with(['componentAssessments.component', 'componentAssessments.material', 'componentAssessments.defects', 'photos'])
+                        ->with(['componentAssessments.component', 'componentAssessments.material', 'componentAssessments.defects', 'componentAssessments.location', 'location', 'photos'])
                         ->first();
                 }
                 
@@ -701,7 +820,7 @@ class SurveyAccommodationDataService
                     $sourceAssessment = SurveyAccommodationAssessment::where('survey_id', $survey->id)
                         ->where('accommodation_type_id', $accommodationTypeId)
                         ->where('clone_index', 0)
-                        ->with(['componentAssessments.component', 'componentAssessments.material', 'componentAssessments.defects', 'photos'])
+                        ->with(['componentAssessments.component', 'componentAssessments.material', 'componentAssessments.defects', 'componentAssessments.location', 'location', 'photos'])
                         ->orderBy('id')
                         ->first();
                 }
@@ -714,6 +833,7 @@ class SurveyAccommodationDataService
                     $sourceAssessment->clone_index = 0;
                     $sourceAssessment->custom_name = $accommodationType->display_name; // Always use accommodation type name
                     $sourceAssessment->notes = $formData['notes'] ?? null;
+                    $sourceAssessment->location_id = $this->resolveLocationOptionId($formData['location'] ?? null);
                     $sourceAssessment->condition_rating = $formData['condition_rating'] ?? null;
                     $sourceAssessment->save();
                     
@@ -738,6 +858,7 @@ class SurveyAccommodationDataService
                 // Always use accommodation type name for clones too - heading should show only the type name
                 $assessment->custom_name = $accommodationType->display_name;
                 $assessment->notes = $sourceAssessment->notes; // Copy notes from source
+                $assessment->location_id = $sourceAssessment->location_id;
                 
                 // Use condition_rating from formData if provided, otherwise copy from source
                 if (isset($formData['condition_rating'])) {
@@ -792,11 +913,14 @@ class SurveyAccommodationDataService
                 if (array_key_exists('notes', $formData)) {
                     $assessment->notes = $formData['notes'];
                 }
+                if (array_key_exists('location', $formData)) {
+                    $assessment->location_id = $this->resolveLocationOptionId($formData['location'] ?? null);
+                }
                 $assessment->save();
                 if (isset($formData['components']) && is_array($formData['components']) && ! empty($formData['components'])) {
                     $this->saveAccommodationComponentAssessments($assessment, $formData['components']);
                 }
-                $assessment->load(['componentAssessments.component', 'componentAssessments.material', 'componentAssessments.defects', 'photos']);
+                $assessment->load(['componentAssessments.component', 'componentAssessments.material', 'componentAssessments.defects', 'location', 'photos']);
             } elseif ($assessmentId) {
                 // Update existing assessment (not a clone)
                 $assessment = SurveyAccommodationAssessment::where('id', $assessmentId)
@@ -835,6 +959,9 @@ class SurveyAccommodationDataService
                 // The heading should always show only the accommodation type name
                 $assessment->custom_name = $accommodationType->display_name;
                 $assessment->notes = $formData['notes'] ?? null;
+                if (array_key_exists('location', $formData)) {
+                    $assessment->location_id = $this->resolveLocationOptionId($formData['location'] ?? null);
+                }
                 $assessment->condition_rating = $conditionRating ?? $assessment->condition_rating;
                 $assessment->is_completed = true;
                 $assessment->completed_at = now();
@@ -858,7 +985,7 @@ class SurveyAccommodationDataService
                 // Components are already copied above, no need to save again unless updating
             }
 
-            $assessment->load(['accommodationType', 'componentAssessments.component', 'componentAssessments.material', 'componentAssessments.defects']);
+            $assessment->load(['accommodationType', 'componentAssessments.component', 'componentAssessments.material', 'componentAssessments.defects', 'location']);
 
             $reportContent = $this->buildAccommodationSelectionsSummary($assessment);
             $assessment->report_content = $reportContent;
@@ -980,6 +1107,10 @@ class SurveyAccommodationDataService
             if ($materialValue) {
                 $materialOptionId = $this->findAccommodationOptionId($materialType->id, $materialValue, $component->id);
                 $componentAssessment->material_id = $materialOptionId;
+            }
+
+            if (array_key_exists('location', $componentData)) {
+                $componentAssessment->location_id = $this->resolveComponentLocationOptionId($componentData['location'] ?? null, $component->id);
             }
 
             $componentAssessment->save();
@@ -1234,6 +1365,8 @@ class SurveyAccommodationDataService
                 'componentAssessments.component',
                 'componentAssessments.material',
                 'componentAssessments.defects',
+                'componentAssessments.location',
+                'location',
                 'accommodationType',
             ])
             ->orderBy('clone_index')
@@ -1256,14 +1389,26 @@ class SurveyAccommodationDataService
             if (!$ca) {
                 continue;
             }
+            $assessment->loadMissing('location');
             $material = $ca->material !== null ? ($ca->material->value ?? '') : '';
             $defects = $ca->defects->pluck('value')->toArray();
             $rating = $assessment->condition_rating;
+            $locationStr = '';
+            // Prefer component-specific location override; fall back to room global location
+            if ($ca->relationLoaded('location') && $ca->location) {
+                $locationStr = (string) ($ca->location->value ?? '');
+            } elseif (!empty($ca->location_id)) {
+                $ca->loadMissing('location');
+                $locationStr = (string) ($ca->location->value ?? '');
+            } elseif ($assessment->relationLoaded('location') && $assessment->location) {
+                $locationStr = (string) ($assessment->location->value ?? '');
+            }
             $rooms[] = [
                 'room_label' => $this->accommodationNumberedDisplayName($assessment),
                 'material' => $material,
                 'defects' => $defects,
                 'notes' => $assessment->notes ?? '',
+                'location' => $locationStr,
                 'condition_rating' => $rating !== null ? (string) $rating : null,
             ];
         }
@@ -1346,6 +1491,12 @@ class SurveyAccommodationDataService
         $lines[] = $this->accommodationNumberedDisplayName($assessment);
         $rating = $assessment->condition_rating;
         $lines[] = 'Condition rating: ' . ($rating !== null ? (string) $rating : 'Not indicated');
+
+        $assessment->loadMissing('location');
+        $loc = trim((string) ($assessment->location->value ?? ''));
+        if ($loc !== '') {
+            $lines[] = 'Location: ' . $loc;
+        }
 
         $notes = trim((string) ($assessment->notes ?? ''));
         if ($notes !== '') {

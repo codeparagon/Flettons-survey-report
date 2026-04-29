@@ -129,6 +129,11 @@ class Survey extends Model
         return $this->hasMany(SurveyNote::class, 'survey_id');
     }
 
+    public function deskStudy()
+    {
+        return $this->hasOne(SurveyDeskStudy::class);
+    }
+
     /**
      * Get all section assessments for this survey.
      */

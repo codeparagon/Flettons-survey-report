@@ -240,6 +240,9 @@ Route::prefix('surveyor')->middleware(['auth', 'surveyor'])->group(function () {
     // Mock routes - require survey parameter
     Route::get('/surveys/{survey}/detail-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'detailMock'])->name('surveyor.surveys.detail.mock');
     Route::get('/surveys/{survey}/desk-study-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'deskStudyMock'])->name('surveyor.surveys.desk-study.mock');
+    Route::post('/surveys/{survey}/desk-study-mock/save', [\App\Http\Controllers\Surveyor\SurveyController::class, 'saveDeskStudyMock'])->name('surveyor.surveys.desk-study.save');
+    Route::post('/surveys/{survey}/desk-study-mock/map-image', [\App\Http\Controllers\Surveyor\SurveyController::class, 'uploadDeskStudyMockMapImage'])->name('surveyor.surveys.desk-study.map-image');
+    Route::delete('/surveys/{survey}/desk-study-mock/map-image', [\App\Http\Controllers\Surveyor\SurveyController::class, 'deleteDeskStudyMockMapImage'])->name('surveyor.surveys.desk-study.map-image.delete');
     Route::get('/surveys/{survey}/data-mock', [\App\Http\Controllers\Surveyor\SurveyController::class, 'dataMock'])->name('surveyor.surveys.data.mock');
     Route::get('/surveys/{survey}/generate-pdf', [\App\Http\Controllers\Surveyor\SurveyController::class, 'generatePdfReport'])->name('surveyor.surveys.generate-pdf');
     Route::post('/surveys/{survey}/sections/{sectionDefinition}/save', [\App\Http\Controllers\Surveyor\SurveyController::class, 'saveSectionAssessment'])->name('surveyor.surveys.sections.save');

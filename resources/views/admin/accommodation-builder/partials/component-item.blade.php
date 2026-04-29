@@ -19,6 +19,9 @@
                 @if(isset($defects) && count($defects) > 0)
                     &middot; {{ count($defects) }} defects
                 @endif
+                @if(isset($locations) && count($locations) > 0)
+                    &middot; {{ count($locations) }} locations
+                @endif
                 @if(!$component->is_active)
                     <span class="status-badge inactive ml-2">Inactive</span>
                 @endif
@@ -64,6 +67,24 @@
                    class="tag-input"
                    placeholder="Type and press Enter..."
                    onkeydown="handleComponentDefectInput(event, {{ $component->id }})">
+        </div>
+
+        <label style="font-weight: 600; font-size: 13px; color: #374151; margin: 16px 0 8px; display: block;">
+            Component Location Options (optional)
+        </label>
+        <div class="tags-container component-locations-container">
+            @if(isset($locations))
+                @foreach($locations as $loc)
+                    <span class="tag" data-id="{{ $loc->id }}">
+                        {{ $loc->value }}
+                        <span class="tag-remove" onclick="deleteLocation({{ $loc->id }})">&times;</span>
+                    </span>
+                @endforeach
+            @endif
+            <input type="text"
+                   class="tag-input"
+                   placeholder="Type and press Enter..."
+                   onkeydown="handleComponentLocationInput(event, {{ $component->id }})">
         </div>
     </div>
 </div>
