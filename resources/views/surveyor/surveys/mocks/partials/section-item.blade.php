@@ -1,4 +1,9 @@
-<div class="survey-data-mock-section-item" data-section-id="{{ $section['id'] }}" data-section-definition-id="{{ $section['section_id'] ?? $section['id'] }}" data-has-report="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}" data-saved="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}">
+<div class="survey-data-mock-section-item"
+     data-section-id="{{ $section['id'] }}"
+     data-section-definition-id="{{ $section['section_id'] ?? $section['id'] }}"
+     data-subcategory-key="{{ $section['subcategory_key'] ?? '' }}"
+     data-has-report="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}"
+     data-saved="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}">
     <div class="survey-data-mock-section-header" data-expandable="true">
         <div class="survey-data-mock-section-name">
             {{ $section['name'] }}
@@ -44,6 +49,29 @@
         if (empty($enabledFields)) {
             $enabledFields = $surveyDataService->buildEnabledOptionFieldsMeta($surveyDataService->defaultEnabledOptionTypes());
         }
+
+        // For sections under an "Accommodation" sub-category, Location options come from the survey's Accommodation room list
+        // and allow multi-select. This renders Location between Material and Defects.
+        $useAccommodationRoomLocations = !empty($accommodationRoomOptions ?? [])
+            && !empty($subCategoryName ?? '')
+            && stripos((string) $subCategoryName, 'accommodation') !== false;
+
+        if ($useAccommodationRoomLocations) {
+            $weight = [
+                'section_type' => 10,
+                'structure' => 20,
+                'material' => 30,
+                'location' => 35, // between material and defects
+                'defects' => 40,
+                'remaining_life' => 50,
+            ];
+            usort($enabledFields, function ($a, $b) use ($weight) {
+                $wa = $weight[$a['key_name'] ?? ''] ?? 999;
+                $wb = $weight[$b['key_name'] ?? ''] ?? 999;
+                return $wa <=> $wb;
+            });
+        }
+
         $enabledFieldsLeft = array_slice($enabledFields, 0, 5);
         $enabledFieldsRight = array_slice($enabledFields, 5);
     @endphp
@@ -67,6 +95,8 @@
                             'categoryName' => $categoryName,
                             'subcategoryKey' => $subcategoryKey,
                             'surveyDataService' => $surveyDataService,
+                            'subCategoryName' => $subCategoryName ?? null,
+                            'accommodationRoomOptions' => $accommodationRoomOptions ?? [],
                         ])
                     @endforeach
                 </div>
@@ -87,6 +117,8 @@
                             'categoryName' => $categoryName,
                             'subcategoryKey' => $subcategoryKey,
                             'surveyDataService' => $surveyDataService,
+                            'subCategoryName' => $subCategoryName ?? null,
+                            'accommodationRoomOptions' => $accommodationRoomOptions ?? [],
                         ])
                     @endforeach
 

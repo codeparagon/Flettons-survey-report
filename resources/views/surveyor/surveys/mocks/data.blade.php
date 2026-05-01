@@ -37,6 +37,17 @@
         </div>
     </div>
     <div class="survey-data-mock-body">
+        @php
+            // Accommodation room labels (incl. clones) used as multi-select Location options for specific non-accommodation sections.
+            $accommodationRoomOptions = collect($accommodationSections ?? [])
+                ->map(function ($row) {
+                    return $row['display_label'] ?? $row['name'] ?? $row['accommodation_type_name'] ?? null;
+                })
+                ->filter(fn ($v) => !empty(trim((string) $v)))
+                ->unique()
+                ->values()
+                ->all();
+        @endphp
         @foreach($categories as $categoryName => $subCategories)
             <section class="survey-data-mock-category">
                 <div class="survey-data-mock-category-header" data-category-toggle>
@@ -55,7 +66,13 @@
                                 
                                 <div class="survey-data-mock-sub-category-sections">
                                     @foreach($sections as $section)
-                                        @include('surveyor.surveys.mocks.partials.section-item', ['section' => $section, 'categoryName' => $categoryName, 'subCategoryName' => $subCategoryName, 'optionsMapping' => $optionsMapping ?? []])
+                                        @include('surveyor.surveys.mocks.partials.section-item', [
+                                            'section' => $section,
+                                            'categoryName' => $categoryName,
+                                            'subCategoryName' => $subCategoryName,
+                                            'optionsMapping' => $optionsMapping ?? [],
+                                            'accommodationRoomOptions' => $accommodationRoomOptions ?? [],
+                                        ])
                                     @endforeach
                                     
                                     {{-- Content sections linked to this subcategory --}}
@@ -95,117 +112,61 @@
                 <div class="survey-data-mock-category-content collapse show">
                     @php
                         $accSections = $accommodationSections ?? [];
-                        $accGrouped = collect($accSections)->groupBy(function ($row) {
-                            return (string) ($row['accommodation_type_id'] ?? '');
-                        })->filter(function ($rows, $tid) {
-                            return $tid !== '' && $rows && count($rows) > 0;
-                        });
-
-                        $accTypeLabel = function ($rows, $fallback = 'Accommodation') {
-                            $first = is_array($rows) ? ($rows[0] ?? null) : (is_object($rows) ? $rows->first() : null);
-                            if (is_array($first)) {
-                                return $first['accommodation_type_name'] ?? $first['name'] ?? $fallback;
-                            }
-                            return $fallback;
-                        };
-
-                        $accTabOrder = $accGrouped->keys()->values();
-                        $firstAccTab = $accTabOrder->first();
                     @endphp
 
-                    @if($accGrouped->isNotEmpty())
+                    @if(!empty($accSections) && count($accSections) > 0)
                         <div class="survey-data-mock-accommodation-shell" data-accommodation-shell>
-                            <div class="survey-data-mock-accommodation-shell-header">
-                                <div class="survey-data-mock-accommodation-tabs" role="tablist" aria-label="Accommodation types">
-                                    @foreach($accGrouped as $typeId => $rows)
-                                        @php $label = $accTypeLabel($rows); @endphp
-                                        <button
-                                            type="button"
-                                            class="survey-data-mock-accommodation-tab {{ (string) $typeId === (string) $firstAccTab ? 'active' : '' }}"
-                                            role="tab"
-                                            aria-selected="{{ (string) $typeId === (string) $firstAccTab ? 'true' : 'false' }}"
-                                            data-acc-tab="{{ $typeId }}"
-                                        >
-                                            <span class="survey-data-mock-accommodation-tab-label">{{ $label }}</span>
-                                            <span class="survey-data-mock-accommodation-tab-count">{{ count($rows) }}</span>
-                                        </button>
-                                    @endforeach
-                                </div>
-
-                                <div class="survey-data-mock-accommodation-shell-actions">
-                                    <button type="button" class="survey-data-mock-accommodation-add-row" data-acc-add-row disabled title="Add Row (coming soon)">
-                                        <i class="fas fa-plus"></i>
-                                        Add Row
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="survey-data-mock-accommodation-panels">
-                                @foreach($accGrouped as $typeId => $rows)
-                                    @php
-                                        $label = $accTypeLabel($rows);
-                                        $sortedRows = collect($rows)->sortBy(function ($r) {
-                                            return (int) ($r['clone_index'] ?? 0);
-                                        })->values();
-                                    @endphp
-                                    <div
-                                        class="survey-data-mock-accommodation-panel {{ (string) $typeId === (string) $firstAccTab ? 'active' : '' }}"
-                                        role="tabpanel"
-                                        data-acc-panel="{{ $typeId }}"
-                                        aria-label="{{ $label }}"
-                                    >
-                                        <div class="survey-data-mock-accommodation-table-wrap">
-                                            <table class="survey-data-mock-accommodation-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th class="col-room">Room Area</th>
-                                                        <th class="col-location">Location</th>
-                                                        <th class="col-position">Front Rear Centre</th>
-                                                        <th class="col-photos">Photos and Obs.</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach($sortedRows as $accommodation)
-                                                        @php
-                                                            $rowId = $accommodation['id'] ?? '';
-                                                            $roomLabel = $accommodation['display_label'] ?? $accommodation['name'] ?? $label;
-                                                            $photoCount = count($accommodation['photos'] ?? []);
-                                                            $notes = trim((string) ($accommodation['notes'] ?? ''));
-                                                            $notesPreview = $notes !== '' ? \Illuminate\Support\Str::limit($notes, 44) : '—';
-                                                            $completed = (int) ($accommodation['completed_components'] ?? 0);
-                                                            $total = (int) ($accommodation['total_components'] ?? 0);
-                                                        @endphp
-                                                        <tr
-                                                            class="survey-data-mock-accommodation-row"
-                                                            data-acc-row="{{ $rowId }}"
-                                                            data-accommodation-id="{{ $rowId }}"
-                                                            data-accommodation-type-id="{{ $typeId }}"
-                                                            tabindex="0"
-                                                        >
-                                                            <td class="cell-room">
-                                                                <div class="room-title">{{ $roomLabel }}</div>
-                                                                <div class="room-sub">
-                                                                    <span class="room-sub-item"><i class="fas fa-sticky-note"></i> {{ $completed }}/{{ $total }}</span>
-                                                                    <span class="room-sub-sep">·</span>
-                                                                    <span class="room-sub-item"><i class="fas fa-camera"></i> {{ $photoCount }}</span>
-                                                                </div>
-                                                            </td>
-                                                            <td class="cell-location">—</td>
-                                                            <td class="cell-position">—</td>
-                                                            <td class="cell-photos">
-                                                                <span class="photo-chip">
-                                                                    <i class="fas fa-images"></i>
-                                                                    {{ $photoCount }}
-                                                                </span>
-                                                                <span class="obs-preview">{{ $notesPreview }}</span>
-                                                            </td>
-                                                        </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                @endforeach
+                            <div class="survey-data-mock-accommodation-table-wrap">
+                                <table class="survey-data-mock-accommodation-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-room">Room Area</th>
+                                            <th class="col-location">Location</th>
+                                            <th class="col-position">Front Rear Centre</th>
+                                            <th class="col-photos">Photos and Obs.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($accSections as $accommodation)
+                                            @php
+                                                $rowId = $accommodation['id'] ?? '';
+                                                $typeId = (string) ($accommodation['accommodation_type_id'] ?? '');
+                                                $typeLabel = $accommodation['accommodation_type_name'] ?? 'Accommodation';
+                                                $roomLabel = $accommodation['display_label'] ?? $accommodation['name'] ?? $typeLabel;
+                                                $photoCount = count($accommodation['photos'] ?? []);
+                                                $notes = trim((string) ($accommodation['notes'] ?? ''));
+                                                $notesPreview = $notes !== '' ? \Illuminate\Support\Str::limit($notes, 44) : '—';
+                                                $completed = (int) ($accommodation['completed_components'] ?? 0);
+                                                $total = (int) ($accommodation['total_components'] ?? 0);
+                                            @endphp
+                                            <tr
+                                                class="survey-data-mock-accommodation-row"
+                                                data-acc-row="{{ $rowId }}"
+                                                data-accommodation-id="{{ $rowId }}"
+                                                data-accommodation-type-id="{{ $typeId }}"
+                                                tabindex="0"
+                                            >
+                                                <td class="cell-room">
+                                                    <div class="room-title">{{ $roomLabel }}</div>
+                                                    <div class="room-sub">
+                                                        <span class="room-sub-item"><i class="fas fa-sticky-note"></i> {{ $completed }}/{{ $total }}</span>
+                                                        <span class="room-sub-sep">·</span>
+                                                        <span class="room-sub-item"><i class="fas fa-camera"></i> {{ $photoCount }}</span>
+                                                    </div>
+                                                </td>
+                                                <td class="cell-location">—</td>
+                                                <td class="cell-position">—</td>
+                                                <td class="cell-photos">
+                                                    <span class="photo-chip">
+                                                        <i class="fas fa-images"></i>
+                                                        {{ $photoCount }}
+                                                    </span>
+                                                    <span class="obs-preview">{{ $notesPreview }}</span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </div>
 
                             <div class="survey-data-mock-accommodation-sidebar" id="survey-data-mock-accommodation-sidebar" aria-hidden="true">
@@ -238,7 +199,7 @@
                             @endforeach
                         </div>
 
-                        @include('surveyor.surveys.mocks.partials.accommodation-group-summaries', ['accommodationSections' => $accSections, 'accommodationComponentSummaries' => $accommodationComponentSummaries ?? []])
+                        {{-- Combined narratives removed --}}
                     @else
                         <div class="survey-data-mock-sections" style="gap: 0.75rem;">
                             <div class="survey-data-mock-section-item">
@@ -299,7 +260,10 @@
         </div>
     </aside>
 
-    <nav class="survey-data-mock-bottom-nav" aria-label="Page actions">
+    <nav class="survey-data-mock-bottom-nav" aria-label="Page actions" data-draggable-bottom-nav="true">
+        <button type="button" class="survey-data-mock-bottom-nav-drag-handle" aria-label="Move toolbar" title="Drag to move">
+            <i class="fas fa-grip-lines" aria-hidden="true"></i>
+        </button>
         <button type="button" class="survey-data-mock-bottom-nav-btn survey-data-mock-bottom-nav-btn--scroll-top" id="survey-data-mock-scroll-top" title="Go to top" aria-hidden="true" tabindex="-1">
             <i class="fas fa-arrow-up" aria-hidden="true"></i>
         </button>
@@ -666,7 +630,8 @@
         right: calc(12px + env(safe-area-inset-right, 0px));
         bottom: calc(10px + env(safe-area-inset-bottom, 0px));
         transform: none;
-        z-index: 110000;
+        /* Keep above off-canvas drawers + app chrome */
+        z-index: 2147483000;
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -682,6 +647,47 @@
             0 2px 8px rgba(27, 32, 43, 0.08),
             0 8px 24px rgba(27, 32, 43, 0.12);
         pointer-events: auto;
+        touch-action: none; /* allow dragging on touch */
+    }
+
+    .survey-data-mock-bottom-nav.is-dragging {
+        user-select: none;
+        cursor: grabbing;
+    }
+
+    .survey-data-mock-bottom-nav-drag-handle {
+        appearance: none;
+        box-sizing: border-box;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        flex: 0 0 auto;
+        border: 1px solid var(--survey-data-mock-bottom-nav-border);
+        background: #ffffff;
+        color: var(--survey-data-mock-bottom-nav-border);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: grab;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .survey-data-mock-bottom-nav-drag-handle i {
+        color: var(--survey-data-mock-bottom-nav-border);
+        font-size: 1.05rem;
+        line-height: 1;
+    }
+
+    .survey-data-mock-bottom-nav-drag-handle:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(27, 32, 43, 0.12);
+        border-color: #2d3545;
+        background: #f8f9fb;
+    }
+
+    .survey-data-mock-bottom-nav-drag-handle:active {
+        cursor: grabbing;
     }
 
     .survey-data-mock-bottom-nav-btn {
@@ -2265,72 +2271,7 @@
         cursor: not-allowed;
     }
 
-    /* Accommodation: combined narratives only (ChatGPT) — see partial accommodation-group-summaries */
-    .survey-data-mock-combined-narratives-title {
-        margin: 0 0 0.35rem 0;
-        font-size: 1.05rem;
-        font-weight: 600;
-        color: #1b202b;
-    }
-    .survey-data-mock-combined-narratives-lead {
-        margin: 0 0 1rem 0;
-        font-size: 0.8125rem;
-        color: #64748b;
-        line-height: 1.45;
-    }
-
-    /* Combined narratives: same card chrome as section report; sits after all accommodation rows */
-    .survey-data-mock-accommodation-group-summaries {
-        margin-top: 1.5rem;
-        padding-top: 1.25rem;
-        border-top: 1px solid rgba(148, 163, 184, 0.25);
-    }
-    .survey-data-mock-combined-narratives-type-heading {
-        font-size: 0.9375rem;
-        font-weight: 600;
-        color: #1b202b;
-        margin: 0 0 0.75rem 0;
-    }
-    .survey-data-mock-combined-narrative-item .survey-data-mock-group-summary-status {
-        font-size: 0.8125rem;
-        color: #64748b;
-    }
-    .survey-data-mock-combined-narrative-item .survey-data-mock-group-summary-status.is-stale {
-        color: #b45309;
-    }
-    .survey-data-mock-combined-narrative-item .survey-data-mock-group-summary-status.is-fresh {
-        color: #15803d;
-    }
-    /* Decorative only — no section id; avoids opening the rating modal */
-    .survey-data-mock-combined-narrative-item .survey-data-mock-condition-badge {
-        pointer-events: none;
-        cursor: default;
-    }
-    .survey-data-mock-combined-narrative-item .survey-data-mock-report-content-wrapper {
-        position: relative;
-    }
-    .survey-data-mock-combined-narrative-util {
-        margin: 0.5rem 0 0 0;
-        padding: 0;
-        font-size: 0.8125rem;
-        text-align: right;
-    }
-    .survey-data-mock-combined-util-link {
-        background: none;
-        border: none;
-        padding: 0;
-        color: #64748b;
-        text-decoration: underline;
-        cursor: pointer;
-        font: inherit;
-    }
-    .survey-data-mock-combined-util-link:hover {
-        color: #1b202b;
-    }
-    .survey-data-mock-combined-util-sep {
-        margin: 0 0.35rem;
-        color: #94a3b8;
-    }
+    /* Combined narratives removed */
     .survey-data-mock-btn.survey-data-mock-btn--primary {
         padding: 0.35rem 0.75rem;
         font-size: 0.8125rem;
@@ -5011,6 +4952,138 @@ $(document).ready(function() {
         });
     });
 
+    // Draggable bottom navigation bar (drag handle only).
+    (function initDraggableBottomNav() {
+        const storageKey = 'surveyDataMock.bottomNav.pos.v1';
+        const $nav = $('.survey-data-mock-bottom-nav[data-draggable-bottom-nav="true"]').first();
+        if (!$nav.length) return;
+
+        const $handle = $nav.find('.survey-data-mock-bottom-nav-drag-handle').first();
+        if (!$handle.length) return;
+
+        let dragging = false;
+        let startX = 0;
+        let startY = 0;
+        let startLeft = 0;
+        let startTop = 0;
+        let pointerId = null;
+
+        function clamp(v, min, max) {
+            return Math.min(Math.max(v, min), max);
+        }
+
+        function getViewportRect() {
+            return { w: window.innerWidth || 0, h: window.innerHeight || 0 };
+        }
+
+        function applyFixedPosition(left, top) {
+            $nav.css({
+                left: `${left}px`,
+                top: `${top}px`,
+                right: 'auto',
+                bottom: 'auto',
+                transform: 'none',
+            });
+        }
+
+        function savePosition(left, top) {
+            try {
+                localStorage.setItem(storageKey, JSON.stringify({ left, top }));
+            } catch (_) {}
+        }
+
+        function loadPosition() {
+            try {
+                const raw = localStorage.getItem(storageKey);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed.left !== 'number' || typeof parsed.top !== 'number') return null;
+                return parsed;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function normalizeToViewport(left, top) {
+            const vp = getViewportRect();
+            const rect = $nav[0].getBoundingClientRect();
+            const maxLeft = Math.max(0, vp.w - rect.width);
+            const maxTop = Math.max(0, vp.h - rect.height);
+            return {
+                left: clamp(left, 0, maxLeft),
+                top: clamp(top, 0, maxTop),
+            };
+        }
+
+        // Restore previous position (if any) but keep inside viewport.
+        const saved = loadPosition();
+        if (saved) {
+            // Temporarily ensure we can measure size correctly.
+            const n = normalizeToViewport(saved.left, saved.top);
+            applyFixedPosition(n.left, n.top);
+        }
+
+        // Prevent clicks on handle from triggering other handlers.
+        $handle.on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        $handle.on('pointerdown', function(e) {
+            // Only left click / primary pointer
+            if (e.button !== undefined && e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            dragging = true;
+            pointerId = e.pointerId;
+            try { this.setPointerCapture(pointerId); } catch (_) {}
+
+            const rect = $nav[0].getBoundingClientRect();
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = rect.left;
+            startTop = rect.top;
+
+            $nav.addClass('is-dragging');
+        });
+
+        $(document).on('pointermove', function(e) {
+            if (!dragging) return;
+            if (pointerId !== null && e.pointerId !== pointerId) return;
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            const next = normalizeToViewport(startLeft + dx, startTop + dy);
+            applyFixedPosition(next.left, next.top);
+        });
+
+        function endDrag(e) {
+            if (!dragging) return;
+            if (pointerId !== null && e && e.pointerId !== undefined && e.pointerId !== pointerId) return;
+
+            dragging = false;
+            $nav.removeClass('is-dragging');
+
+            const rect = $nav[0].getBoundingClientRect();
+            const next = normalizeToViewport(rect.left, rect.top);
+            applyFixedPosition(next.left, next.top);
+            savePosition(next.left, next.top);
+
+            pointerId = null;
+        }
+
+        $(document).on('pointerup', endDrag);
+        $(document).on('pointercancel', endDrag);
+        $(window).on('resize', function() {
+            // Keep within viewport after resize.
+            const rect = $nav[0].getBoundingClientRect();
+            const next = normalizeToViewport(rect.left, rect.top);
+            applyFixedPosition(next.left, next.top);
+            savePosition(next.left, next.top);
+        });
+    })();
+
     $('#survey-data-mock-open-toc').on('click', function() {
         if ($toc.hasClass('is-open')) {
             closeToc();
@@ -5260,32 +5333,7 @@ $(document).ready(function() {
         });
     }
 
-    /** Apply server-returned combined component narratives to the group summary textareas */
-    function applyCombinedSummariesToDom(summariesByKey, accommodationTypeId) {
-        if (!summariesByKey || !accommodationTypeId) {
-            return;
-        }
-        const tid = String(accommodationTypeId);
-        Object.keys(summariesByKey).forEach(function(key) {
-            const entry = summariesByKey[key];
-            const content = entry && entry.content ? entry.content : '';
-            const $block = $('.survey-data-mock-accommodation-group-component[data-accommodation-type-id="' + tid + '"][data-component-key="' + key + '"]');
-            if (!$block.length) {
-                return;
-            }
-            $block.find('.survey-data-mock-group-summary-textarea').val(content);
-            const $st = $block.find('.survey-data-mock-group-summary-status');
-            $st.removeClass('is-stale is-fresh');
-            if (content.trim()) {
-                $st.addClass('is-fresh').text('Up to date');
-            } else {
-                $st.text('Not generated');
-            }
-            if (window.SurveyorAccommodationImprovements && typeof window.SurveyorAccommodationImprovements.recordGroupGeneration === 'function') {
-                window.SurveyorAccommodationImprovements.recordGroupGeneration(tid, key);
-            }
-        });
-    }
+    // Combined narratives removed
 
     // Mock GPT Content Generator
     function generateMockReportContent(formData, sectionName, categoryName) {
@@ -6290,6 +6338,13 @@ $(document).ready(function() {
         if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
             return;
         }
+
+        // Skip "Accommodation Components" regular sections: they should keep the server-provided
+        // component name (Ceiling, Walls, ...) and do not have a [data-group="section"] selector.
+        const subKey = String($sectionItem.attr('data-subcategory-key') || '');
+        if (subKey === 'accommodation_components') {
+            return;
+        }
         
         const $details = $sectionItem.find('.survey-data-mock-section-details');
         const $headerName = $sectionItem.find('.survey-data-mock-section-name');
@@ -7157,30 +7212,12 @@ $(document).ready(function() {
                 break;
                 
             case 'lock':
-                // Combined narrative: save then lock, or unlock
-                if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
-                    const isCurrentlyLockedCombined = $sectionItem.attr('data-locked') === 'true';
-                    if (!isCurrentlyLockedCombined) {
-                        $sectionItem.data('lockAfterSave', true);
-                        $sectionItem.find('.survey-data-mock-group-summary-save').trigger('click');
-                    } else {
-                        updateLockState($sectionItem, false);
-                    }
-                    break;
-                }
                 // Toggle lock state
                 const isCurrentlyLocked = $sectionItem.attr('data-locked') === 'true';
                 updateLockState($sectionItem, !isCurrentlyLocked);
                 break;
                 
             case 'edit':
-                if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
-                    updateLockState($sectionItem, false);
-                    setTimeout(function() {
-                        $reportContent.find('.survey-data-mock-group-summary-textarea').trigger('focus');
-                    }, 50);
-                    break;
-                }
                 // Toggle back to form view - clear file state so existing images are not re-submitted
                 $sectionItem.data('selectedFiles', []);
                 $sectionItem.find('.survey-data-mock-file-input').val('');
@@ -7205,24 +7242,12 @@ $(document).ready(function() {
                 break;
                 
             case 'refresh':
-                if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
-                    $sectionItem.find('.survey-data-mock-group-summary-generate').trigger('click');
-                    break;
-                }
                 // Regenerate content
                 const $detailsForRefresh = $sectionItem.find('.survey-data-mock-section-details');
                 const isAccommodationRefresh = $sectionItem.attr('data-accommodation-id') !== undefined;
                 
                 if (isAccommodationRefresh) {
-                    const tidR = $sectionItem.attr('data-accommodation-type-id');
-                    if (tidR) {
-                        const elCombined = document.getElementById('survey-accommodation-combined-panel-' + tidR);
-                        if (elCombined) {
-                            elCombined.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                    } else if (typeof toastr !== 'undefined') {
-                        toastr.info('Use Combined narratives above, or save this room first.');
-                    }
+                    // No combined narratives; accommodation refresh uses regular report generation
                 } else {
                     // Regenerate regular section report
                     const formData = {
@@ -8640,169 +8665,7 @@ $(document).ready(function() {
         }, 0);
     });
 
-    $(document).on('click', '.survey-data-mock-accommodation-scroll-combined', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const $item = $(this).closest('.survey-data-mock-section-item[data-accommodation-id]');
-        const tid = $item.attr('data-accommodation-type-id');
-        if (!tid) {
-            return;
-        }
-        const el = document.getElementById('survey-accommodation-combined-panel-' + tid);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    });
-
-    $(document).on('click', '.survey-data-mock-group-summary-generate', function() {
-        const $btn = $(this);
-        const $block = $btn.closest('.survey-data-mock-accommodation-group-component');
-        const tid = $block.attr('data-accommodation-type-id');
-        const componentId = $block.attr('data-component-id');
-        const componentKey = $block.attr('data-component-key');
-        const surveyId = $('.survey-data-mock-content').data('survey-id');
-        if (!surveyId || !tid) {
-            if (typeof toastr !== 'undefined') {
-                toastr.error('Missing survey or type. Refresh the page.');
-            }
-            return;
-        }
-        if (!componentId && !componentKey) {
-            if (typeof toastr !== 'undefined') {
-                toastr.error('Missing component. Refresh the page.');
-            }
-            return;
-        }
-        $btn.prop('disabled', true);
-        const genData = {
-            _token: '{{ csrf_token() }}',
-            accommodation_type_id: tid
-        };
-        if (componentId) {
-            genData.component_id = componentId;
-        } else {
-            genData.component_key = componentKey;
-        }
-        $.ajax({
-            url: `/surveyor/surveys/${surveyId}/accommodations/component-summaries/generate`,
-            method: 'POST',
-            data: genData,
-            success: function(res) {
-                if (res.success && res.component_summaries) {
-                    applyCombinedSummariesToDom(res.component_summaries, tid);
-                    if (typeof toastr !== 'undefined') {
-                        toastr.success('Combined narrative generated');
-                    }
-                }
-            },
-            error: function(xhr) {
-                const msg = (xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : 'Generation failed';
-                if (typeof toastr !== 'undefined') {
-                    toastr.error(msg);
-                }
-            },
-            complete: function() {
-                $btn.prop('disabled', false);
-            }
-        });
-    });
-
-    $(document).on('click', '.survey-data-mock-group-summary-save', function() {
-        const $btn = $(this);
-        const $block = $btn.closest('.survey-data-mock-accommodation-group-component');
-        const tid = $block.attr('data-accommodation-type-id');
-        const componentId = $block.attr('data-component-id');
-        const componentKey = $block.attr('data-component-key');
-        const surveyId = $('.survey-data-mock-content').data('survey-id');
-        const content = $block.find('.survey-data-mock-group-summary-textarea').val() || '';
-        if (!surveyId || !tid) {
-            if (typeof toastr !== 'undefined') {
-                toastr.error('Missing survey or accommodation type.');
-            }
-            return;
-        }
-        if (!componentId && !componentKey) {
-            if (typeof toastr !== 'undefined') {
-                toastr.error('Missing component id. Refresh the page.');
-            }
-            return;
-        }
-        $btn.prop('disabled', true);
-        const saveData = {
-            _token: '{{ csrf_token() }}',
-            accommodation_type_id: tid,
-            content: content
-        };
-        if (componentId) {
-            saveData.component_id = componentId;
-        }
-        if (!componentId && componentKey) {
-            saveData.component_key = componentKey;
-        }
-        $.ajax({
-            url: `/surveyor/surveys/${surveyId}/accommodations/component-summaries/save`,
-            method: 'POST',
-            data: saveData,
-            success: function() {
-                $block.find('.survey-data-mock-group-summary-status').removeClass('is-stale').addClass('is-fresh').text('Up to date');
-                if ($block.data('lockAfterSave')) {
-                    $block.removeData('lockAfterSave');
-                    updateLockState($block, true);
-                }
-                if (typeof toastr !== 'undefined') {
-                    toastr.success('Combined narrative saved');
-                }
-            },
-            error: function(xhr) {
-                $block.removeData('lockAfterSave');
-                let msg = 'Save failed';
-                if (xhr.responseJSON) {
-                    if (xhr.responseJSON.error) {
-                        msg = xhr.responseJSON.error;
-                    } else if (xhr.responseJSON.errors) {
-                        msg = Object.values(xhr.responseJSON.errors).flat().join(' ');
-                    }
-                }
-                if (typeof toastr !== 'undefined') {
-                    toastr.error(msg);
-                }
-            },
-            complete: function() {
-                $btn.prop('disabled', false);
-            }
-        });
-    });
-
-    $(document).on('click', '.survey-data-mock-group-summary-copy', function() {
-        const $ta = $(this).closest('.survey-data-mock-accommodation-group-component').find('.survey-data-mock-group-summary-textarea');
-        const el = $ta.get(0);
-        if (el) {
-            el.select();
-            document.execCommand('copy');
-        }
-        if (typeof toastr !== 'undefined') {
-            toastr.success('Copied to clipboard');
-        }
-    });
-
-    $(document).on('click', '.survey-data-mock-group-summary-clear', function() {
-        const $block = $(this).closest('.survey-data-mock-accommodation-group-component');
-        const tid = $block.data('accommodation-type-id');
-        const ck = $block.data('component-key');
-        $block.find('.survey-data-mock-group-summary-textarea').val('');
-        if (window.SurveyorAccommodationImprovements) {
-            window.SurveyorAccommodationImprovements.clearGroupGenerationRecord(tid, ck);
-        }
-    });
-
-    $(document).on('input', '.survey-data-mock-group-summary-textarea', function() {
-        const $block = $(this).closest('.survey-data-mock-accommodation-group-component');
-        const tid = $block.data('accommodation-type-id');
-        const ck = $block.data('component-key');
-        if (window.SurveyorAccommodationImprovements) {
-            window.SurveyorAccommodationImprovements.clearGroupGenerationRecord(tid, ck);
-        }
-    });
+    // Combined narratives removed (scroll/generate/save/copy/clear handlers)
 
     // Accommodation sections now use the same handler as regular sections
     // No separate handler needed - they use .survey-data-mock-section-item class
@@ -9007,14 +8870,7 @@ $(document).ready(function() {
                     });
                     $item.removeAttr('data-accommodation-editing');
 
-                    const tid = String(finalAccommodationTypeId);
-                    if (response.component_summaries && Object.keys(response.component_summaries).length) {
-                        applyCombinedSummariesToDom(response.component_summaries, tid);
-                    }
-
-                    if (response.component_summaries_error && typeof toastr !== 'undefined') {
-                        toastr.warning('Combined narratives: ' + response.component_summaries_error);
-                    }
+                    // Combined narratives removed
 
                     if (window.SurveyorAccommodationImprovements) {
                         window.SurveyorAccommodationImprovements.markRoomGenerated($item);
@@ -9245,7 +9101,7 @@ $(document).ready(function() {
                     try {
                         const typeIdStr = String(finalAccommodationTypeId);
                         const $shell = $('[data-accommodation-shell]').first();
-                        const $tbody = $shell.find(`.survey-data-mock-accommodation-panel[data-acc-panel="${typeIdStr}"] tbody`).first();
+                        const $tbody = $shell.find('.survey-data-mock-accommodation-table tbody').first();
                         if ($shell.length && $tbody.length && $newAccommodationItem.length) {
                             const roomLabel = $newAccommodationItem.find('.survey-data-mock-section-name').first().text().trim() || 'Accommodation';
                             const photoCount = $newAccommodationItem.find('.fa-camera').closest('.survey-data-mock-status-info').find('.survey-data-mock-status-text').first().text().trim() || '0';
@@ -9274,8 +9130,7 @@ $(document).ready(function() {
                             `;
                             $tbody.append(rowHtml);
 
-                            // Switch to the correct tab and open the new row in the sidebar
-                            $shell.find(`.survey-data-mock-accommodation-tab[data-acc-tab="${typeIdStr}"]`).trigger('click');
+                            // Open the new row in the sidebar
                             setTimeout(function() {
                                 $shell.find(`.survey-data-mock-accommodation-row[data-accommodation-id="${newId}"]`).first().trigger('click');
                             }, 0);

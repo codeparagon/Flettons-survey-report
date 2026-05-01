@@ -316,7 +316,6 @@ class SurveyController extends Controller
         // Get accommodation configuration data from database
         $accommodationDataService = app(\App\Services\SurveyAccommodationDataService::class);
         $accommodationSections = $accommodationDataService->getAccommodationConfigurationData($survey, $useMockData);
-        $accommodationComponentSummaries = $accommodationDataService->getComponentSummariesForSurvey($survey);
         $accommodationLocationOptions = $accommodationDataService->getGlobalLocations();
 
         // Get accommodation types with components (for form dropdowns)
@@ -352,7 +351,6 @@ class SurveyController extends Controller
             'survey',
             'categories',
             'accommodationSections',
-            'accommodationComponentSummaries',
             'accommodationLocationOptions',
             'accommodationTypesWithComponents',
             'hasAccommodationTypesWithComponents',
@@ -743,6 +741,20 @@ class SurveyController extends Controller
                 $survey->save();
                 $accService->syncLegacyPropertyCountColumns($survey, [$typeId => $num]);
 
+                // If the admin has configured this accommodation type to have components,
+                // increasing the count should create Bedroom 2, Bedroom 3, ... rows for the data page.
+                // Non-destructive on decreases.
+                try {
+                    $accService->ensureAccommodationAssessmentsForTypeCount($survey, $typeId, $num);
+                } catch (\Throwable $e) {
+                    \Log::warning('Failed to ensure accommodation assessments for property count update', [
+                        'survey_id' => $survey->id,
+                        'accommodation_type_id' => $typeId,
+                        'desired_count' => $num,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
                 return response()->json(['status' => 'success', 'message' => 'Survey updated successfully.', 'survey' => $survey]);
             }
 
@@ -1011,8 +1023,11 @@ class SurveyController extends Controller
 
         // Always number by server-side count. The client sends the source row's custom_name (e.g. "Bedroom 1")
         // for every clone, which would otherwise label every new row as "Bedroom 1".
-        $accommodationName = $accommodationType->display_name . ' ' . $nextNumber;
-        $displayLabel = $accommodationName;
+        $hasMultiple = $nextNumber > 1;
+        $displayLabel = $hasMultiple
+            ? ($accommodationType->display_name . ' ' . $nextNumber)
+            : $accommodationType->display_name;
+        $accommodationName = $displayLabel;
 
         $completedComponents = 0;
         foreach ($components as $c) {
@@ -1077,7 +1092,9 @@ class SurveyController extends Controller
             // Validate request
             $validated = $request->validate([
                 'section' => 'nullable|string',
-                'location' => 'nullable|string',
+                // Location may be a single string or an array (multi-select UI). If array, elements must be strings.
+                'location' => 'nullable',
+                'location.*' => 'nullable|string',
                 'structure' => 'nullable|string',
                 'material' => 'nullable|string',
                 'defects' => 'nullable|array',
@@ -1276,8 +1293,7 @@ class SurveyController extends Controller
                 'assessment_id' => $result['assessment']->id,
                 'report_content' => $result['report_content'],
                 'report_generation_error' => $result['report_generation_error'] ?? null,
-                'component_summaries' => $result['component_summaries'] ?? [],
-                'component_summaries_error' => $result['component_summaries_error'] ?? null,
+                // Combined narratives removed
                 'photos' => $photos,
             ], 200);
 
@@ -1300,137 +1316,7 @@ class SurveyController extends Controller
         }
     }
 
-    /**
-     * GPT: regenerate combined narratives for every component of an accommodation type (all rooms).
-     */
-    public function generateAccommodationComponentSummaries(Request $request, Survey $survey)
-    {
-        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        try {
-            $validated = $request->validate([
-                'accommodation_type_id' => 'required|integer|exists:survey_accommodation_types,id',
-                'component_id' => 'nullable|integer|exists:survey_accommodation_components,id',
-                'component_key' => 'nullable|string|max:191',
-            ]);
-
-            $service = app(\App\Services\SurveyAccommodationDataService::class);
-            $typeId = (int) $validated['accommodation_type_id'];
-
-            $singleComponentId = $validated['component_id'] ?? null;
-            if (!$singleComponentId && !empty($validated['component_key'])) {
-                $c = \App\Models\SurveyAccommodationComponent::where('key_name', $validated['component_key'])->first();
-                if ($c) {
-                    $singleComponentId = $c->id;
-                }
-            }
-
-            if (!empty($singleComponentId)) {
-                $one = $service->regenerateSingleComponentGroupSummary($survey, $typeId, (int) $singleComponentId);
-                return response()->json([
-                    'success' => true,
-                    'component_summaries' => [
-                        $one['component_key'] => [
-                            'content' => $one['content'],
-                            'input_hash' => $one['input_hash'],
-                        ],
-                    ],
-                ], 200);
-            }
-
-            $summaries = $service->regenerateComponentGroupSummariesForType($survey, $typeId);
-
-            return response()->json([
-                'success' => true,
-                'component_summaries' => $summaries,
-            ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'error' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            \Log::error('Failed to generate accommodation component summaries', [
-                'survey_id' => $survey->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Save manually edited combined narrative for one component group.
-     */
-    public function saveAccommodationComponentSummary(Request $request, Survey $survey)
-    {
-        if ($survey->surveyor_id && $survey->surveyor_id !== auth()->id()) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        try {
-            $validated = $request->validate([
-                'accommodation_type_id' => 'required|integer|exists:survey_accommodation_types,id',
-                'component_id' => 'nullable|integer|exists:survey_accommodation_components,id',
-                'component_key' => 'nullable|string|max:191',
-                'content' => 'nullable|string',
-            ]);
-
-            $componentId = $validated['component_id'] ?? null;
-            if (!$componentId) {
-                $key = $validated['component_key'] ?? null;
-                if (!$key) {
-                    return response()->json([
-                        'error' => 'Validation failed',
-                        'errors' => ['component_id' => ['Provide component_id or component_key.']],
-                    ], 422);
-                }
-                $component = \App\Models\SurveyAccommodationComponent::where('key_name', $key)->first();
-                if (!$component) {
-                    return response()->json([
-                        'error' => 'Unknown component_key',
-                    ], 422);
-                }
-                $componentId = $component->id;
-            }
-
-            $type = \App\Models\SurveyAccommodationType::findOrFail((int) $validated['accommodation_type_id']);
-            if (!$type->components()->where('survey_accommodation_components.id', $componentId)->exists()) {
-                return response()->json([
-                    'error' => 'This component is not configured for this accommodation type.',
-                ], 422);
-            }
-
-            $service = app(\App\Services\SurveyAccommodationDataService::class);
-            $service->saveComponentGroupSummaryContent(
-                $survey,
-                (int) $validated['accommodation_type_id'],
-                (int) $componentId,
-                (string) ($validated['content'] ?? '')
-            );
-
-            return response()->json(['success' => true], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'error' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            \Log::error('Failed to save accommodation component summary', [
-                'survey_id' => $survey->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'error' => 'Failed to save: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
+    // Combined narratives removed (component summary generate/save endpoints)
 
     /**
      * Update condition rating for an existing assessment.

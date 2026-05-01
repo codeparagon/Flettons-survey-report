@@ -245,10 +245,10 @@
         </div>
     </div>
 
-    <!-- Submitted: plain-text selection summary (read-only) + icon bar; AI narrative is in Combined narratives above -->
+    <!-- Submitted: plain-text selection summary (read-only) + icon bar -->
     <div class="survey-data-mock-report-content survey-data-mock-report-content--accommodation" style="display: none;" data-accommodation-id="{{ $accommodation['id'] }}" data-initial-has-report="{{ $accFormSubmitted ? 'true' : 'false' }}">
         <p class="survey-data-mock-accommodation-report-hint" style="margin: 0 0 0.75rem 0; padding: 0 0.25rem; font-size: 0.8125rem; color: #64748b;">
-            <i class="fas fa-check-circle" style="color:#22c55e;"></i> Submitted — summary of your selections below. Use <strong>Edit</strong> (pencil) to change materials, defects, or notes. For AI narrative across all rooms of this type, use <strong>Combined narratives</strong> above (or the arrow button).
+            <i class="fas fa-check-circle" style="color:#22c55e;"></i> Submitted — summary of your selections below. Use <strong>Edit</strong> (pencil) to change materials, defects, or notes.
         </p>
         <div class="survey-data-mock-report-content-wrapper">
             <textarea class="survey-data-mock-report-textarea survey-data-mock-accommodation-report-textarea" rows="12" placeholder="Your selections will appear here after saving…" @if($accFormSubmitted) disabled @endif>{{ $accommodation['report_content'] ?? '' }}</textarea>
@@ -258,9 +258,6 @@
                 </button>
                 <button type="button" class="survey-data-mock-action-icon-btn" data-action="edit" title="Edit form">
                     <i class="fas fa-pencil-alt"></i>
-                </button>
-                <button type="button" class="survey-data-mock-action-icon-btn survey-data-mock-accommodation-scroll-combined" title="Scroll to combined component reports for this accommodation type">
-                    <i class="fas fa-arrow-up"></i>
                 </button>
                 <button type="button" class="survey-data-mock-action-icon-btn" data-action="eye" title="Preview">
                     <i class="fas fa-eye"></i>

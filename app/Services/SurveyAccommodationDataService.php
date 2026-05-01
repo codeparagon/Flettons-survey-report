@@ -14,6 +14,7 @@ use App\Models\SurveyAccommodationComponentSummary;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class SurveyAccommodationDataService
 {
@@ -243,6 +244,144 @@ class SurveyAccommodationDataService
     }
 
     /**
+     * Ensure accommodation assessments exist up to a desired count for a given accommodation type.
+     *
+     * Used when the survey "Property Type" count is increased (e.g. Bedrooms = 3),
+     * so the Survey Data page can show Bedroom 1..3 rows.
+     *
+     * Non-destructive: if desiredCount is smaller than existing, nothing is deleted.
+     */
+    public function ensureAccommodationAssessmentsForTypeCount(Survey $survey, int $accommodationTypeId, int $desiredCount): void
+    {
+        $desiredCount = max(0, (int) $desiredCount);
+
+        $type = SurveyAccommodationType::query()
+            ->where('id', $accommodationTypeId)
+            ->where('is_active', true)
+            ->with(['components' => function ($q) {
+                $q->where('is_active', true)
+                    ->orderBy('survey_accommodation_components.sort_order');
+            }])
+            ->first();
+
+        if (! $type) {
+            return;
+        }
+
+        DB::transaction(function () use ($survey, $type, $desiredCount) {
+            $existing = SurveyAccommodationAssessment::query()
+                ->where('survey_id', $survey->id)
+                ->where('accommodation_type_id', $type->id)
+                ->orderBy('clone_index')
+                ->lockForUpdate()
+                ->get();
+
+            // If decreased to 0, delete all assessments for this type.
+            // If decreased (e.g. 3 -> 2), delete from the end (highest clone_index first).
+            $currentCount = $existing->count();
+            if ($desiredCount < $currentCount) {
+                // Determine which clone_index values should remain.
+                // desiredCount=1 keeps clone_index 0 only. desiredCount=2 keeps 0 and 1, etc.
+                $maxKeepCloneIndex = $desiredCount - 1;
+
+                $toDelete = $existing->filter(function ($a) use ($maxKeepCloneIndex, $desiredCount) {
+                    if ($desiredCount === 0) {
+                        return true;
+                    }
+                    return (int) ($a->clone_index ?? 0) > $maxKeepCloneIndex;
+                })->sortByDesc('clone_index')->values();
+
+                if ($toDelete->isNotEmpty()) {
+                    $assessmentIds = $toDelete->pluck('id')->filter()->values()->all();
+
+                    // Delete photos (and files) first
+                    $photos = \App\Models\SurveyAccommodationPhoto::whereIn('accommodation_assessment_id', $assessmentIds)->get();
+                    foreach ($photos as $p) {
+                        $path = (string) ($p->file_path ?? '');
+                        if ($path !== '') {
+                            try {
+                                Storage::disk('public')->delete($path);
+                            } catch (\Throwable $e) {
+                                // ignore file delete errors; still remove DB rows
+                            }
+                        }
+                    }
+                    \App\Models\SurveyAccommodationPhoto::whereIn('accommodation_assessment_id', $assessmentIds)->delete();
+
+                    // Delete component assessments + their pivot defects rows
+                    $componentAssessmentIds = \App\Models\SurveyAccommodationComponentAssessment::whereIn('accommodation_assessment_id', $assessmentIds)
+                        ->pluck('id')
+                        ->all();
+                    if (!empty($componentAssessmentIds)) {
+                        DB::table('survey_accommodation_component_defects')
+                            ->whereIn('component_assessment_id', $componentAssessmentIds)
+                            ->delete();
+                        \App\Models\SurveyAccommodationComponentAssessment::whereIn('id', $componentAssessmentIds)->delete();
+                    }
+
+                    // Finally delete the accommodation assessments
+                    \App\Models\SurveyAccommodationAssessment::whereIn('id', $assessmentIds)->delete();
+
+                    // Refresh existing after deletes
+                    $existing = SurveyAccommodationAssessment::query()
+                        ->where('survey_id', $survey->id)
+                        ->where('accommodation_type_id', $type->id)
+                        ->orderBy('clone_index')
+                        ->lockForUpdate()
+                        ->get();
+                    $currentCount = $existing->count();
+                }
+            }
+
+            if ($desiredCount === 0) {
+                return;
+            }
+
+            // Ensure original (clone_index 0) exists if desiredCount >= 1
+            $hasOriginal = $existing->firstWhere('clone_index', 0) !== null;
+            if (! $hasOriginal) {
+                $orig = new SurveyAccommodationAssessment();
+                $orig->survey_id = $survey->id;
+                $orig->accommodation_type_id = $type->id;
+                $orig->clone_index = 0;
+                $orig->custom_name = $type->display_name;
+                $orig->is_completed = false;
+                $orig->completed_at = null;
+                $orig->save();
+
+                // Create empty component rows so the UI renders consistently
+                $this->initializeComponentsFromType($orig, $type);
+
+                $existing = $existing->push($orig);
+            }
+
+            $currentCount = $existing->count();
+            if ($currentCount >= $desiredCount) {
+                return;
+            }
+
+            $maxCloneIndex = (int) ($existing->max('clone_index') ?? 0);
+
+            while ($currentCount < $desiredCount) {
+                $maxCloneIndex++;
+
+                $assessment = new SurveyAccommodationAssessment();
+                $assessment->survey_id = $survey->id;
+                $assessment->accommodation_type_id = $type->id;
+                $assessment->clone_index = $maxCloneIndex;
+                $assessment->custom_name = $type->display_name;
+                $assessment->is_completed = false;
+                $assessment->completed_at = null;
+                $assessment->save();
+
+                $this->initializeComponentsFromType($assessment, $type);
+
+                $currentCount++;
+            }
+        });
+    }
+
+    /**
      * Update legacy number_of_bedrooms / receptions / bathrooms from accommodation count map.
      *
      * @param  array<int|string, int>  $countsByTypeId
@@ -402,8 +541,9 @@ class SurveyAccommodationDataService
                 // Create default section for this type
                 $result[] = [
                     'id' => 'new_' . $typeId, // Temporary ID until saved
-                    'name' => $type->display_name . ' 1',
-                    'display_label' => $type->display_name . ' 1',
+                    // If there is only one room for this type, do not show "1" in the label.
+                    'name' => $type->display_name,
+                    'display_label' => $type->display_name,
                     'clone_index' => 0,
                     'accommodation_type_id' => $typeId,
                     'accommodation_type_name' => $type->display_name,
@@ -469,8 +609,16 @@ class SurveyAccommodationDataService
         $accommodationTypeName = $assessment->accommodationType->display_name ?? 'Unknown';
 
         $cloneIndex = (int) ($assessment->clone_index ?? 0);
-        // Bedroom 1, Bedroom 2, ... (clone_index is 0-based: first assessment = 1)
-        $displayLabel = $accommodationTypeName . ' ' . ($cloneIndex + 1);
+        $roomCountForType = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $assessment->survey_id)
+            ->where('accommodation_type_id', $assessment->accommodation_type_id)
+            ->count();
+
+        // If there's only one room for this type, show just "Bedroom" (no "1").
+        // Otherwise show "Bedroom 1", "Bedroom 2", ...
+        $displayLabel = $roomCountForType <= 1
+            ? $accommodationTypeName
+            : ($accommodationTypeName . ' ' . ($cloneIndex + 1));
         
         // Build components list in the same order as configured in admin
         $typeComponents = $assessment->accommodationType

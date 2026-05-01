@@ -119,6 +119,26 @@ class SurveyDataService
                 }
             }
         }
+
+        // Filter "Accommodation Components" sections to only those relevant to this survey.
+        // (i.e. components configured on accommodation types assigned to the survey's level)
+        $relevantAccComponentKeys = $this->getRelevantAccommodationComponentKeysForSurvey($survey);
+        if (!empty($relevantAccComponentKeys)) {
+            $sectionDefinitions = $sectionDefinitions->filter(function (SurveySectionDefinition $def) use ($relevantAccComponentKeys) {
+                $def->loadMissing('subcategory');
+                if (($def->subcategory->name ?? '') !== 'accommodation_components') {
+                    return true;
+                }
+                // Section definition name format: acc_component__{component_key}
+                $name = (string) $def->name;
+                $prefix = 'acc_component__';
+                if (strpos($name, $prefix) !== 0) {
+                    return false;
+                }
+                $key = substr($name, strlen($prefix));
+                return $key !== '' && in_array($key, $relevantAccComponentKeys, true);
+            })->values();
+        }
         
         // Load existing assessments for this survey
         $assessments = SurveySectionAssessment::where('survey_id', $survey->id)
@@ -176,6 +196,43 @@ class SurveyDataService
         
         // Group by sub-category using the existing method
         return $this->groupSectionsBySubCategory($categoriesRaw);
+    }
+
+    /**
+     * Accommodation component keys relevant to this survey (based on level-assigned accommodation types).
+     *
+     * - If the survey has no level: return [] (do not filter; show all component sections for legacy surveys).
+     * - If the level is missing/has no accommodation types: return [] (show none if sections exist, but keep existing behavior elsewhere).
+     *
+     * @return array<int, string>
+     */
+    protected function getRelevantAccommodationComponentKeysForSurvey(Survey $survey): array
+    {
+        if (empty($survey->level)) {
+            return [];
+        }
+
+        $surveyLevel = $this->findSurveyLevelByValue($survey->level);
+        if (!$surveyLevel) {
+            return [];
+        }
+
+        $typeIds = $surveyLevel->accommodationTypes()->pluck('survey_accommodation_types.id')->unique()->filter();
+        if ($typeIds->isEmpty()) {
+            return [];
+        }
+
+        $keys = DB::table('survey_accommodation_type_components')
+            ->join('survey_accommodation_components', 'survey_accommodation_components.id', '=', 'survey_accommodation_type_components.component_id')
+            ->whereIn('survey_accommodation_type_components.accommodation_type_id', $typeIds->all())
+            ->where('survey_accommodation_components.is_active', true)
+            ->pluck('survey_accommodation_components.key_name')
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+
+        return array_map('strval', $keys);
     }
 
     /**
@@ -760,7 +817,18 @@ class SurveyDataService
      */
     public function getEnabledOptionTypesForSection(SurveySectionDefinition $sectionDef): Collection
     {
-        $sectionDef->loadMissing('requiredFields');
+        $sectionDef->loadMissing('requiredFields', 'subcategory');
+
+        // Accommodation Components are special: they behave like "component forms"
+        // and should not show the generic "Select section" field.
+        if (($sectionDef->subcategory->name ?? '') === 'accommodation_components') {
+            return SurveyOptionType::query()
+                ->whereIn('key_name', ['material', 'location', 'defects'])
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get();
+        }
+
         $fields = $sectionDef->requiredFields;
         if ($fields->isEmpty()) {
             return $this->defaultEnabledOptionTypes();
@@ -917,22 +985,22 @@ class SurveyDataService
     {
         $options = isset($formData['options']) && is_array($formData['options']) ? $formData['options'] : [];
 
-        if (isset($formData['section'])) {
+        if (isset($formData['section']) && !array_key_exists('section_type', $options)) {
             $options['section_type'] = $formData['section'];
         }
-        if (isset($formData['location'])) {
+        if (isset($formData['location']) && !array_key_exists('location', $options)) {
             $options['location'] = $formData['location'];
         }
-        if (isset($formData['structure'])) {
+        if (isset($formData['structure']) && !array_key_exists('structure', $options)) {
             $options['structure'] = $formData['structure'];
         }
-        if (isset($formData['material'])) {
+        if (isset($formData['material']) && !array_key_exists('material', $options)) {
             $options['material'] = $formData['material'];
         }
-        if (isset($formData['remaining_life'])) {
+        if (isset($formData['remaining_life']) && !array_key_exists('remaining_life', $options)) {
             $options['remaining_life'] = $formData['remaining_life'];
         }
-        if (isset($formData['defects']) && is_array($formData['defects'])) {
+        if (isset($formData['defects']) && is_array($formData['defects']) && !array_key_exists('defects', $options)) {
             $options['defects'] = $formData['defects'];
         }
 

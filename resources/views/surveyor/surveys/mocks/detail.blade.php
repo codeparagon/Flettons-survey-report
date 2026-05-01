@@ -212,80 +212,24 @@
                             </div>
                             <div class="survey-detail-mock-counts">
                                 @foreach ($propertyCountTypesForSurvey ?? [] as $pc)
+                                @php
+                                    $pcCount = (int) ($pc['count'] ?? 0);
+                                    $pcDisplay = $pcCount === 0 ? '-' : (string) $pcCount;
+                                    $pcInputValue = $pcCount === 0 ? '' : (string) $pcCount;
+                                @endphp
                                 <div class="survey-detail-mock-count">
                                     <span class="survey-detail-mock-count-label">{{ $pc['display_name'] }}</span>
                                     <span class="survey-detail-mock-count-value editable-count"
                                         data-field="property_accommodation_count"
                                         data-accommodation-type-id="{{ $pc['id'] }}"
-                                        data-original="{{ $pc['count'] }}">
-                                        <span class="count-display" style="display: none;">{{ $pc['count'] }}</span>
+                                        data-original="{{ $pcDisplay }}">
+                                        <span class="count-display" style="display: none;">{{ $pcDisplay }}</span>
                                         <input type="number" class="count-input"
-                                            value="{{ $pc['count'] }}"
-                                            min="0" max="20">
+                                            value="{{ $pcInputValue }}"
+                                            min="0" max="20" placeholder="-">
                                     </span>
                                 </div>
                                 @endforeach
-                                <div class="survey-detail-mock-count">
-                                    <span class="survey-detail-mock-count-label">Garage</span>
-                                    <span class="survey-detail-mock-count-value editable-count" data-field="garage"
-                                        data-original="-">
-                                        <span class="count-display" style="display: none;">-</span>
-                                        <input type="number" class="count-input" value="" 
-                                            min="0" max="20" placeholder="-">
-                                        {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
-                                            title="Edit"
-                                            style="display: flex !important; visibility: visible !important;">
-                                            <i class="fas fa-pencil-alt"
-                                                style="display: inline-block !important; visibility: visible !important;"></i>
-                                        </button> --}}
-                                    </span>
-                                </div>
-                                <div class="survey-detail-mock-count">
-                                    <span class="survey-detail-mock-count-label">WC</span>
-                                    <span class="survey-detail-mock-count-value editable-count" data-field="wc"
-                                        data-original="-">
-                                        <span class="count-display" style="display: none;">-</span>
-                                        <input type="number" class="count-input" value="" 
-                                            min="0" max="20" placeholder="-">
-                                        {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
-                                            title="Edit"
-                                            style="display: flex !important; visibility: visible !important;">
-                                            <i class="fas fa-pencil-alt"
-                                                style="display: inline-block !important; visibility: visible !important;"></i>
-                                        </button> --}}
-                                    </span>
-                                </div>
-                                <div class="survey-detail-mock-count">
-                                    <span class="survey-detail-mock-count-label">Utility</span>
-                                    <span class="survey-detail-mock-count-value editable-count" data-field="utility"
-                                        data-original="-">
-                                        <span class="count-display" style="display: none;">-</span>
-                                        <input type="number" class="count-input" value="" 
-                                            min="0" max="20" placeholder="-">
-                                        {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
-                                            title="Edit"
-                                            style="display: flex !important; visibility: visible !important;">
-                                            <i class="fas fa-pencil-alt"
-                                                style="display: inline-block !important; visibility: visible !important;"></i>
-                                        </button> --}}
-                                    </span>
-                                </div>
-                                <div class="survey-detail-mock-count">
-                                    <span class="survey-detail-mock-count-label">Garden</span>
-                                    <span class="survey-detail-mock-count-value editable-count" data-field="utility"
-                                        data-original="-">
-                                        <span class="count-display" style="display: none;">-</span>
-                                        <input type="number" class="count-input" value="" 
-                                            min="0" max="20" placeholder="-">
-                                        {{-- <button type="button" class="survey-detail-mock-edit-btn count-edit-btn"
-                                            title="Edit"
-                                            style="display: flex !important; visibility: visible !important;">
-                                            <i class="fas fa-pencil-alt"
-                                                style="display: inline-block !important; visibility: visible !important;"></i>
-                                        </button> --}}
-                                    </span>
-                                </div>
-                               
                             </div>
                         </div>
                     </article>
