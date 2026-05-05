@@ -2,7 +2,12 @@
     $keyName = $field['key_name'];
     $uiGroup = $field['data_group'];
     $isMultiple = !empty($field['is_multiple']);
-    $typeOptions = $surveyDataService->getOptionsForOptionTypeKey($keyName, $categoryName, $subcategoryKey);
+    $typeOptions = $surveyDataService->getOptionsForOptionTypeKey(
+        $keyName,
+        $categoryName,
+        $subcategoryKey,
+        isset($section['section_id']) ? (int) $section['section_id'] : null
+    );
     if ($keyName === 'section_type' && empty($typeOptions)) {
         $typeOptions = [$section['name']];
     }

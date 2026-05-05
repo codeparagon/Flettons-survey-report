@@ -14,6 +14,11 @@ class SurveyAccommodationComponentAssessment extends Model
         'component_id',
         'material_id',
         'location_id',
+        'gpt_observations',
+    ];
+
+    protected $casts = [
+        'gpt_observations' => 'array',
     ];
 
     public function accommodationAssessment()

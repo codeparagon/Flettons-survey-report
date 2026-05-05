@@ -686,6 +686,21 @@
                         @endif
                     </div>
 
+                    @if(!empty($accommodation['gpt_narrative']))
+                        <div class="report-content gpt-narrative">
+                            {!! nl2br(e($accommodation['gpt_narrative'])) !!}
+                        </div>
+                    @endif
+                    @if(!empty($accommodation['gpt_observations']) && is_array($accommodation['gpt_observations']))
+                        <div class="gpt-observations" style="margin-top: 0.25cm;">
+                            <strong>General observations</strong>
+                            <ul class="defects-list" style="margin-top: 0.15cm;">
+                                @foreach($accommodation['gpt_observations'] as $gptObs)
+                                    <li>{{ $gptObs }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                     @if(!empty($accommodation['report_content']))
                         <div class="report-content">
                             {!! nl2br(e($accommodation['report_content'])) !!}
@@ -708,6 +723,18 @@
                                                 <ul class="defects-list">
                                                     @foreach($component['defects'] as $defect)
                                                         <li>{{ $defect }}</li>
+                                                    @endforeach
+                                                </ul>
+                                            </span>
+                                        </div>
+                                    @endif
+                                    @if(!empty($component['gpt_observations']) && is_array($component['gpt_observations']))
+                                        <div class="form-data-row" style="margin-top: 0.15cm;">
+                                            <span class="form-data-label">GPT observations:</span>
+                                            <span class="form-data-value">
+                                                <ul class="defects-list">
+                                                    @foreach($component['gpt_observations'] as $gptCompObs)
+                                                        <li>{{ $gptCompObs }}</li>
                                                     @endforeach
                                                 </ul>
                                             </span>

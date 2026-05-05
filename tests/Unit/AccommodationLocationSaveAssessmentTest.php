@@ -27,9 +27,13 @@ class AccommodationLocationSaveAssessmentTest extends TestCase
     public function test_save_accommodation_assessment_stores_location_id(): void
     {
         $this->mock(ChatGPTService::class, function ($mock) {
-            $mock->shouldReceive('generateAccommodationGroupComponentReport')
+            $mock->shouldReceive('generateAccommodationCombinedReport')
                 ->zeroOrMoreTimes()
-                ->andReturn('Combined narrative');
+                ->andReturn([
+                    'narrative' => 'Combined narrative',
+                    'observations' => [],
+                    'component_observations' => [],
+                ]);
         });
 
         $survey = Survey::query()->create([

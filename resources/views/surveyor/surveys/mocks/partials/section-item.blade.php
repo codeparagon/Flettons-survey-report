@@ -2,6 +2,7 @@
      data-section-id="{{ $section['id'] }}"
      data-section-definition-id="{{ $section['section_id'] ?? $section['id'] }}"
      data-subcategory-key="{{ $section['subcategory_key'] ?? '' }}"
+     @if(!empty($section['acc_component_key'])) data-acc-component-key="{{ $section['acc_component_key'] }}" @endif
      data-has-report="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}"
      data-saved="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}">
     <div class="survey-data-mock-section-header" data-expandable="true">

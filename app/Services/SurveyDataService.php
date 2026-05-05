@@ -12,6 +12,8 @@ use App\Models\SurveyOptionType;
 use App\Models\SurveyOption;
 use App\Models\SurveySectionCost;
 use App\Models\SurveySectionOptionValue;
+use App\Models\SurveyAccommodationAssessment;
+use App\Models\SurveyAccommodationComponent;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -120,8 +122,14 @@ class SurveyDataService
             }
         }
 
-        // Filter "Accommodation Components" sections to only those relevant to this survey.
-        // (i.e. components configured on accommodation types assigned to the survey's level)
+        // Ensure Accommodation Components survey sections appear whenever this survey uses accommodation,
+        // even if survey_level_section_definitions was missing links (new levels / unmigrated DB).
+        $sectionDefinitions = $this->ensureAccommodationComponentSectionsForSurvey($sectionDefinitions, $survey);
+
+        // Filter "Accommodation Components" sections to those relevant to this survey (union of:
+        // accommodation types on the survey level + accommodation types already used on this survey).
+        $beforeDefinitions = $sectionDefinitions;
+
         $relevantAccComponentKeys = $this->getRelevantAccommodationComponentKeysForSurvey($survey);
         if (!empty($relevantAccComponentKeys)) {
             $sectionDefinitions = $sectionDefinitions->filter(function (SurveySectionDefinition $def) use ($relevantAccComponentKeys) {
@@ -138,6 +146,25 @@ class SurveyDataService
                 $key = substr($name, strlen($prefix));
                 return $key !== '' && in_array($key, $relevantAccComponentKeys, true);
             })->values();
+        }
+
+        // Never drop every Accommodation Components section because of key/pivot mismatches.
+        $accBefore = $beforeDefinitions->filter(function (SurveySectionDefinition $def) {
+            $def->loadMissing('subcategory');
+            return ($def->subcategory->name ?? '') === 'accommodation_components';
+        });
+        if ($accBefore->isNotEmpty()) {
+            $accAfter = $sectionDefinitions->filter(function (SurveySectionDefinition $def) {
+                $def->loadMissing('subcategory');
+                return ($def->subcategory->name ?? '') === 'accommodation_components';
+            });
+            if ($accAfter->isEmpty()) {
+                $nonAcc = $sectionDefinitions->filter(function (SurveySectionDefinition $def) {
+                    $def->loadMissing('subcategory');
+                    return ($def->subcategory->name ?? '') !== 'accommodation_components';
+                });
+                $sectionDefinitions = $nonAcc->merge($accBefore)->unique('id')->values();
+            }
         }
         
         // Load existing assessments for this survey
@@ -199,25 +226,220 @@ class SurveyDataService
     }
 
     /**
-     * Accommodation component keys relevant to this survey (based on level-assigned accommodation types).
+     * When accommodation applies to this survey, merge in any active SurveySectionDefinitions under the
+     * "accommodation_components" subcategory that were not attached to the survey's level pivot.
      *
-     * - If the survey has no level: return [] (do not filter; show all component sections for legacy surveys).
-     * - If the level is missing/has no accommodation types: return [] (show none if sections exist, but keep existing behavior elsewhere).
+     * @param  Collection<int, SurveySectionDefinition>  $sectionDefinitions
+     * @return Collection<int, SurveySectionDefinition>
+     */
+    protected function ensureAccommodationComponentSectionsForSurvey(Collection $sectionDefinitions, Survey $survey): Collection
+    {
+        if (!$this->surveyShouldMergeAccommodationComponentSections($survey)) {
+            return $sectionDefinitions;
+        }
+
+        $existingIds = $sectionDefinitions->pluck('id')->filter()->unique()->values()->all();
+
+        $extras = SurveySectionDefinition::with(['subcategory.category', 'requiredFields'])
+            ->where('is_active', true)
+            ->whereHas('subcategory', function ($q) {
+                $q->where('name', 'accommodation_components');
+            })
+            ->when(count($existingIds) > 0, function ($q) use ($existingIds) {
+                $q->whereNotIn('id', $existingIds);
+            })
+            ->orderBy('sort_order')
+            ->get();
+
+        // Surveys use accommodation rows, but DB may never have had migrations — create defs once (idempotent).
+        if ($extras->isEmpty()) {
+            $this->bootstrapAccommodationComponentSurveyDefinitionsIfMissing();
+            $extras = SurveySectionDefinition::with(['subcategory.category', 'requiredFields'])
+                ->where('is_active', true)
+                ->whereHas('subcategory', function ($q) {
+                    $q->where('name', 'accommodation_components');
+                })
+                ->when(count($existingIds) > 0, function ($q) use ($existingIds) {
+                    $q->whereNotIn('id', $existingIds);
+                })
+                ->orderBy('sort_order')
+                ->get();
+        }
+
+        if ($extras->isEmpty()) {
+            return $sectionDefinitions;
+        }
+
+        return $sectionDefinitions->merge($extras)->unique('id')->values();
+    }
+
+    /**
+     * Ensures Interior → Accommodation Components exists with one section definition per accommodation component,
+     * required option fields (material, location, defects), and links on every survey level.
+     * Safe to call repeatedly (matches migration behaviour).
+     */
+    protected function bootstrapAccommodationComponentSurveyDefinitionsIfMissing(): void
+    {
+        $category = SurveyCategory::query()
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->where('name', 'interior')->orWhere('display_name', 'Interior');
+            })
+            ->orderByRaw("CASE WHEN name = 'interior' THEN 0 WHEN name = 'exterior' THEN 1 ELSE 2 END")
+            ->first();
+
+        if (!$category) {
+            $category = SurveyCategory::query()->where('is_active', true)->orderBy('sort_order')->first();
+        }
+
+        if (!$category) {
+            return;
+        }
+
+        $sub = SurveySubcategory::query()->firstOrCreate(
+            [
+                'category_id' => $category->id,
+                'name' => 'accommodation_components',
+            ],
+            [
+                'display_name' => 'Accommodation Components',
+                'sort_order' => (int) (SurveySubcategory::where('category_id', $category->id)->max('sort_order') ?? 0) + 1,
+                'is_active' => true,
+            ]
+        );
+
+        $sub->forceFill([
+            'display_name' => 'Accommodation Components',
+            'is_active' => true,
+        ])->save();
+
+        $components = SurveyAccommodationComponent::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
+
+        if ($components->isEmpty()) {
+            return;
+        }
+
+        $sort = 1;
+        $sectionIds = [];
+
+        foreach ($components as $c) {
+            $name = 'acc_component__'.$c->key_name;
+            $def = SurveySectionDefinition::query()->updateOrCreate(
+                [
+                    'subcategory_id' => $sub->id,
+                    'name' => $name,
+                ],
+                [
+                    'display_name' => $c->display_name ?: $c->key_name,
+                    'is_clonable' => true,
+                    'max_clones' => null,
+                    'sort_order' => $sort,
+                    'is_active' => true,
+                ]
+            );
+            $sectionIds[] = $def->id;
+            $sort++;
+        }
+
+        $otIds = SurveyOptionType::query()
+            ->whereIn('key_name', ['material', 'location', 'defects'])
+            ->pluck('id', 'key_name');
+
+        foreach ($sectionIds as $sid) {
+            foreach (['material', 'location', 'defects'] as $key) {
+                $otId = $otIds[$key] ?? null;
+                if (!$otId) {
+                    continue;
+                }
+                DB::table('survey_section_required_fields')->updateOrInsert(
+                    [
+                        'section_definition_id' => $sid,
+                        'option_type_id' => $otId,
+                    ],
+                    [
+                        'section_definition_id' => $sid,
+                        'option_type_id' => $otId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+            }
+        }
+
+        $levels = DB::table('survey_levels')->pluck('id');
+        foreach ($levels as $lvlId) {
+            $lvlId = (int) $lvlId;
+            $baseSort = (int) (DB::table('survey_level_section_definitions')->where('survey_level_id', $lvlId)->max('sort_order') ?? 0);
+            $i = 0;
+            foreach ($sectionIds as $sid) {
+                DB::table('survey_level_section_definitions')->updateOrInsert(
+                    [
+                        'survey_level_id' => $lvlId,
+                        'section_definition_id' => $sid,
+                    ],
+                    [
+                        'survey_level_id' => $lvlId,
+                        'section_definition_id' => $sid,
+                        'sort_order' => $baseSort + 10 + $i,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+                $i++;
+            }
+        }
+    }
+
+    /**
+     * True if this survey should expose Accommodation Components sections (Ceiling, Walls, …).
+     */
+    protected function surveyShouldMergeAccommodationComponentSections(Survey $survey): bool
+    {
+        if (SurveyAccommodationAssessment::query()->where('survey_id', $survey->id)->exists()) {
+            return true;
+        }
+
+        if (!empty($survey->level)) {
+            $surveyLevel = $this->findSurveyLevelByValue($survey->level);
+
+            return $surveyLevel && $surveyLevel->accommodationTypes()->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Accommodation component keys relevant to this survey:
+     * - Types linked to the survey's level (survey_level_accommodation_types)
+     * - Types already present on this survey's accommodation assessments (rooms)
+     *
+     * Empty array means "do not filter by component key" (caller keeps all Accommodation Components defs).
      *
      * @return array<int, string>
      */
     protected function getRelevantAccommodationComponentKeysForSurvey(Survey $survey): array
     {
-        if (empty($survey->level)) {
-            return [];
+        $typeIds = collect();
+
+        if (!empty($survey->level)) {
+            $surveyLevel = $this->findSurveyLevelByValue($survey->level);
+            if ($surveyLevel) {
+                $typeIds = $typeIds->merge(
+                    $surveyLevel->accommodationTypes()->pluck('survey_accommodation_types.id')
+                );
+            }
         }
 
-        $surveyLevel = $this->findSurveyLevelByValue($survey->level);
-        if (!$surveyLevel) {
-            return [];
-        }
+        $fromAssessments = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->whereNotNull('accommodation_type_id')
+            ->pluck('accommodation_type_id');
 
-        $typeIds = $surveyLevel->accommodationTypes()->pluck('survey_accommodation_types.id')->unique()->filter();
+        $typeIds = $typeIds->merge($fromAssessments)->unique()->filter()->values();
+
         if ($typeIds->isEmpty()) {
             return [];
         }
@@ -287,6 +509,15 @@ class SurveyDataService
     {
         $sectionDef->loadMissing('subcategory.category', 'requiredFields');
         $subcategoryKey = $sectionDef->subcategory->name ?? '';
+        $accComponentKey = null;
+        if ($subcategoryKey === 'accommodation_components') {
+            $name = (string) ($sectionDef->name ?? '');
+            $prefix = 'acc_component__';
+            if (strpos($name, $prefix) === 0) {
+                $k = trim(substr($name, strlen($prefix)));
+                $accComponentKey = $k !== '' ? $k : null;
+            }
+        }
 
         $types = $this->getEnabledOptionTypesForSection($sectionDef);
         $selections = $this->buildOptionSelectionsFromAssessment($sectionDef, $assessment);
@@ -308,6 +539,7 @@ class SurveyDataService
             'section_id' => $sectionDef->id,
             'name' => $sectionName,
             'subcategory_key' => $subcategoryKey,
+            'acc_component_key' => $accComponentKey,
             'completion' => $completionData['count'],
             'total' => $completionData['total'],
             'condition_rating' => $assessment ? $this->mapConditionRatingFromNumeric($assessment->condition_rating) : 'ni',
@@ -491,6 +723,28 @@ class SurveyDataService
             $grouped = [];
             foreach ($subCategories as $subCategory) {
                 $grouped[$subCategory['key']] = [];
+            }
+
+            // Buckets for subcategory keys present on sections but missing from mapping (stale mapping / new subcategories).
+            foreach ($sections as $section) {
+                $sk = $section['subcategory_key'] ?? null;
+                if (!$sk || array_key_exists($sk, $grouped)) {
+                    continue;
+                }
+                $sub = SurveySubcategory::with('category')->where('name', $sk)->first();
+                if (!$sub || !$sub->category) {
+                    $grouped[$sk] = [];
+
+                    continue;
+                }
+                $cn = $categoryName;
+                if (($sub->category->display_name ?? '') !== $cn && ($sub->category->name ?? '') !== $cn) {
+                    continue;
+                }
+                $grouped[$sk] = [];
+                if (!isset($lookup[$sk])) {
+                    $lookup[$sk] = $sub->display_name;
+                }
             }
             
             // Group sections by subcategory_key
@@ -867,8 +1121,42 @@ class SurveyDataService
     /**
      * Scoped option values for any option type key (built-ins delegate to existing helpers).
      */
-    public function getOptionsForOptionTypeKey(string $keyName, ?string $categoryName, ?string $subCategoryKey): array
+    public function getOptionsForOptionTypeKey(
+        string $keyName,
+        ?string $categoryName,
+        ?string $subCategoryKey,
+        ?int $sectionDefinitionId = null
+    ): array
     {
+        // Accommodation Components are represented as regular SurveySectionDefinitions under the
+        // `accommodation_components` subcategory (see migration 2026_04_30_105024...).
+        //
+        // For these sections, Material/Location/Defects must come from the accommodation option tables
+        // (global + component scope), not the generic SurveyOption category/subcategory mapping.
+        if ($subCategoryKey === 'accommodation_components' && $sectionDefinitionId) {
+            $sectionDef = \App\Models\SurveySectionDefinition::query()
+                ->select(['id', 'name'])
+                ->find($sectionDefinitionId);
+
+            $componentKey = null;
+            if ($sectionDef && is_string($sectionDef->name) && str_starts_with($sectionDef->name, 'acc_component__')) {
+                $componentKey = trim(substr($sectionDef->name, strlen('acc_component__')));
+                if ($componentKey === '') {
+                    $componentKey = null;
+                }
+            }
+
+            if ($componentKey) {
+                $acc = app(\App\Services\SurveyAccommodationDataService::class);
+                return match ($keyName) {
+                    'material' => $acc->getComponentMaterials($componentKey),
+                    'defects' => $acc->getComponentDefects($componentKey),
+                    'location' => $acc->getComponentLocations($componentKey),
+                    default => [],
+                };
+            }
+        }
+
         return match ($keyName) {
             'section_type' => $this->getSectionOptions($categoryName ?? '', $subCategoryKey),
             'location' => $this->getLocationOptions($categoryName, $subCategoryKey),
@@ -1654,6 +1942,13 @@ class SurveyDataService
 
             $normalizedOptions = $this->normalizeOptionsFromFormData($formData);
 
+            // Accommodation Components sections use accommodation option tables for their pick-lists.
+            // Ensure the selected values exist in survey_options too, so the section assessment can persist
+            // and the edit UI can re-select them on refresh.
+            if (($sectionDefinition->subcategory->name ?? '') === 'accommodation_components') {
+                $this->ensureSurveyOptionsExistForAccommodationComponentSelections($normalizedOptions);
+            }
+
             // Update assessment fields
             $assessment->survey_id = $survey->id;
             $assessment->section_definition_id = $sectionDefinition->id;
@@ -1669,6 +1964,28 @@ class SurveyDataService
 
             $this->syncSectionOptionValues($assessment, $sectionDefinition, $normalizedOptions);
             $assessment->refresh();
+
+            // Persist onto per-room Accommodation component assessments so refresh doesn't lose values.
+            if (($sectionDefinition->subcategory->name ?? '') === 'accommodation_components') {
+                $componentKey = $this->componentKeyFromAccommodationComponentSectionDefinition($sectionDefinition);
+                if ($componentKey) {
+                    try {
+                        app(\App\Services\SurveyAccommodationDataService::class)
+                            ->applyComponentSectionSelectionsToSurveyAccommodations($survey, $componentKey, [
+                                'material' => $normalizedOptions['material'] ?? '',
+                                'location' => $normalizedOptions['location'] ?? '',
+                                'defects' => isset($normalizedOptions['defects']) && is_array($normalizedOptions['defects']) ? $normalizedOptions['defects'] : [],
+                            ], true);
+                    } catch (\Throwable $e) {
+                        \Log::warning('Failed to apply accommodation component section to accommodation assessments', [
+                            'survey_id' => $survey->id,
+                            'section_definition_id' => $sectionDefinition->id,
+                            'component_key' => $componentKey,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
 
             // Save costs
             if (isset($formData['costs']) && is_array($formData['costs'])) {
@@ -1712,6 +2029,96 @@ class SurveyDataService
             ]);
 
             throw $e;
+        }
+    }
+
+    /**
+     * Section definition name format: acc_component__{component_key}
+     */
+    protected function componentKeyFromAccommodationComponentSectionDefinition(SurveySectionDefinition $sectionDefinition): ?string
+    {
+        $name = (string) ($sectionDefinition->name ?? '');
+        $prefix = 'acc_component__';
+        if (strpos($name, $prefix) !== 0) {
+            return null;
+        }
+        $key = trim(substr($name, strlen($prefix)));
+        return $key !== '' ? $key : null;
+    }
+
+    /**
+     * The Accommodation Components section UI uses accommodation option tables for pick-lists.
+     * The section assessment persistence uses survey_options; so we seed missing values there.
+     *
+     * @param array<string, mixed> $normalizedOptions
+     */
+    protected function ensureSurveyOptionsExistForAccommodationComponentSelections(array $normalizedOptions): void
+    {
+        $keys = ['material', 'location', 'defects'];
+        $types = \App\Models\SurveyOptionType::query()
+            ->whereIn('key_name', $keys)
+            ->where('is_active', true)
+            ->get()
+            ->keyBy('key_name');
+
+        foreach ($keys as $k) {
+            $ot = $types->get($k);
+            if (! $ot) {
+                continue;
+            }
+
+            $vals = [];
+            $raw = $normalizedOptions[$k] ?? null;
+            if ($k === 'defects') {
+                $vals = is_array($raw) ? $raw : array_filter([$raw]);
+            } else {
+                // These are single-selects in the section form, but be defensive:
+                // sometimes the client may send an array (e.g. multi-select widgets / legacy payloads).
+                if (is_array($raw)) {
+                    $first = null;
+                    foreach ($raw as $rv) {
+                        if ($rv !== null && $rv !== '') {
+                            $first = $rv;
+                            break;
+                        }
+                    }
+                    $raw = $first;
+                }
+
+                $vals = $raw !== null && $raw !== '' ? [(string) $raw] : [];
+            }
+
+            foreach ($vals as $v) {
+                $val = trim((string) $v);
+                if ($val === '') {
+                    continue;
+                }
+
+                $exists = \App\Models\SurveyOption::query()
+                    ->where('option_type_id', $ot->id)
+                    ->where('value', $val)
+                    ->where('is_active', true)
+                    ->where('scope_type', 'global')
+                    ->whereNull('scope_id')
+                    ->exists();
+
+                if ($exists) {
+                    continue;
+                }
+
+                $nextSort = ((int) (\App\Models\SurveyOption::query()
+                    ->where('option_type_id', $ot->id)
+                    ->max('sort_order') ?? 0)) + 1;
+
+                \App\Models\SurveyOption::create([
+                    'option_type_id' => $ot->id,
+                    'value' => $val,
+                    'scope_type' => 'global',
+                    'scope_id' => null,
+                    'sort_order' => $nextSort,
+                    'is_active' => true,
+                ]);
+            }
         }
     }
 

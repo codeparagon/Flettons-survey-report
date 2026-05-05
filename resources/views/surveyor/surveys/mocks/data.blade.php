@@ -2271,7 +2271,75 @@
         cursor: not-allowed;
     }
 
-    /* Combined narratives removed */
+    .survey-data-mock-accommodation-gpt-block {
+        margin-bottom: 1.25rem;
+        padding: 1rem;
+        border-radius: 6px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(15, 23, 42, 0.35);
+    }
+    .survey-data-mock-accommodation-gpt-heading {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #cbd5e1;
+        margin-bottom: 0.75rem;
+    }
+    .survey-data-mock-accommodation-gpt-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #94a3b8;
+        margin-bottom: 0.35rem;
+    }
+    .survey-data-mock-accommodation-gpt-narrative {
+        width: 100%;
+        min-height: 120px;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 4px;
+        font-size: 0.8125rem;
+        line-height: 1.5;
+        background: #f8fafc;
+        color: #1e293b;
+        resize: vertical;
+        margin-bottom: 1rem;
+    }
+    .survey-data-mock-accommodation-gpt-narrative:focus {
+        outline: none;
+        border-color: #c1ec4a;
+    }
+    .survey-data-mock-accommodation-gpt-observations {
+        margin: 0;
+        padding-left: 1.25rem;
+        font-size: 0.8125rem;
+        color: #334155;
+        line-height: 1.5;
+    }
+    .survey-data-mock-accommodation-gpt-observations li {
+        margin-bottom: 0.35rem;
+    }
+    .survey-data-mock-accommodation-gpt-by-component {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.25);
+    }
+    .survey-data-mock-component-gpt-bundle {
+        margin-bottom: 0.75rem;
+    }
+    .survey-data-mock-component-gpt-element-title {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #94a3b8;
+        margin-bottom: 0.25rem;
+    }
+    .survey-data-mock-component-gpt-observations {
+        margin: 0;
+        padding-left: 1.25rem;
+        font-size: 0.8125rem;
+        color: #334155;
+        line-height: 1.45;
+    }
+
     .survey-data-mock-btn.survey-data-mock-btn--primary {
         padding: 0.35rem 0.75rem;
         font-size: 0.8125rem;
@@ -4450,13 +4518,16 @@ $(document).ready(function() {
                 }
             });
 
-            // Click outside to close (scoped to document once per control)
-            $(document).on('mousedown', function (e) {
+            // Click outside to close (namespaced so teardown can remove this listener)
+            window.__sdmAccCloseSeq = (window.__sdmAccCloseSeq || 0) + 1;
+            const closeNs = 'sdmAcc_' + window.__sdmAccCloseSeq;
+            $(document).on('mousedown.' + closeNs, function (e) {
                 if (!$select.hasClass('is-open')) return;
                 if ($(e.target).closest($select).length) return;
                 if ($(e.target).closest($dropdown).length) return;
                 close();
             });
+            $select.attr('data-sdm-close-ns', closeNs);
 
             // Mount: insert select UI before the original group, then hide group.
             $buttonGroup.before($select);
@@ -4464,8 +4535,23 @@ $(document).ready(function() {
             renderAll();
         }
 
+        function teardownAccommodationSidebarEnhancedSelects($item) {
+            if (!$item || !$item.length) return;
+            $item.find('.sdm-select[data-sdm-select="true"]').each(function () {
+                const $sel = $(this);
+                const ns = $sel.attr('data-sdm-close-ns');
+                if (ns) {
+                    $(document).off('mousedown.' + ns);
+                }
+                $sel.remove();
+            });
+            $item.find('.survey-data-mock-button-group[data-enhanced-select="true"]').removeAttr('data-enhanced-select');
+        }
+
         function enhanceMountedSidebarItem($item) {
             if (!$item || !$item.length) return;
+
+            teardownAccommodationSidebarEnhancedSelects($item);
 
             // Component location (single) + Material (single) + Defects (multi) per slide
             $item.find('.survey-data-mock-carousel-slide').each(function () {
@@ -5242,6 +5328,68 @@ $(document).ready(function() {
         return worstNumericRating === null ? 'ni' : worstNumericRating;
     }
 
+    /**
+     * If a regular section under "Accommodation Components" is saved, reflect the chosen
+     * material/defects/location onto the per-room Accommodation carousel for that component key.
+     */
+    function applyAccommodationComponentSectionSelectionToAccommodationForms(componentKey, selections) {
+        const ck = String(componentKey || '').trim();
+        if (!ck) return;
+
+        const desiredMaterial = selections && selections.material ? String(selections.material) : '';
+        const desiredLocation = selections && selections.location ? String(selections.location) : '';
+        const desiredDefects = selections && Array.isArray(selections.defects) ? selections.defects.map(String) : [];
+
+        $('.survey-data-mock-section-item[data-accommodation-id]').each(function () {
+            const $accItem = $(this);
+            const $slide = $accItem.find('.survey-data-mock-carousel-slide[data-component-key="' + ck + '"]').first();
+            if (!$slide.length) return;
+
+            // Material (single)
+            if (desiredMaterial !== '') {
+                const $matBtn = $slide.find('[data-group="material"][data-component-key="' + ck + '"]').filter(function () {
+                    return String($(this).data('value') || '') === desiredMaterial;
+                }).first();
+                if ($matBtn.length) {
+                    $matBtn.trigger('click', { sdmDesiredSelected: true });
+                }
+            }
+
+            // Location (single, optional)
+            if (desiredLocation !== '') {
+                const $locBtn = $slide.find('[data-group="location"][data-component-key="' + ck + '"]').filter(function () {
+                    return String($(this).data('value') || '') === desiredLocation;
+                }).first();
+                if ($locBtn.length) {
+                    $locBtn.trigger('click', { sdmDesiredSelected: true });
+                }
+            }
+
+            // Defects (multi) — clear existing first, then apply
+            $slide.find('[data-group="defects"][data-component-key="' + ck + '"].active').each(function () {
+                $(this).trigger('click', { sdmDesiredSelected: false });
+            });
+            desiredDefects.forEach(function (d) {
+                const val = String(d);
+                const $defBtn = $slide.find('[data-group="defects"][data-component-key="' + ck + '"]').filter(function () {
+                    return String($(this).data('value') || '') === val;
+                }).first();
+                if ($defBtn.length) {
+                    $defBtn.trigger('click', { sdmDesiredSelected: true });
+                }
+            });
+
+            // Update staleness indicators (room + group summaries)
+            if (window.SurveyorAccommodationImprovements) {
+                window.SurveyorAccommodationImprovements.updateRoomStalenessUi($accItem);
+                const tid = $accItem.attr('data-accommodation-type-id');
+                if (tid) {
+                    window.SurveyorAccommodationImprovements.refreshGroupStaleForType(tid);
+                }
+            }
+        });
+    }
+
     // Mock GPT Content Generator for Accommodation Sections
     function generateAccommodationReportContent(formData, accommodationName) {
         const notes = formData.notes || '';
@@ -5301,7 +5449,7 @@ $(document).ready(function() {
     /** Collect accommodation form as { notes, components } with component_name for report helpers */
     function collectAccommodationReportFormData($item) {
         const $details = $item.find('.survey-data-mock-section-details');
-        const notes = $details.find('.survey-data-mock-notes-input').val() || '';
+        const notes = $details.find('.survey-data-mock-accommodation-form-column-right .survey-data-mock-notes-input').val() || '';
         const components = [];
         $details.find('.survey-data-mock-carousel-slide').each(function() {
             const $slide = $(this);
@@ -5322,6 +5470,52 @@ $(document).ready(function() {
             });
         });
         return { notes: notes, components: components };
+    }
+
+    /** Updates combined GPT narrative + observations on every accommodation row for this type (same content repeated). */
+    function applyAccommodationCombinedGptToTypeRows(accommodationTypeId, narrative, observations) {
+        if (!accommodationTypeId && accommodationTypeId !== 0) {
+            return;
+        }
+        const tid = String(accommodationTypeId);
+        const $rows = $('.survey-data-mock-section-item[data-accommodation-type-id="' + tid + '"]');
+        $rows.each(function() {
+            const $row = $(this);
+            $row.find('.survey-data-mock-accommodation-gpt-narrative').val(narrative || '');
+            const $ul = $row.find('.survey-data-mock-accommodation-gpt-observations');
+            $ul.empty();
+            (observations || []).forEach(function(line) {
+                $ul.append($('<li></li>').text(line));
+            });
+        });
+    }
+
+    /** Updates per-component GPT observation lists on every accommodation row for this type (persisted on component assessments). */
+    function applyAccommodationComponentGptToTypeRows(accommodationTypeId, componentObservations) {
+        if ((!accommodationTypeId && accommodationTypeId !== 0) || !componentObservations || typeof componentObservations !== 'object') {
+            return;
+        }
+        const tid = String(accommodationTypeId);
+        $('.survey-data-mock-section-item[data-accommodation-type-id="' + tid + '"]').each(function() {
+            const $row = $(this);
+            Object.keys(componentObservations).forEach(function(key) {
+                const bullets = componentObservations[key] || [];
+                const $bundle = $row.find('.survey-data-mock-component-gpt-bundle[data-component-key="' + key + '"]');
+                const $ul = $row.find('.survey-data-mock-component-gpt-observations[data-component-key="' + key + '"]');
+                $ul.empty();
+                bullets.forEach(function(line) {
+                    $ul.append($('<li></li>').text(line));
+                });
+                $bundle.toggle(bullets.length > 0);
+            });
+        });
+    }
+
+    /** Split GPT observations textarea into trimmed non-empty lines for the API. */
+    function parseAccommodationGptObservationsTextarea(val) {
+        return String(val || '').split(/\r?\n/).map(function(line) {
+            return line.trim();
+        }).filter(Boolean);
     }
 
     function accommodationDefectsAreClear(defects) {
@@ -7124,6 +7318,17 @@ $(document).ready(function() {
                     $sectionItem.attr('data-saved', 'true');
                     $sectionItem.attr('data-has-report', response.report_content ? 'true' : 'false');
                     $sectionItem.attr('data-locked', 'false');
+
+                    // Sync to Accommodation form UI when this section is an accommodation component.
+                    const subKey = String($sectionItem.attr('data-subcategory-key') || '');
+                    const accComponentKey = String($sectionItem.attr('data-acc-component-key') || '');
+                    if (subKey === 'accommodation_components' && accComponentKey) {
+                        applyAccommodationComponentSectionSelectionToAccommodationForms(accComponentKey, {
+                            material: formData.material || '',
+                            defects: Array.isArray(formData.defects) ? formData.defects : [],
+                            location: formData.location || ''
+                        });
+                    }
                     
                     // Initialize lock state (unlocked by default)
                     updateLockState($sectionItem, false);
@@ -8751,7 +8956,7 @@ $(document).ready(function() {
         const formData = {
             custom_name: accommodationName,
             components: [],
-            notes: $details.find('.survey-data-mock-notes-input').val() || '',
+            notes: $details.find('.survey-data-mock-accommodation-form-column-right .survey-data-mock-notes-input').val() || '',
             condition_rating: conditionRating
         };
         
@@ -8775,11 +8980,14 @@ $(document).ready(function() {
                 return $(this).data('value');
             }).get();
             
+            const gptObs = parseAccommodationGptObservationsTextarea($slide.find('.survey-data-mock-accommodation-gpt-notes-input').val());
+
             formData.components.push({
                 component_key: componentKey,
                 location: componentLocation,
                 material: material,
-                defects: defects
+                defects: defects,
+                gpt_observations: gptObs
             });
         });
         
@@ -8807,6 +9015,13 @@ $(document).ready(function() {
                 component.defects.forEach((defect, defectIndex) => {
                     formDataObj.append(`components[${index}][defects][${defectIndex}]`, defect);
                 });
+            }
+            if (component.gpt_observations && component.gpt_observations.length > 0) {
+                component.gpt_observations.forEach((line, gi) => {
+                    formDataObj.append(`components[${index}][gpt_observations][${gi}]`, line);
+                });
+            } else {
+                formDataObj.append(`components[${index}][gpt_observations][0]`, '');
             }
         });
         
@@ -8855,6 +9070,11 @@ $(document).ready(function() {
                     const $reportContent = $item.find('.survey-data-mock-report-content');
                     const reportBody = response.report_content || '';
                     $reportContent.find('.survey-data-mock-report-textarea').val(reportBody);
+                    applyAccommodationCombinedGptToTypeRows(finalAccommodationTypeId, response.gpt_narrative, response.gpt_observations);
+                    applyAccommodationComponentGptToTypeRows(finalAccommodationTypeId, response.gpt_component_observations);
+                    if (response.gpt_generation_error && typeof toastr !== 'undefined') {
+                        toastr.warning(String(response.gpt_generation_error));
+                    }
 
                     // Mark section as saved — show same “report view” as standard sections (textarea + icon bar)
                     $item.attr('data-saved', 'true');
@@ -8869,8 +9089,6 @@ $(document).ready(function() {
                         }
                     });
                     $item.removeAttr('data-accommodation-editing');
-
-                    // Combined narratives removed
 
                     if (window.SurveyorAccommodationImprovements) {
                         window.SurveyorAccommodationImprovements.markRoomGenerated($item);
@@ -8968,7 +9186,7 @@ $(document).ready(function() {
         const formData = {
             custom_name: accommodationName,
             components: [],
-            notes: $details.find('.survey-data-mock-notes-input').val() || '',
+            notes: $details.find('.survey-data-mock-accommodation-form-column-right .survey-data-mock-notes-input').val() || '',
             condition_rating: conditionRating
         };
         
@@ -8992,11 +9210,14 @@ $(document).ready(function() {
                 return $(this).data('value');
             }).get();
             
+            const gptObsClone = parseAccommodationGptObservationsTextarea($slide.find('.survey-data-mock-accommodation-gpt-notes-input').val());
+
             formData.components.push({
                 component_key: componentKey,
                 location: componentLocation,
                 material: material,
-                defects: defects
+                defects: defects,
+                gpt_observations: gptObsClone
             });
         });
         
@@ -9106,7 +9327,7 @@ $(document).ready(function() {
                             const roomLabel = $newAccommodationItem.find('.survey-data-mock-section-name').first().text().trim() || 'Accommodation';
                             const photoCount = $newAccommodationItem.find('.fa-camera').closest('.survey-data-mock-status-info').find('.survey-data-mock-status-text').first().text().trim() || '0';
                             const compCount = $newAccommodationItem.find('.fa-sticky-note').closest('.survey-data-mock-status-info').find('.survey-data-mock-status-text').last().text().trim() || '0/0';
-                            const notes = ($newAccommodationItem.find('.survey-data-mock-notes-input').val() || '').toString().trim();
+                            const notes = ($newAccommodationItem.find('.survey-data-mock-accommodation-form-column-right .survey-data-mock-notes-input').val() || '').toString().trim();
                             const notesPreview = notes ? (notes.length > 44 ? notes.slice(0, 41) + '…' : notes) : '—';
                             const newId = String(response.accommodation_id);
 

@@ -1,5 +1,7 @@
 @php
     $accFormSubmitted = ($accommodation['form_submitted'] ?? false) || ($accommodation['has_report'] ?? false);
+    $gptNarrative = $accommodation['gpt_narrative'] ?? '';
+    $gptObservations = is_array($accommodation['gpt_observations'] ?? null) ? $accommodation['gpt_observations'] : [];
 @endphp
 <div class="survey-data-mock-section-item" data-section-id="{{ $accommodation['id'] }}" data-accommodation-id="{{ $accommodation['id'] }}" data-accommodation-type-id="{{ !empty($accommodation['accommodation_type_id']) ? $accommodation['accommodation_type_id'] : '' }}" data-clone-index="{{ $accommodation['clone_index'] ?? 0 }}" data-has-report="{{ ($accommodation['has_report'] ?? false) ? 'true' : 'false' }}" data-saved="{{ $accFormSubmitted ? 'true' : 'false' }}">
     <div class="survey-data-mock-section-header" data-expandable="true">
@@ -63,6 +65,10 @@
                     <div class="survey-data-mock-carousel-wrapper">
                         <div class="survey-data-mock-carousel-track" data-carousel-track>
                             @foreach($accommodation['components'] as $index => $component)
+                                @php
+                                    $compGptObsEditable = is_array($component['gpt_observations'] ?? null) ? $component['gpt_observations'] : [];
+                                    $compGptObsText = implode("\n", array_map('strval', $compGptObsEditable));
+                                @endphp
                                 <div class="survey-data-mock-carousel-slide {{ $index === 0 ? 'active' : '' }}" 
                                      data-slide-index="{{ $index }}"
                                      data-component-key="{{ $component['component_key'] }}">
@@ -127,6 +133,20 @@
                                                         {{ $defect }}
                                                     </button>
                                                 @endforeach
+                                            </div>
+                                        </div>
+
+                                        <!-- GPT / merged observations for this element (editable; one line per bullet) -->
+                                        <div class="survey-data-mock-field-group">
+                                            <label class="survey-data-mock-field-label">GPT observations (this element)</label>
+                                            <div class="survey-data-mock-notes-wrapper">
+                                                <textarea class="survey-data-mock-notes-input survey-data-mock-accommodation-gpt-notes-input"
+                                                          rows="4"
+                                                          placeholder="One observation per line (merged from GPT; edit as needed)…"
+                                                          data-component-key="{{ $component['component_key'] }}">{{ $compGptObsText }}</textarea>
+                                                <button type="button" class="survey-data-mock-mic-btn" title="Voice input">
+                                                    <i class="fas fa-microphone"></i>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -250,6 +270,37 @@
         <p class="survey-data-mock-accommodation-report-hint" style="margin: 0 0 0.75rem 0; padding: 0 0.25rem; font-size: 0.8125rem; color: #64748b;">
             <i class="fas fa-check-circle" style="color:#22c55e;"></i> Submitted — summary of your selections below. Use <strong>Edit</strong> (pencil) to change materials, defects, or notes.
         </p>
+        <div class="survey-data-mock-accommodation-gpt-block">
+            <div class="survey-data-mock-accommodation-gpt-heading">Combined GPT (all rooms of this type)</div>
+            <div class="survey-data-mock-accommodation-gpt-narrative-section">
+                <span class="survey-data-mock-accommodation-gpt-label">Narrative</span>
+                <textarea class="survey-data-mock-accommodation-gpt-narrative" rows="8" readonly>{{ $gptNarrative }}</textarea>
+            </div>
+            <div class="survey-data-mock-accommodation-gpt-observations-section">
+                <span class="survey-data-mock-accommodation-gpt-label">General observations</span>
+                <ul class="survey-data-mock-accommodation-gpt-observations">
+                    @foreach($gptObservations as $obs)
+                        <li>{{ $obs }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            <div class="survey-data-mock-accommodation-gpt-by-component">
+                <span class="survey-data-mock-accommodation-gpt-label">Observations by element</span>
+                @foreach($accommodation['components'] ?? [] as $comp)
+                    @php
+                        $compGptObs = is_array($comp['gpt_observations'] ?? null) ? $comp['gpt_observations'] : [];
+                    @endphp
+                    <div class="survey-data-mock-component-gpt-bundle" data-component-key="{{ $comp['component_key'] ?? '' }}" @if(empty($compGptObs)) style="display: none;" @endif>
+                        <div class="survey-data-mock-component-gpt-element-title">{{ $comp['component_name'] ?? '' }}</div>
+                        <ul class="survey-data-mock-component-gpt-observations" data-component-key="{{ $comp['component_key'] ?? '' }}">
+                            @foreach($compGptObs as $o)
+                                <li>{{ $o }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endforeach
+            </div>
+        </div>
         <div class="survey-data-mock-report-content-wrapper">
             <textarea class="survey-data-mock-report-textarea survey-data-mock-accommodation-report-textarea" rows="12" placeholder="Your selections will appear here after saving…" @if($accFormSubmitted) disabled @endif>{{ $accommodation['report_content'] ?? '' }}</textarea>
             <div class="survey-data-mock-action-icons">

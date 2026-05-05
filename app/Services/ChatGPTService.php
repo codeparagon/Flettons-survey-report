@@ -157,6 +157,150 @@ class ChatGPTService
     }
 
     /**
+     * Combined UK survey narrative and bullet observations for all rooms of an accommodation type.
+     *
+     * @param array $payload Must include accommodation_type, rooms[], and component_keys (list of component_key strings for this type)
+     * @return array{narrative: string, observations: array<int, string>, component_observations: array<string, array<int, string>>}
+     * @throws \Exception
+     */
+    public function generateAccommodationCombinedReport(array $payload): array
+    {
+        try {
+            $surveyorName = $this->getSurveyorName();
+            $payload['surveyor_name'] = $surveyorName;
+
+            Log::info('ChatGPT accommodation combined report payload', [
+                'accommodation_type' => $payload['accommodation_type'] ?? null,
+                'room_count' => isset($payload['rooms']) && is_array($payload['rooms']) ? count($payload['rooms']) : 0,
+            ]);
+
+            $instruction = 'You are ' . $surveyorName . ', an experienced UK residential surveyor. '
+                . 'You will receive JSON with accommodation_type, surveyor_name, component_keys (array of component_key strings), and rooms[]. Each room has room_label, location, notes, condition_rating, and components (component_key, component_name, material, defects, location). '
+                . 'Write ONE professional UK-English narrative in "narrative" covering all rooms; reference room_label where useful. Only use supplied data. '
+                . 'Put cross-element or general bullets only in "observations" (array of strings); may be empty. '
+                . 'Put element-specific factual bullets in "component_observations": an object whose keys are EXACTLY the strings in component_keys, each value an array of short bullet strings for that element across all rooms (use [] if nothing notable). '
+                . 'Respond with ONLY valid JSON (no markdown fences) with keys: "narrative" (string), "observations" (array of strings), "component_observations" (object).';
+
+            $responseText = $this->callChatCompletionsJsonObject($payload, $instruction);
+
+            return $this->decodeCombinedAccommodationReportJson($responseText);
+        } catch (\Exception $e) {
+            Log::error('ChatGPT accommodation combined report failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new \Exception('Failed to generate combined accommodation report: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Chat Completions with JSON object response (structured accommodation outputs).
+     *
+     * @throws \Exception
+     */
+    protected function callChatCompletionsJsonObject(array $payload, string $instruction): string
+    {
+        $apiKey = config('services.openai.key');
+        if (empty($apiKey)) {
+            throw new \Exception('OpenAI API key is not configured.');
+        }
+
+        $model = config('services.openai.chat_model', 'gpt-4o-mini');
+        $baseUrl = 'https://api.openai.com/v1';
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type' => 'application/json',
+        ])->timeout(120)->post($baseUrl . '/chat/completions', [
+            'model' => $model,
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are a UK residential building surveyor. Reply with a single valid JSON object only. Do not wrap in markdown code fences.',
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $instruction . "\n\nJSON input:\n" . json_encode($payload),
+                ],
+            ],
+            'temperature' => 0.35,
+            'response_format' => ['type' => 'json_object'],
+        ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('Chat Completions JSON request failed: ' . $response->body());
+        }
+
+        $json = $response->json();
+        $text = $json['choices'][0]['message']['content'] ?? null;
+        if ($text === null || $text === '') {
+            throw new \Exception('Chat Completions returned an empty JSON response.');
+        }
+
+        return trim($text);
+    }
+
+    /**
+     * @return array{narrative: string, observations: array<int, string>, component_observations: array<string, array<int, string>>}
+     */
+    protected function decodeCombinedAccommodationReportJson(string $text): array
+    {
+        $text = trim($text);
+        if (preg_match('/```(?:json)?\s*([\s\S]*?)```/', $text, $m)) {
+            $text = trim($m[1]);
+        }
+
+        $decoded = json_decode($text, true);
+        if (!is_array($decoded)) {
+            throw new \Exception('Combined accommodation report response was not valid JSON.');
+        }
+
+        $narrative = isset($decoded['narrative']) ? (string) $decoded['narrative'] : '';
+        $obs = $decoded['observations'] ?? [];
+        if (!is_array($obs)) {
+            $obs = [];
+        }
+
+        $observations = [];
+        foreach ($obs as $item) {
+            if (is_string($item)) {
+                $t = trim($item);
+                if ($t !== '') {
+                    $observations[] = $t;
+                }
+            }
+        }
+
+        $rawByComponent = $decoded['component_observations'] ?? [];
+        $componentObservations = [];
+        if (is_array($rawByComponent)) {
+            foreach ($rawByComponent as $key => $items) {
+                if (! is_string($key) || $key === '') {
+                    continue;
+                }
+                $list = [];
+                if (is_array($items)) {
+                    foreach ($items as $bullet) {
+                        if (is_string($bullet)) {
+                            $bt = trim($bullet);
+                            if ($bt !== '') {
+                                $list[] = $bt;
+                            }
+                        }
+                    }
+                }
+                $componentObservations[$key] = array_values($list);
+            }
+        }
+
+        return [
+            'narrative' => $narrative,
+            'observations' => array_values($observations),
+            'component_observations' => $componentObservations,
+        ];
+    }
+
+    /**
      * Combined narrative for one component across all rooms of an accommodation type (e.g. all bedrooms).
      *
      * @param array $payload accommodation_type, component_name, component_key, rooms[], surveyor_name set inside

@@ -992,6 +992,7 @@ class SurveyController extends Controller
                         'location' => '',
                         'material' => '',
                         'defects' => [],
+                        'gpt_observations' => [],
                     ];
                 })->toArray();
             } else {
@@ -1017,6 +1018,10 @@ class SurveyController extends Controller
                     }
                 }
 
+                if (! isset($component['gpt_observations']) || ! is_array($component['gpt_observations'])) {
+                    $component['gpt_observations'] = [];
+                }
+
                 return $component;
             }, $components);
         }
@@ -1039,6 +1044,11 @@ class SurveyController extends Controller
             }
         }
 
+        $gptRow = \App\Models\SurveyAccommodationGptOutput::query()
+            ->where('survey_id', $survey->id)
+            ->where('accommodation_type_id', $accommodationTypeId)
+            ->first();
+
         // Build accommodation data array (display_label matches Bedroom 1 / Bedroom 2 pattern)
         $accommodationData = [
             'id' => $newAccommodationId,
@@ -1057,6 +1067,8 @@ class SurveyController extends Controller
             'completed_components' => $completedComponents,
             'total_components' => $accommodationType->components->count(),
             'components' => $components,
+            'gpt_narrative' => $gptRow ? $gptRow->narrative : null,
+            'gpt_observations' => ($gptRow && is_array($gptRow->observations)) ? $gptRow->observations : [],
         ];
 
         // Render the accommodation-section-item partial
@@ -1218,6 +1230,8 @@ class SurveyController extends Controller
                 'components.*.material' => 'nullable|string',
                 'components.*.defects' => 'nullable|array',
                 'components.*.defects.*' => 'nullable|string',
+                'components.*.gpt_observations' => 'nullable|array',
+                'components.*.gpt_observations.*' => 'nullable|string|max:2000',
                 'notes' => 'nullable|string',
                 'location' => 'nullable|string|max:255',
                 'condition_rating' => 'nullable|string|in:1,2,3,ni',
@@ -1293,7 +1307,10 @@ class SurveyController extends Controller
                 'assessment_id' => $result['assessment']->id,
                 'report_content' => $result['report_content'],
                 'report_generation_error' => $result['report_generation_error'] ?? null,
-                // Combined narratives removed
+                'gpt_narrative' => $result['gpt_narrative'] ?? null,
+                'gpt_observations' => $result['gpt_observations'] ?? [],
+                'gpt_component_observations' => $result['gpt_component_observations'] ?? [],
+                'gpt_generation_error' => $result['gpt_generation_error'] ?? null,
                 'photos' => $photos,
             ], 200);
 
