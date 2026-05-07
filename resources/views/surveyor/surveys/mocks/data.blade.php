@@ -5342,8 +5342,19 @@ $(document).ready(function() {
 
         $('.survey-data-mock-section-item[data-accommodation-id]').each(function () {
             const $accItem = $(this);
+            const rid = String($accItem.attr('data-accommodation-id') || '');
             const $slide = $accItem.find('.survey-data-mock-carousel-slide[data-component-key="' + ck + '"]').first();
             if (!$slide.length) return;
+
+            // Persist desired values into the accommodation draft state first, so hydration is stable
+            // even if the DOM is rebuilt/re-wrapped by other initializers.
+            if (window.SurveyDataMockAccommodationState && typeof window.SurveyDataMockAccommodationState.setSelection === 'function' && rid) {
+                window.SurveyDataMockAccommodationState.setSelection(rid, ck, {
+                    material: desiredMaterial,
+                    location: desiredLocation,
+                    defects: desiredDefects
+                });
+            }
 
             // Material (single)
             if (desiredMaterial !== '') {
@@ -6367,6 +6378,10 @@ $(document).ready(function() {
             setTimeout(function() {
                 initializeCarousels();
                 initializeDividers();
+                // Re-apply accommodation selections after any DOM re-wrapping by carousels/dividers.
+                if (window.SurveyDataMockAccommodationState && typeof window.SurveyDataMockAccommodationState.hydrateAll === 'function') {
+                    window.SurveyDataMockAccommodationState.hydrateAll();
+                }
             }, 200);
         }
         initializeSectionStates();
@@ -6386,6 +6401,9 @@ $(document).ready(function() {
                 initializeCarousels();
                 initializeDividers();
             }
+            if (window.SurveyDataMockAccommodationState && typeof window.SurveyDataMockAccommodationState.hydrateAll === 'function') {
+                window.SurveyDataMockAccommodationState.hydrateAll();
+            }
         }, 500); // After slide animation
     });
 
@@ -6396,6 +6414,9 @@ $(document).ready(function() {
         resizeTimeout = setTimeout(function() {
             initializeCarousels();
             initializeDividers();
+            if (window.SurveyDataMockAccommodationState && typeof window.SurveyDataMockAccommodationState.hydrateAll === 'function') {
+                window.SurveyDataMockAccommodationState.hydrateAll();
+            }
         }, 250);
     });
 
@@ -6414,8 +6435,9 @@ $(document).ready(function() {
             : null;
         
         // Validate location selection - check for duplicate section + location combination
-        // Skip for accommodation rows: they reuse data-group="location" but are not survey sections.
-        if (group === 'location' && !$sectionItem.is('[data-accommodation-id]')) {
+        // Skip for accommodation UIs that reuse data-group="location" but are not normal survey sections.
+        const subKeyForValidation = String($sectionItem.attr('data-subcategory-key') || '');
+        if (group === 'location' && !$sectionItem.is('[data-accommodation-id]') && subKeyForValidation !== 'accommodation_components') {
             const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
             const currentSection = $details.find('[data-group="section"].active').data('value') || '';
             const currentSectionId = $sectionItem.data('section-id');
@@ -6444,7 +6466,7 @@ $(document).ready(function() {
         }
         
         // Validate section selection - check for duplicate section + location combination
-        if (group === 'section' && !$sectionItem.is('[data-accommodation-id]')) {
+        if (group === 'section' && !$sectionItem.is('[data-accommodation-id]') && subKeyForValidation !== 'accommodation_components') {
             const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
             const currentLocation = $details.find('[data-group="location"].active').data('value') || '';
             const currentSectionId = $sectionItem.data('section-id');
@@ -7687,6 +7709,13 @@ $(document).ready(function() {
             $('#clone-location-error').hide();
             return true;
         }
+
+        // Accommodation Components can legitimately repeat section+location across clones.
+        const cloneSubKey = String(currentCloneSubCategory.attr('data-sub-category-key') || '');
+        if (cloneSubKey === 'accommodation_components') {
+            $('#clone-location-error').hide();
+            return true;
+        }
         
         // Check if this section + location combination already exists
         let isDuplicate = false;
@@ -8600,6 +8629,172 @@ $(document).ready(function() {
     }
 
     // Accommodation Carousel Functionality
+    // Accommodation "draft" state: keeps selections stable through DOM re-inits and edits.
+    // Source-of-truth is a small JS store (mirrored to localStorage for resilience).
+    window.SurveyDataMockAccommodationState = window.SurveyDataMockAccommodationState || (function() {
+        const STORAGE_VERSION = 'v1';
+        const state = {
+            byRoomId: {} // { [roomId]: { components: { [componentKey]: { material, location, defects: [] } } } }
+        };
+
+        function getSurveyId() {
+            try {
+                return String($('.survey-data-mock-content').data('survey-id') || '');
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function storageKey() {
+            const sid = getSurveyId() || 'unknown';
+            return `surveyDataMock.accommodationDraft.${STORAGE_VERSION}.${sid}`;
+        }
+
+        function safeParse(json) {
+            try { return JSON.parse(json); } catch (_) { return null; }
+        }
+
+        let saveTimer = null;
+        function scheduleSave() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(function() {
+                try {
+                    localStorage.setItem(storageKey(), JSON.stringify(state));
+                } catch (_) {}
+            }, 150);
+        }
+
+        function load() {
+            try {
+                const raw = localStorage.getItem(storageKey());
+                const parsed = safeParse(raw);
+                if (!parsed || typeof parsed !== 'object') return;
+                if (!parsed.byRoomId || typeof parsed.byRoomId !== 'object') return;
+                state.byRoomId = parsed.byRoomId;
+            } catch (_) {}
+        }
+
+        function ensureRoom(roomId) {
+            const rid = String(roomId || '').trim();
+            if (!rid) return null;
+            if (!state.byRoomId[rid]) {
+                state.byRoomId[rid] = { components: {} };
+            }
+            if (!state.byRoomId[rid].components || typeof state.byRoomId[rid].components !== 'object') {
+                state.byRoomId[rid].components = {};
+            }
+            return state.byRoomId[rid];
+        }
+
+        function normalizeSelection(input) {
+            const material = input && input.material ? String(input.material) : '';
+            const location = input && input.location ? String(input.location) : '';
+            const defects = input && Array.isArray(input.defects) ? input.defects.map(String) : [];
+            return { material, location, defects };
+        }
+
+        function setSelection(roomId, componentKey, selection) {
+            const rid = String(roomId || '').trim();
+            const ck = String(componentKey || '').trim();
+            if (!rid || !ck) return;
+            const room = ensureRoom(rid);
+            if (!room) return;
+            room.components[ck] = normalizeSelection(selection);
+            scheduleSave();
+        }
+
+        function readSelectionFromDom($item, ck) {
+            const $slide = $item.find('.survey-data-mock-carousel-slide[data-component-key="' + ck + '"]').first();
+            if (!$slide.length) return normalizeSelection({});
+
+            return normalizeSelection({
+                material: $slide.find('[data-group="material"].active').data('value') || '',
+                location: $slide.find('[data-group="location"].active').data('value') || '',
+                defects: $slide.find('[data-group="defects"].active').map(function() { return $(this).data('value'); }).get()
+            });
+        }
+
+        function seedRoomFromDom($item) {
+            const rid = String($item.attr('data-accommodation-id') || '').trim();
+            if (!rid) return;
+            const room = ensureRoom(rid);
+            if (!room) return;
+
+            $item.find('.survey-data-mock-carousel-slide[data-component-key]').each(function() {
+                const ck = String($(this).attr('data-component-key') || '').trim();
+                if (!ck) return;
+                // Only seed when store doesn't already have a value (store is authoritative once set).
+                if (!room.components[ck]) {
+                    room.components[ck] = readSelectionFromDom($item, ck);
+                }
+            });
+            scheduleSave();
+        }
+
+        function applySelectionToDom($item, ck, selection) {
+            const $slide = $item.find('.survey-data-mock-carousel-slide[data-component-key="' + ck + '"]').first();
+            if (!$slide.length) return;
+
+            const s = normalizeSelection(selection);
+
+            // Material (single)
+            $slide.find('[data-group="material"][data-component-key="' + ck + '"]').removeClass('active');
+            if (s.material) {
+                $slide.find('[data-group="material"][data-component-key="' + ck + '"]').filter(function() {
+                    return String($(this).data('value') || '') === s.material;
+                }).addClass('active');
+            }
+
+            // Location (single, optional)
+            $slide.find('[data-group="location"][data-component-key="' + ck + '"]').removeClass('active');
+            if (s.location) {
+                $slide.find('[data-group="location"][data-component-key="' + ck + '"]').filter(function() {
+                    return String($(this).data('value') || '') === s.location;
+                }).addClass('active');
+            }
+
+            // Defects (multi)
+            $slide.find('[data-group="defects"][data-component-key="' + ck + '"]').removeClass('active');
+            (s.defects || []).forEach(function(d) {
+                const val = String(d);
+                $slide.find('[data-group="defects"][data-component-key="' + ck + '"]').filter(function() {
+                    return String($(this).data('value') || '') === val;
+                }).addClass('active');
+            });
+        }
+
+        function hydrateItem($item) {
+            const rid = String($item.attr('data-accommodation-id') || '').trim();
+            if (!rid) return;
+            const room = ensureRoom(rid);
+            if (!room) return;
+
+            // Ensure we capture any server-rendered defaults for missing keys.
+            seedRoomFromDom($item);
+
+            Object.keys(room.components || {}).forEach(function(ck) {
+                applySelectionToDom($item, ck, room.components[ck]);
+            });
+        }
+
+        function hydrateAll() {
+            $('.survey-data-mock-section-item[data-accommodation-id]').each(function() {
+                hydrateItem($(this));
+            });
+        }
+
+        // Load any previous draft once, then hydrate current DOM.
+        load();
+        setTimeout(function() { hydrateAll(); }, 0);
+
+        return {
+            setSelection,
+            seedRoomFromDom,
+            hydrateItem,
+            hydrateAll
+        };
+    })();
+
     function initializeAccommodationCarousel($accommodationItem) {
         const $carouselTrack = $accommodationItem.find('[data-carousel-track]');
         const $slides = $accommodationItem.find('.survey-data-mock-carousel-slide');
@@ -8789,6 +8984,16 @@ $(document).ready(function() {
             if (desiredSelected === null || desiredSelected === true) {
                 $button.addClass('active');
             }
+
+            const rid = String($accommodationItem.attr('data-accommodation-id') || '');
+            if (window.SurveyDataMockAccommodationState && typeof window.SurveyDataMockAccommodationState.setSelection === 'function') {
+                const selection = {
+                    material: $button.data('value') || '',
+                    location: $accommodationItem.find('.survey-data-mock-carousel-slide[data-component-key="' + componentKey + '"] [data-group="location"].active').data('value') || '',
+                    defects: $accommodationItem.find('.survey-data-mock-carousel-slide[data-component-key="' + componentKey + '"] [data-group="defects"].active').map(function() { return $(this).data('value'); }).get()
+                };
+                window.SurveyDataMockAccommodationState.setSelection(rid, componentKey, selection);
+            }
         });
 
         $accommodationItem.on('click', '[data-group="defects"]', function(e, meta) {
@@ -8816,6 +9021,46 @@ $(document).ready(function() {
                 if ($button.hasClass('active')) {
                     $accommodationItem.find('[data-group="defects"][data-component-key="' + componentKey + '"][data-value="No Defects"]').removeClass('active');
                 }
+            }
+
+            const rid = String($accommodationItem.attr('data-accommodation-id') || '');
+            if (window.SurveyDataMockAccommodationState && typeof window.SurveyDataMockAccommodationState.setSelection === 'function') {
+                const $slide = $accommodationItem.find('.survey-data-mock-carousel-slide[data-component-key="' + componentKey + '"]').first();
+                const selection = {
+                    material: $slide.find('[data-group="material"].active').data('value') || '',
+                    location: $slide.find('[data-group="location"].active').data('value') || '',
+                    defects: $slide.find('[data-group="defects"].active').map(function() { return $(this).data('value'); }).get()
+                };
+                window.SurveyDataMockAccommodationState.setSelection(rid, componentKey, selection);
+            }
+        });
+
+        // Location handler (single) for accommodation components.
+        // This ensures location remains stable even when other initializers rebuild button groups.
+        $accommodationItem.on('click', '[data-group="location"]', function(e, meta) {
+            e.preventDefault();
+            e.stopPropagation();
+            const $button = $(this);
+            const componentKey = $button.data('component-key');
+            const desiredSelected = meta && Object.prototype.hasOwnProperty.call(meta, 'sdmDesiredSelected')
+                ? !!meta.sdmDesiredSelected
+                : null;
+
+            const $group = $accommodationItem.find('[data-group="location"][data-component-key="' + componentKey + '"]');
+            $group.removeClass('active');
+            if (desiredSelected === null || desiredSelected === true) {
+                $button.addClass('active');
+            }
+
+            const rid = String($accommodationItem.attr('data-accommodation-id') || '');
+            if (window.SurveyDataMockAccommodationState && typeof window.SurveyDataMockAccommodationState.setSelection === 'function') {
+                const $slide = $accommodationItem.find('.survey-data-mock-carousel-slide[data-component-key="' + componentKey + '"]').first();
+                const selection = {
+                    material: $slide.find('[data-group="material"].active').data('value') || '',
+                    location: $slide.find('[data-group="location"].active').data('value') || '',
+                    defects: $slide.find('[data-group="defects"].active').map(function() { return $(this).data('value'); }).get()
+                };
+                window.SurveyDataMockAccommodationState.setSelection(rid, componentKey, selection);
             }
         });
 
