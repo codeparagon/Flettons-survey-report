@@ -18,6 +18,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class SurveyDataService
 {
@@ -178,7 +179,8 @@ class SurveyDataService
                 'material',
                 'remainingLife',
                 'defects',
-                'optionValues.option.optionType',
+                'optionValues.option',
+                'optionValues.optionType',
                 'photos' => function($query) {
                     $query->orderBy('sort_order');
                 },
@@ -1076,11 +1078,24 @@ class SurveyDataService
         // Accommodation Components are special: they behave like "component forms"
         // and should not show the generic "Select section" field.
         if (($sectionDef->subcategory->name ?? '') === 'accommodation_components') {
-            return SurveyOptionType::query()
+            $types = SurveyOptionType::query()
                 ->whereIn('key_name', ['material', 'location', 'defects'])
                 ->where('is_active', true)
                 ->orderBy('sort_order')
                 ->get();
+
+            // Location lists multiple accommodation rooms (Bedroom 1, Bedroom 2, …); persist all selections.
+            return $types->map(function (SurveyOptionType $ot) {
+                if ($ot->key_name !== 'location') {
+                    return $ot;
+                }
+                $replica = $ot->replicate();
+                $replica->exists = true;
+                $replica->id = $ot->id;
+                $replica->is_multiple = true;
+
+                return $replica;
+            });
         }
 
         $fields = $sectionDef->requiredFields;
@@ -1296,6 +1311,26 @@ class SurveyDataService
     }
 
     /**
+     * Room row labels from the Accommodation Components section "Location" field (which rooms the row applies to).
+     *
+     * @return list<string>
+     */
+    protected function roomDisplayTargetsFromNormalizedOptions(array $normalizedOptions): array
+    {
+        $loc = $normalizedOptions['location'] ?? null;
+        if (is_array($loc)) {
+            return array_values(array_unique(array_filter(
+                array_map(static fn ($v) => trim((string) $v), $loc),
+                static fn ($v) => $v !== ''
+            )));
+        }
+
+        $s = trim((string) $loc);
+
+        return $s !== '' ? [$s] : [];
+    }
+
+    /**
      * Build selections keyed by option type key_name from generic rows + legacy FKs.
      *
      * @return array<string, mixed>
@@ -1308,18 +1343,28 @@ class SurveyDataService
         $selections = [];
 
         if ($assessment) {
-            $assessment->loadMissing(['optionValues.option.optionType', 'sectionType', 'location', 'structure', 'material', 'remainingLife', 'defects']);
+            $assessment->loadMissing(['optionValues.option', 'optionValues.optionType', 'sectionType', 'location', 'structure', 'material', 'remainingLife', 'defects']);
 
             $byTypeId = [];
             foreach ($assessment->optionValues as $ov) {
-                if (!$ov->option || !$ov->optionType) {
+                // Group by the pivot's option_type_id. Do not require optionType to be resolvable:
+                // eager loads often include option.optionType but not optionValues.optionType; a failed
+                // lazy-load would incorrectly drop persisted rows (e.g. multi-select Location).
+                if (!$ov->option) {
                     continue;
                 }
-                $tid = $ov->option_type_id;
+                $tid = (int) $ov->option_type_id;
+                if ($tid <= 0) {
+                    continue;
+                }
+                $val = trim((string) ($ov->option->value ?? ''));
+                if ($val === '') {
+                    continue;
+                }
                 if (!isset($byTypeId[$tid])) {
                     $byTypeId[$tid] = [];
                 }
-                $byTypeId[$tid][] = $ov->option->value;
+                $byTypeId[$tid][] = $val;
             }
 
             foreach ($types as $ot) {
@@ -1872,7 +1917,7 @@ class SurveyDataService
      * @param array $formData Form data from frontend
      * @param bool $isClone Whether this is a cloned section
      * @param int|null $assessmentId If provided, update this specific assessment (for updates)
-     * @return array ['success' => bool, 'assessment' => SurveySectionAssessment, 'report_content' => string]
+     * @return array{success: true, assessment: \App\Models\SurveySectionAssessment, report_content: string, accommodation_gpt_updates?: list<array<string, mixed>>}
      */
     public function saveSectionAssessment(Survey $survey, SurveySectionDefinition $sectionDefinition, array $formData, bool $isClone = false, ?int $assessmentId = null): array
     {
@@ -1945,7 +1990,15 @@ class SurveyDataService
             // Accommodation Components sections use accommodation option tables for their pick-lists.
             // Ensure the selected values exist in survey_options too, so the section assessment can persist
             // and the edit UI can re-select them on refresh.
+            $accommodationComponentRoomTargets = [];
             if (($sectionDefinition->subcategory->name ?? '') === 'accommodation_components') {
+                $accommodationComponentRoomTargets = $this->roomDisplayTargetsFromNormalizedOptions($normalizedOptions);
+                if ($accommodationComponentRoomTargets === []) {
+                    throw ValidationException::withMessages([
+                        'location' => ['Select at least one accommodation room in Location (which rooms this component applies to).'],
+                    ]);
+                }
+
                 $this->ensureSurveyOptionsExistForAccommodationComponentSelections($normalizedOptions);
             }
 
@@ -1973,9 +2026,8 @@ class SurveyDataService
                         app(\App\Services\SurveyAccommodationDataService::class)
                             ->applyComponentSectionSelectionsToSurveyAccommodations($survey, $componentKey, [
                                 'material' => $normalizedOptions['material'] ?? '',
-                                'location' => $normalizedOptions['location'] ?? '',
                                 'defects' => isset($normalizedOptions['defects']) && is_array($normalizedOptions['defects']) ? $normalizedOptions['defects'] : [],
-                            ], true);
+                            ], false, $accommodationComponentRoomTargets);
                     } catch (\Throwable $e) {
                         \Log::warning('Failed to apply accommodation component section to accommodation assessments', [
                             'survey_id' => $survey->id,
@@ -2014,10 +2066,29 @@ class SurveyDataService
 
             DB::commit();
 
+            $accommodationGptUpdates = [];
+            if (($sectionDefinition->subcategory->name ?? '') === 'accommodation_components') {
+                $accComponentKey = $this->componentKeyFromAccommodationComponentSectionDefinition($sectionDefinition);
+                if ($accComponentKey) {
+                    try {
+                        $accommodationGptUpdates = app(\App\Services\SurveyAccommodationDataService::class)
+                            ->regenerateAccommodationGptForTypesUsingComponent($survey, $accComponentKey);
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed to regenerate accommodation GPT after component section save', [
+                            'survey_id' => $survey->id,
+                            'section_definition_id' => $sectionDefinition->id,
+                            'component_key' => $accComponentKey,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
             return [
                 'success' => true,
                 'assessment' => $assessment,
                 'report_content' => $reportContent,
+                'accommodation_gpt_updates' => $accommodationGptUpdates,
             ];
 
         } catch (\Exception $e) {
@@ -2030,6 +2101,19 @@ class SurveyDataService
 
             throw $e;
         }
+    }
+
+    /**
+     * Component key for Accommodation Components sections (acc_component__{key}), or null.
+     */
+    public function accommodationComponentKeyFromSectionDefinition(SurveySectionDefinition $sectionDefinition): ?string
+    {
+        $sectionDefinition->loadMissing('subcategory');
+        if (($sectionDefinition->subcategory->name ?? '') !== 'accommodation_components') {
+            return null;
+        }
+
+        return $this->componentKeyFromAccommodationComponentSectionDefinition($sectionDefinition);
     }
 
     /**
@@ -2071,9 +2155,22 @@ class SurveyDataService
             $raw = $normalizedOptions[$k] ?? null;
             if ($k === 'defects') {
                 $vals = is_array($raw) ? $raw : array_filter([$raw]);
+            } elseif ($k === 'location') {
+                // Accommodation Components: Location is multi-select (Bedroom 1, Bedroom 2, …). Persist every value.
+                if (is_array($raw)) {
+                    foreach ($raw as $rv) {
+                        $t = trim((string) $rv);
+                        if ($t !== '') {
+                            $vals[] = $t;
+                        }
+                    }
+                } else {
+                    $t = trim((string) $raw);
+                    if ($t !== '') {
+                        $vals[] = $t;
+                    }
+                }
             } else {
-                // These are single-selects in the section form, but be defensive:
-                // sometimes the client may send an array (e.g. multi-select widgets / legacy payloads).
                 if (is_array($raw)) {
                     $first = null;
                     foreach ($raw as $rv) {

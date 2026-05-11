@@ -75,12 +75,18 @@
 
         $enabledFieldsLeft = array_slice($enabledFields, 0, 5);
         $enabledFieldsRight = array_slice($enabledFields, 5);
+
+        // Legacy single-value attribute; multi-select location (e.g. Accommodation Components room targets) lives in option_selections JSON.
+        $sectionLocationAttr = $section['location'] ?? '';
+        if (is_array($sectionLocationAttr)) {
+            $sectionLocationAttr = '';
+        }
     @endphp
     <div class="survey-data-mock-section-details" 
          style="display: {{ ($section['has_report'] ?? false) ? 'none' : 'none' }};"
-         data-option-selections="{{ e(json_encode($section['option_selections'] ?? [])) }}"
+         data-option-selections='@json($section['option_selections'] ?? [])'
          data-selected-section="{{ $section['selected_section'] ?? '' }}"
-         data-selected-location="{{ $section['location'] ?? '' }}"
+         data-selected-location="{{ e((string) $sectionLocationAttr) }}"
          data-selected-structure="{{ $section['structure'] ?? '' }}"
          data-selected-material="{{ $section['material'] ?? '' }}"
          data-selected-defects="{{ json_encode($section['defects'] ?? []) }}"

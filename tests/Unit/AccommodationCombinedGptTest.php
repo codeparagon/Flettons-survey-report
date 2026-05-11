@@ -44,6 +44,13 @@ class AccommodationCombinedGptTest extends TestCase
                         ],
                     ];
                 });
+            $mock->shouldReceive('generateAccommodationRoomComponentObservations')
+                ->once()
+                ->andReturn([
+                    'component_observations' => [
+                        'wall_gpt' => ['Wall note'],
+                    ],
+                ]);
         });
 
         $survey = Survey::query()->create(['status' => 'in_progress']);
@@ -196,6 +203,13 @@ class AccommodationCombinedGptTest extends TestCase
                 ->andReturn([
                     'narrative' => 'Saved narrative',
                     'observations' => ['Obs'],
+                    'component_observations' => [
+                        'ceiling_save_gpt' => ['Ceiling obs'],
+                    ],
+                ]);
+            $mock->shouldReceive('generateAccommodationRoomComponentObservations')
+                ->zeroOrMoreTimes()
+                ->andReturn([
                     'component_observations' => [
                         'ceiling_save_gpt' => ['Ceiling obs'],
                     ],

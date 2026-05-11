@@ -868,12 +868,15 @@ class SurveyController extends Controller
         $formData = $validated['form_data'];
         $normalizedOpts = $surveyDataService->normalizeOptionsFromFormData($formData);
 
+        $accComponentKey = $surveyDataService->accommodationComponentKeyFromSectionDefinition($sectionDefinition);
+
         // Build section data array matching transformAssessmentToViewFormat structure
         $sectionData = [
             'id' => $newSectionId,
             'section_id' => $sectionDefinitionId, // Use the actual section definition ID
             'name' => $newSectionName,
             'subcategory_key' => $sectionDefinition->subcategory->name ?? '',
+            'acc_component_key' => $accComponentKey,
             'completion' => 0, // New cloned section starts at 0
             'total' => 10,
             'condition_rating' => $formData['condition_rating'] ?? 'ni',
@@ -1183,6 +1186,7 @@ class SurveyController extends Controller
                 'assessment_id' => $result['assessment']->id,
                 'report_content' => $result['report_content'],
                 'photos' => $photos,
+                'accommodation_gpt_updates' => $result['accommodation_gpt_updates'] ?? [],
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1310,6 +1314,7 @@ class SurveyController extends Controller
                 'gpt_narrative' => $result['gpt_narrative'] ?? null,
                 'gpt_observations' => $result['gpt_observations'] ?? [],
                 'gpt_component_observations' => $result['gpt_component_observations'] ?? [],
+                'gpt_room_component_observations' => $result['gpt_room_component_observations'] ?? [],
                 'gpt_generation_error' => $result['gpt_generation_error'] ?? null,
                 'photos' => $photos,
             ], 200);

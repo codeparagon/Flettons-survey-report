@@ -3,7 +3,7 @@
 @section('title', 'Survey Data')
 
 @section('content')
-<div class="survey-data-mock-content" data-survey-id="{{ $survey->id }}">
+<div class="survey-data-mock-content" data-survey-id="{{ $survey->id }}" data-accommodation-draft-token="{{ $survey->created_at?->getTimestamp() ?? 0 }}:{{ $survey->id }}">
     <!-- Integrated Header Bar -->
     <div class="survey-data-mock-header-bar">
         <div class="survey-data-mock-header-left">
@@ -630,8 +630,8 @@
         right: calc(12px + env(safe-area-inset-right, 0px));
         bottom: calc(10px + env(safe-area-inset-bottom, 0px));
         transform: none;
-        /* Keep above off-canvas drawers + app chrome */
-        z-index: 2147483000;
+        /* Above app header (1000) / sidebar (999); reparented under .survey-layout so this applies globally */
+        z-index: 1160;
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -4168,6 +4168,19 @@
     })();
 
 $(document).ready(function() {
+    // Fixed UI lives inside .survey-main-content (z-index: 1), so it cannot stack above the app
+    // header/sidebar (z-index ~1000) while nested there. Move it under .survey-layout as siblings.
+    (function repositionSurveyDataFloatingUi() {
+        var $layout = $('.survey-layout').first();
+        if (!$layout.length) return;
+        var $overlay = $('#survey-data-mock-toc-overlay');
+        var $toc = $('#survey-data-mock-toc');
+        var $bottomNav = $('.survey-data-mock-bottom-nav[data-draggable-bottom-nav="true"]').first();
+        if ($overlay.length) $overlay.appendTo($layout);
+        if ($toc.length) $toc.appendTo($layout);
+        if ($bottomNav.length) $bottomNav.appendTo($layout);
+    })();
+
     // Category Collapse/Expand Functionality
     $('[data-category-toggle]').on('click', function() {
         const $header = $(this);
@@ -5329,29 +5342,54 @@ $(document).ready(function() {
     }
 
     /**
-     * If a regular section under "Accommodation Components" is saved, reflect the chosen
-     * material/defects/location onto the per-room Accommodation carousel for that component key.
+     * Room labels from the Accommodation Components section "Location" field (which rooms apply).
      */
-    function applyAccommodationComponentSectionSelectionToAccommodationForms(componentKey, selections) {
+    function extractAccommodationComponentRoomTargets(options) {
+        if (!options || typeof options !== 'object') {
+            return [];
+        }
+        const raw = options.location;
+        if (Array.isArray(raw)) {
+            return raw.map(function (v) { return String(v || '').trim(); }).filter(Boolean);
+        }
+        const s = String(raw || '').trim();
+        return s ? [s] : [];
+    }
+
+    /**
+     * If a regular section under "Accommodation Components" is saved, reflect the chosen
+     * material/defects onto matching per-room Accommodation carousels for that component key.
+     * Section Location lists rooms (not in-component placement); it is not synced onto carousel location chips.
+     */
+    function applyAccommodationComponentSectionSelectionToAccommodationForms(componentKey, selections, roomDisplayLabels) {
         const ck = String(componentKey || '').trim();
         if (!ck) return;
 
+        const labels = Array.isArray(roomDisplayLabels)
+            ? roomDisplayLabels.map(function (s) { return String(s || '').trim(); }).filter(Boolean)
+            : [];
+
         const desiredMaterial = selections && selections.material ? String(selections.material) : '';
-        const desiredLocation = selections && selections.location ? String(selections.location) : '';
         const desiredDefects = selections && Array.isArray(selections.defects) ? selections.defects.map(String) : [];
 
         $('.survey-data-mock-section-item[data-accommodation-id]').each(function () {
             const $accItem = $(this);
+            const roomName = $accItem.find('.survey-data-mock-section-name').first().text().trim();
+            if (labels.length > 0 && labels.indexOf(roomName) === -1) {
+                return;
+            }
             const rid = String($accItem.attr('data-accommodation-id') || '');
             const $slide = $accItem.find('.survey-data-mock-carousel-slide[data-component-key="' + ck + '"]').first();
             if (!$slide.length) return;
+
+            const existingLocation = String($slide.find('[data-group="location"].active').data('value') || '');
 
             // Persist desired values into the accommodation draft state first, so hydration is stable
             // even if the DOM is rebuilt/re-wrapped by other initializers.
             if (window.SurveyDataMockAccommodationState && typeof window.SurveyDataMockAccommodationState.setSelection === 'function' && rid) {
                 window.SurveyDataMockAccommodationState.setSelection(rid, ck, {
                     material: desiredMaterial,
-                    location: desiredLocation,
+                    location: existingLocation,
                     defects: desiredDefects
                 });
             }
@@ -5363,16 +5401,6 @@ $(document).ready(function() {
                 }).first();
                 if ($matBtn.length) {
                     $matBtn.trigger('click', { sdmDesiredSelected: true });
-                }
-            }
-
-            // Location (single, optional)
-            if (desiredLocation !== '') {
-                const $locBtn = $slide.find('[data-group="location"][data-component-key="' + ck + '"]').filter(function () {
-                    return String($(this).data('value') || '') === desiredLocation;
-                }).first();
-                if ($locBtn.length) {
-                    $locBtn.trigger('click', { sdmDesiredSelected: true });
                 }
             }
 
@@ -5501,6 +5529,24 @@ $(document).ready(function() {
         });
     }
 
+    function applyComponentGptBulletsToOneAccommodationRow($row, key, bullets) {
+        const list = Array.isArray(bullets) ? bullets.map(function (x) { return String(x); }) : [];
+        const $bundle = $row.find('.survey-data-mock-component-gpt-bundle[data-component-key="' + key + '"]');
+        const $ul = $row.find('.survey-data-mock-component-gpt-observations[data-component-key="' + key + '"]');
+        $ul.empty();
+        list.forEach(function(line) {
+            $ul.append($('<li></li>').text(line));
+        });
+        $bundle.toggle(list.length > 0);
+        const text = list.join('\n');
+        const $slide = $row.find('.survey-data-mock-carousel-slide').filter(function() {
+            return String($(this).data('component-key') || '') === String(key);
+        }).first();
+        if ($slide.length) {
+            $slide.find('.survey-data-mock-accommodation-gpt-notes-input').val(text);
+        }
+    }
+
     /** Updates per-component GPT observation lists on every accommodation row for this type (persisted on component assessments). */
     function applyAccommodationComponentGptToTypeRows(accommodationTypeId, componentObservations) {
         if ((!accommodationTypeId && accommodationTypeId !== 0) || !componentObservations || typeof componentObservations !== 'object') {
@@ -5510,15 +5556,57 @@ $(document).ready(function() {
         $('.survey-data-mock-section-item[data-accommodation-type-id="' + tid + '"]').each(function() {
             const $row = $(this);
             Object.keys(componentObservations).forEach(function(key) {
-                const bullets = componentObservations[key] || [];
-                const $bundle = $row.find('.survey-data-mock-component-gpt-bundle[data-component-key="' + key + '"]');
-                const $ul = $row.find('.survey-data-mock-component-gpt-observations[data-component-key="' + key + '"]');
-                $ul.empty();
-                bullets.forEach(function(line) {
-                    $ul.append($('<li></li>').text(line));
-                });
-                $bundle.toggle(bullets.length > 0);
+                applyComponentGptBulletsToOneAccommodationRow($row, key, componentObservations[key] || []);
             });
+        });
+    }
+
+    /** Apply per-room component GPT bullets (matches DB after room-specific regeneration). */
+    function applyAccommodationRoomComponentGptFromPayload(roomList) {
+        if (!Array.isArray(roomList) || roomList.length === 0) {
+            return;
+        }
+        roomList.forEach(function(room) {
+            if (!room || room.accommodation_assessment_id === undefined || room.accommodation_assessment_id === null) {
+                return;
+            }
+            const aid = String(room.accommodation_assessment_id);
+            const $row = $('.survey-data-mock-section-item[data-accommodation-id="' + aid + '"]');
+            if (!$row.length) {
+                return;
+            }
+            const obs = room.component_observations;
+            if (!obs || typeof obs !== 'object') {
+                return;
+            }
+            Object.keys(obs).forEach(function(key) {
+                applyComponentGptBulletsToOneAccommodationRow($row, key, obs[key]);
+            });
+        });
+    }
+
+    /** Apply combined + per-component GPT from section-save response onto Accommodation rows (same shape as accommodation save). */
+    function applyAccommodationGptUpdatesFromSectionSaveResponse(response) {
+        const list = response && response.accommodation_gpt_updates;
+        if (!Array.isArray(list) || list.length === 0) {
+            return;
+        }
+        let warned = false;
+        list.forEach(function(u) {
+            const tid = u && u.accommodation_type_id;
+            if (tid === undefined || tid === null) {
+                return;
+            }
+            applyAccommodationCombinedGptToTypeRows(tid, u.gpt_narrative, u.gpt_observations);
+            if (Array.isArray(u.gpt_room_component_observations) && u.gpt_room_component_observations.length > 0) {
+                applyAccommodationRoomComponentGptFromPayload(u.gpt_room_component_observations);
+            } else {
+                applyAccommodationComponentGptToTypeRows(tid, u.gpt_component_observations);
+            }
+            if (!warned && u.gpt_generation_error && typeof toastr !== 'undefined') {
+                toastr.warning(String(u.gpt_generation_error));
+                warned = true;
+            }
         });
     }
 
@@ -6254,6 +6342,7 @@ $(document).ready(function() {
         if (!sel || typeof sel !== 'object') {
             return;
         }
+        $details.find('.survey-data-mock-field-group[data-option-key] .survey-data-mock-button').removeClass('active');
         $details.find('.survey-data-mock-field-group[data-option-key]').each(function() {
             const $fg = $(this);
             const key = $fg.data('option-key');
@@ -6300,12 +6389,13 @@ $(document).ready(function() {
             return;
         }
         const $details = $sectionItem.find('.survey-data-mock-section-details');
+        $details.find('.survey-data-mock-field-group[data-option-key] .survey-data-mock-button').removeClass('active');
         const rawSel = $details.attr('data-option-selections');
         let usedDynamic = false;
         if (rawSel) {
             try {
                 const parsed = JSON.parse(rawSel);
-                if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length > 0) {
                     applyOptionSelectionsToSection($details);
                     usedDynamic = true;
                 }
@@ -7203,6 +7293,14 @@ $(document).ready(function() {
         
         // Collect all form data (option types keyed by DB key_name; flat keys kept for condition rating + legacy PHP)
         const options = collectSectionOptionsPayload($details);
+        const subKeyPreSave = String($sectionItem.attr('data-subcategory-key') || '');
+        if (subKeyPreSave === 'accommodation_components') {
+            const roomTargetsPre = extractAccommodationComponentRoomTargets(options);
+            if (roomTargetsPre.length === 0) {
+                notifyNonBlockingError('Select at least one accommodation room in Location (which rooms this component applies to).');
+                return;
+            }
+        }
         const formData = {
             section: options.section_type || '',
             location: options.location || '',
@@ -7347,9 +7445,11 @@ $(document).ready(function() {
                     if (subKey === 'accommodation_components' && accComponentKey) {
                         applyAccommodationComponentSectionSelectionToAccommodationForms(accComponentKey, {
                             material: formData.material || '',
-                            defects: Array.isArray(formData.defects) ? formData.defects : [],
-                            location: formData.location || ''
-                        });
+                            defects: Array.isArray(formData.defects) ? formData.defects : []
+                        }, extractAccommodationComponentRoomTargets(formData.options));
+                    }
+                    if (Array.isArray(response.accommodation_gpt_updates) && response.accommodation_gpt_updates.length > 0) {
+                        applyAccommodationGptUpdatesFromSectionSaveResponse(response);
                     }
                     
                     // Initialize lock state (unlocked by default)
@@ -7455,6 +7555,9 @@ $(document).ready(function() {
                     $details.slideDown(300, function() {
                         if (isSwiperAvailable()) {
                             initializeSectionCarousels($sectionItem);
+                        }
+                        if (window.SurveyDataMockAccommodationState && typeof window.SurveyDataMockAccommodationState.hydrateItem === 'function') {
+                            window.SurveyDataMockAccommodationState.hydrateItem($sectionItem);
                         }
                     });
                 } else {
@@ -8453,6 +8556,14 @@ $(document).ready(function() {
             
             // Collect all form data
             const options = collectSectionOptionsPayload($details);
+            const subKeyPreSave2 = String($sectionItem.attr('data-subcategory-key') || '');
+            if (subKeyPreSave2 === 'accommodation_components') {
+                const roomTargetsPre2 = extractAccommodationComponentRoomTargets(options);
+                if (roomTargetsPre2.length === 0) {
+                    notifyNonBlockingError('Select at least one accommodation room in Location (which rooms this component applies to).');
+                    return;
+                }
+            }
             const formData = {
                 section: options.section_type || '',
                 location: options.location || '',
@@ -8566,6 +8677,18 @@ $(document).ready(function() {
                         $sectionItem.attr('data-saved', 'true');
                         $sectionItem.attr('data-has-report', response.report_content ? 'true' : 'false');
                         $sectionItem.attr('data-locked', 'false');
+
+                        const subKey2 = String($sectionItem.attr('data-subcategory-key') || '');
+                        const accComponentKey2 = String($sectionItem.attr('data-acc-component-key') || '');
+                        if (subKey2 === 'accommodation_components' && accComponentKey2) {
+                            applyAccommodationComponentSectionSelectionToAccommodationForms(accComponentKey2, {
+                                material: formData.material || '',
+                                defects: Array.isArray(formData.defects) ? formData.defects : []
+                            }, extractAccommodationComponentRoomTargets(formData.options));
+                        }
+                        if (Array.isArray(response.accommodation_gpt_updates) && response.accommodation_gpt_updates.length > 0) {
+                            applyAccommodationGptUpdatesFromSectionSaveResponse(response);
+                        }
                         
                         // Initialize lock state (unlocked by default)
                         updateLockState($sectionItem, false);
@@ -8632,14 +8755,24 @@ $(document).ready(function() {
     // Accommodation "draft" state: keeps selections stable through DOM re-inits and edits.
     // Source-of-truth is a small JS store (mirrored to localStorage for resilience).
     window.SurveyDataMockAccommodationState = window.SurveyDataMockAccommodationState || (function() {
-        const STORAGE_VERSION = 'v1';
+        const STORAGE_VERSION = 'v2';
         const state = {
+            instanceToken: '',
             byRoomId: {} // { [roomId]: { components: { [componentKey]: { material, location, defects: [] } } } }
         };
 
         function getSurveyId() {
             try {
                 return String($('.survey-data-mock-content').data('survey-id') || '');
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function getDraftInstanceToken() {
+            try {
+                const el = document.querySelector('.survey-data-mock-content');
+                return el ? String(el.getAttribute('data-accommodation-draft-token') || '') : '';
             } catch (_) {
                 return '';
             }
@@ -8659,17 +8792,31 @@ $(document).ready(function() {
             clearTimeout(saveTimer);
             saveTimer = setTimeout(function() {
                 try {
-                    localStorage.setItem(storageKey(), JSON.stringify(state));
+                    const token = getDraftInstanceToken();
+                    state.instanceToken = token;
+                    localStorage.setItem(storageKey(), JSON.stringify({
+                        instanceToken: token,
+                        byRoomId: state.byRoomId
+                    }));
                 } catch (_) {}
             }, 150);
         }
 
         function load() {
+            const token = getDraftInstanceToken();
+            state.instanceToken = token;
             try {
                 const raw = localStorage.getItem(storageKey());
                 const parsed = safeParse(raw);
                 if (!parsed || typeof parsed !== 'object') return;
                 if (!parsed.byRoomId || typeof parsed.byRoomId !== 'object') return;
+                const storedTok = parsed.instanceToken != null ? String(parsed.instanceToken) : null;
+                // Legacy payloads (no token): keep drafts on upgrade; token is written on next save.
+                if (storedTok !== null && storedTok !== '' && token !== '' && storedTok !== token) {
+                    state.byRoomId = {};
+                    scheduleSave();
+                    return;
+                }
                 state.byRoomId = parsed.byRoomId;
             } catch (_) {}
         }
@@ -8708,9 +8855,13 @@ $(document).ready(function() {
             if (!$slide.length) return normalizeSelection({});
 
             return normalizeSelection({
-                material: $slide.find('[data-group="material"].active').data('value') || '',
-                location: $slide.find('[data-group="location"].active').data('value') || '',
-                defects: $slide.find('[data-group="defects"].active').map(function() { return $(this).data('value'); }).get()
+                material: $slide.find('[data-group="material"][data-component-key="' + ck + '"].active').data('value')
+                    || $slide.find('[data-group="material"].active').data('value') || '',
+                location: $slide.find('[data-group="location"][data-component-key="' + ck + '"].active').data('value')
+                    || $slide.find('[data-group="location"].active').data('value') || '',
+                defects: $slide.find('[data-group="defects"][data-component-key="' + ck + '"].active').length
+                    ? $slide.find('[data-group="defects"][data-component-key="' + ck + '"].active').map(function() { return $(this).data('value'); }).get()
+                    : $slide.find('[data-group="defects"].active').map(function() { return $(this).data('value'); }).get()
             });
         }
 
@@ -8723,10 +8874,33 @@ $(document).ready(function() {
             $item.find('.survey-data-mock-carousel-slide[data-component-key]').each(function() {
                 const ck = String($(this).attr('data-component-key') || '').trim();
                 if (!ck) return;
-                // Only seed when store doesn't already have a value (store is authoritative once set).
-                if (!room.components[ck]) {
-                    room.components[ck] = readSelectionFromDom($item, ck);
+                const domSel = readSelectionFromDom($item, ck);
+                const existing = room.components[ck];
+                if (!existing) {
+                    room.components[ck] = domSel;
+                } else {
+                    // localStorage drafts can omit location/material while the server-rendered DOM still has
+                    // `.active` on buttons. Merge so empty draft fields do not wipe persisted selections on refresh/edit.
+                    const mat = (existing.material && String(existing.material).trim() !== '') ? existing.material : domSel.material;
+                    const loc = (existing.location && String(existing.location).trim() !== '') ? existing.location : domSel.location;
+                    const def = (existing.defects && existing.defects.length > 0) ? existing.defects : domSel.defects;
+                    room.components[ck] = normalizeSelection({ material: mat, location: loc, defects: def });
                 }
+            });
+            scheduleSave();
+        }
+
+        /** Overwrite in-memory draft for this room from the current DOM (call after successful save). */
+        function replaceRoomDraftFromDom($item) {
+            const rid = String($item.attr('data-accommodation-id') || '').trim();
+            if (!rid) return;
+            const room = ensureRoom(rid);
+            if (!room) return;
+            room.components = {};
+            $item.find('.survey-data-mock-carousel-slide[data-component-key]').each(function() {
+                const ck = String($(this).attr('data-component-key') || '').trim();
+                if (!ck) return;
+                room.components[ck] = readSelectionFromDom($item, ck);
             });
             scheduleSave();
         }
@@ -8790,6 +8964,7 @@ $(document).ready(function() {
         return {
             setSelection,
             seedRoomFromDom,
+            replaceRoomDraftFromDom,
             hydrateItem,
             hydrateAll
         };
@@ -9299,6 +9474,10 @@ $(document).ready(function() {
                             $(this).attr('data-accommodation-id', newId);
                         });
                     }
+
+                    if (window.SurveyDataMockAccommodationState && typeof window.SurveyDataMockAccommodationState.replaceRoomDraftFromDom === 'function') {
+                        window.SurveyDataMockAccommodationState.replaceRoomDraftFromDom($item);
+                    }
                     
                     // Clear selected files and preview, then add saved photos to grid so they show without refresh
                     $item.data('selectedFiles', []);
@@ -9316,7 +9495,11 @@ $(document).ready(function() {
                     const reportBody = response.report_content || '';
                     $reportContent.find('.survey-data-mock-report-textarea').val(reportBody);
                     applyAccommodationCombinedGptToTypeRows(finalAccommodationTypeId, response.gpt_narrative, response.gpt_observations);
-                    applyAccommodationComponentGptToTypeRows(finalAccommodationTypeId, response.gpt_component_observations);
+                    if (Array.isArray(response.gpt_room_component_observations) && response.gpt_room_component_observations.length > 0) {
+                        applyAccommodationRoomComponentGptFromPayload(response.gpt_room_component_observations);
+                    } else {
+                        applyAccommodationComponentGptToTypeRows(finalAccommodationTypeId, response.gpt_component_observations);
+                    }
                     if (response.gpt_generation_error && typeof toastr !== 'undefined') {
                         toastr.warning(String(response.gpt_generation_error));
                     }

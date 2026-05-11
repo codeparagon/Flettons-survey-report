@@ -194,6 +194,131 @@ class ChatGPTService
     }
 
     /**
+     * Room-specific bullet observations for each component for one accommodation room row.
+     *
+     * @param array $payload Must include accommodation_type, room (object), and component_keys (list of component_key strings for this type)
+     * @return array{component_observations: array<string, array<int, string>>}
+     * @throws \Exception
+     */
+    public function generateAccommodationRoomComponentObservations(array $payload): array
+    {
+        $surveyorName = $this->getSurveyorName();
+        $payload['surveyor_name'] = $surveyorName;
+
+        $instruction = 'You are ' . $surveyorName . ', an experienced UK residential surveyor. '
+            . 'You will receive JSON with accommodation_type, surveyor_name, component_keys (array of component_key strings), and room (object). '
+            . 'Room has: room_label, location, notes, condition_rating, and components (component_key, component_name, material, defects, location). '
+            . 'Return ONLY valid JSON with key "component_observations" where keys are EXACTLY the strings in component_keys and each value is an array of short factual bullet strings '
+            . 'ONLY for this single room (do not combine with other rooms; do not include general observations). '
+            . 'IMPORTANT: write at least 3 bullets per component when there is any input for it (material and/or defects and/or location and/or relevant notes). '
+            . 'Bullets must be specific to the supplied data: reference the selected material/defects/location, and use cautious professional phrasing (e.g. "noted", "recorded", "no significant defects recorded"). '
+            . 'Do NOT invent measurements, causes, or remediation unless explicitly provided. If there is genuinely no input for a component, use an empty list [].';
+
+        $text = $this->callChatCompletionsJsonObject($payload, $instruction);
+        $decoded = json_decode($text, true);
+        if (!is_array($decoded)) {
+            throw new \Exception('Room component observations response was not valid JSON.');
+        }
+
+        $raw = $decoded['component_observations'] ?? [];
+        $out = [];
+
+        $componentKeys = isset($payload['component_keys']) && is_array($payload['component_keys'])
+            ? array_values(array_filter(array_map(static fn ($v) => is_string($v) ? trim($v) : '', $payload['component_keys']), static fn ($v) => $v !== ''))
+            : [];
+
+        $roomComponents = [];
+        if (isset($payload['room']) && is_array($payload['room']) && isset($payload['room']['components']) && is_array($payload['room']['components'])) {
+            foreach ($payload['room']['components'] as $c) {
+                if (!is_array($c)) continue;
+                $ck = isset($c['component_key']) ? trim((string) $c['component_key']) : '';
+                if ($ck === '') continue;
+                $roomComponents[$ck] = $c;
+            }
+        }
+
+        // Normalize GPT output into string bullet arrays.
+        if (is_array($raw)) {
+            foreach ($raw as $key => $items) {
+                if (!is_string($key) || $key === '') {
+                    continue;
+                }
+                $list = [];
+                if (is_array($items)) {
+                    foreach ($items as $bullet) {
+                        if (is_string($bullet)) {
+                            $bt = trim($bullet);
+                            if ($bt !== '') {
+                                $list[] = $bt;
+                            }
+                        }
+                    }
+                }
+                $out[$key] = array_values($list);
+            }
+        }
+
+        // Safety net: ensure every component_key exists, and ensure we have meaningful multi-bullets
+        // derived from saved data (without inventing new facts).
+        foreach ($componentKeys as $ck) {
+            $existing = $out[$ck] ?? [];
+            if (!is_array($existing)) {
+                $existing = [];
+            }
+            $existing = array_values(array_filter(array_map('strval', $existing), static fn ($s) => trim($s) !== ''));
+
+            $comp = $roomComponents[$ck] ?? null;
+            $material = is_array($comp) ? trim((string) ($comp['material'] ?? '')) : '';
+            $location = is_array($comp) ? trim((string) ($comp['location'] ?? '')) : '';
+            $defects = [];
+            if (is_array($comp) && isset($comp['defects']) && is_array($comp['defects'])) {
+                $defects = array_values(array_filter(array_map(static fn ($d) => trim((string) $d), $comp['defects']), static fn ($d) => $d !== ''));
+            }
+
+            $hasInput = ($material !== '') || ($location !== '') || ($defects !== []);
+
+            if (!$hasInput) {
+                $out[$ck] = $existing;
+                continue;
+            }
+
+            if (count($existing) >= 3) {
+                $out[$ck] = $existing;
+                continue;
+            }
+
+            $fallback = $existing;
+            if ($material !== '') {
+                $fallback[] = 'Material recorded as: ' . $material . '.';
+            }
+            if ($location !== '') {
+                $fallback[] = 'Location/position recorded as: ' . $location . '.';
+            }
+            if ($defects !== []) {
+                $fallback[] = 'Defects recorded: ' . implode(', ', $defects) . '.';
+                $meaningful = array_filter($defects, static fn ($d) => !in_array($d, ['None', 'No Defects'], true));
+                if ($meaningful === []) {
+                    $fallback[] = 'No significant defects were recorded for this component.';
+                }
+            } else {
+                $fallback[] = 'No defects were selected/recorded for this component.';
+            }
+
+            // Deduplicate while preserving order, and clamp to a sensible size.
+            $dedup = [];
+            foreach ($fallback as $b) {
+                $t = trim((string) $b);
+                if ($t === '') continue;
+                if (in_array($t, $dedup, true)) continue;
+                $dedup[] = $t;
+            }
+            $out[$ck] = array_slice($dedup, 0, 6);
+        }
+
+        return ['component_observations' => $out];
+    }
+
+    /**
      * Chat Completions with JSON object response (structured accommodation outputs).
      *
      * @throws \Exception

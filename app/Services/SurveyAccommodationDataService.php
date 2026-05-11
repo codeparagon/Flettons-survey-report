@@ -600,6 +600,24 @@ class SurveyAccommodationDataService
         
         return $result;
     }
+
+    /**
+     * Header label for an accommodation row (matches survey data UI and Location multi-select options).
+     */
+    protected function accommodationAssessmentDisplayLabel(SurveyAccommodationAssessment $assessment): string
+    {
+        $assessment->loadMissing('accommodationType');
+        $accommodationTypeName = $assessment->accommodationType->display_name ?? 'Unknown';
+        $cloneIndex = (int) ($assessment->clone_index ?? 0);
+        $roomCountForType = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $assessment->survey_id)
+            ->where('accommodation_type_id', $assessment->accommodation_type_id)
+            ->count();
+
+        return $roomCountForType <= 1
+            ? $accommodationTypeName
+            : ($accommodationTypeName . ' ' . ($cloneIndex + 1));
+    }
     
     /**
      * Map an assessment to the array format expected by the view.
@@ -619,20 +637,9 @@ class SurveyAccommodationDataService
             $conditionRating = 'ni';
         }
         
-        // Get accommodation type name - must exist since we filtered for it
         $accommodationTypeName = $assessment->accommodationType->display_name ?? 'Unknown';
-
         $cloneIndex = (int) ($assessment->clone_index ?? 0);
-        $roomCountForType = SurveyAccommodationAssessment::query()
-            ->where('survey_id', $assessment->survey_id)
-            ->where('accommodation_type_id', $assessment->accommodation_type_id)
-            ->count();
-
-        // If there's only one room for this type, show just "Bedroom" (no "1").
-        // Otherwise show "Bedroom 1", "Bedroom 2", ...
-        $displayLabel = $roomCountForType <= 1
-            ? $accommodationTypeName
-            : ($accommodationTypeName . ' ' . ($cloneIndex + 1));
+        $displayLabel = $this->accommodationAssessmentDisplayLabel($assessment);
         
         // Build components list in the same order as configured in admin
         $typeComponents = $assessment->accommodationType
@@ -1193,6 +1200,7 @@ class SurveyAccommodationDataService
                 'gpt_narrative' => $gptResult['gpt_narrative'],
                 'gpt_observations' => $gptResult['gpt_observations'],
                 'gpt_component_observations' => $gptResult['gpt_component_observations'] ?? [],
+                'gpt_room_component_observations' => $gptResult['gpt_room_component_observations'] ?? [],
                 'gpt_generation_error' => $gptResult['gpt_generation_error'],
             ];
 
@@ -1391,13 +1399,18 @@ class SurveyAccommodationDataService
      *
      * By default, this only fills blanks (does not overwrite room-specific selections).
      *
-     * @param array{material?: string, defects?: array<int,string>, location?: string} $selections
+     * The section "Location" control lists accommodation rooms (e.g. Bedroom 1); only rows whose
+     * display label is in {@see $roomDisplayLabels} are updated. It is not written to component location_id.
+     *
+     * @param array{material?: string, defects?: array<int,string>} $selections
+     * @param list<string> $roomDisplayLabels
      */
     public function applyComponentSectionSelectionsToSurveyAccommodations(
         Survey $survey,
         string $componentKey,
         array $selections,
-        bool $onlyWhenEmpty = true
+        bool $onlyWhenEmpty = true,
+        array $roomDisplayLabels = []
     ): void {
         $componentKey = trim($componentKey);
         if ($componentKey === '') {
@@ -1414,17 +1427,21 @@ class SurveyAccommodationDataService
 
         $materialType = SurveyAccommodationOptionType::where('key_name', 'material')->first();
         $defectType = SurveyAccommodationOptionType::where('key_name', 'defects')->first();
-        $locationType = SurveyAccommodationOptionType::where('key_name', 'location')->first();
 
-        if (! $materialType || ! $defectType || ! $locationType) {
+        if (! $materialType || ! $defectType) {
+            return;
+        }
+
+        if ($roomDisplayLabels === []) {
             return;
         }
 
         $materialVal = isset($selections['material']) ? trim((string) $selections['material']) : '';
-        $locationVal = isset($selections['location']) ? trim((string) $selections['location']) : '';
         $defectVals = isset($selections['defects']) && is_array($selections['defects'])
             ? array_values(array_filter(array_map(static fn ($v) => trim((string) $v), $selections['defects']), static fn ($v) => $v !== ''))
             : [];
+
+        $allowedRooms = array_flip(array_map(static fn ($s) => trim((string) $s), $roomDisplayLabels));
 
         // Only target accommodation assessments whose type includes this component.
         $assessments = SurveyAccommodationAssessment::query()
@@ -1432,12 +1449,20 @@ class SurveyAccommodationDataService
             ->whereHas('accommodationType.components', function ($q) use ($component) {
                 $q->where('survey_accommodation_components.id', $component->id);
             })
-            ->with(['componentAssessments' => function ($q) use ($component) {
-                $q->where('component_id', $component->id)->with(['material', 'defects', 'location']);
-            }])
+            ->with([
+                'accommodationType',
+                'componentAssessments' => function ($q) use ($component) {
+                    $q->where('component_id', $component->id)->with(['material', 'defects', 'location']);
+                },
+            ])
             ->get();
 
         foreach ($assessments as $assessment) {
+            $rowLabel = $this->accommodationAssessmentDisplayLabel($assessment);
+            if (! isset($allowedRooms[$rowLabel])) {
+                continue;
+            }
+
             $componentAssessment = $assessment->componentAssessments->first();
             if (! $componentAssessment) {
                 $componentAssessment = new SurveyAccommodationComponentAssessment();
@@ -1446,17 +1471,12 @@ class SurveyAccommodationDataService
             }
 
             $hasMaterial = ! empty($componentAssessment->material_id);
-            $hasLocation = ! empty($componentAssessment->location_id);
             $hasDefects = $componentAssessment->exists
                 ? ($componentAssessment->defects && $componentAssessment->defects->count() > 0)
                 : false;
 
             if ($materialVal !== '' && (! $onlyWhenEmpty || ! $hasMaterial)) {
                 $componentAssessment->material_id = $this->findAccommodationOptionId($materialType->id, $materialVal, $component->id);
-            }
-
-            if ($locationVal !== '' && (! $onlyWhenEmpty || ! $hasLocation)) {
-                $componentAssessment->location_id = $this->resolveComponentLocationOptionId($locationVal, $component->id);
             }
 
             // Save before syncing defects if it's a new row.
@@ -1537,6 +1557,57 @@ class SurveyAccommodationDataService
     }
 
     /**
+     * Regenerate combined GPT for every accommodation type on this survey that includes the given component.
+     * Used when a surveyor saves an "Accommodation Components" section (acc_component__{key}) so room rows
+     * and persisted component observations stay aligned without opening the Accommodation form.
+     *
+     * @return list<array{accommodation_type_id: int, gpt_narrative: ?string, gpt_observations: array<int, string>, gpt_component_observations: array<string, array<int, string>>, gpt_generation_error: ?string}>
+     */
+    public function regenerateAccommodationGptForTypesUsingComponent(Survey $survey, string $componentKey): array
+    {
+        $componentKey = trim($componentKey);
+        if ($componentKey === '') {
+            return [];
+        }
+
+        $component = SurveyAccommodationComponent::where('key_name', $componentKey)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $component) {
+            return [];
+        }
+
+        $typeIds = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->whereHas('accommodationType.components', function ($q) use ($component) {
+                $q->where('survey_accommodation_components.id', $component->id);
+            })
+            ->distinct()
+            ->pluck('accommodation_type_id')
+            ->filter()
+            ->values();
+
+        $out = [];
+        foreach ($typeIds as $typeId) {
+            $tid = (int) $typeId;
+            if ($tid <= 0) {
+                continue;
+            }
+            $gpt = $this->regenerateAccommodationTypeCombinedGpt($survey, $tid);
+            $out[] = [
+                'accommodation_type_id' => $tid,
+                'gpt_narrative' => $gpt['gpt_narrative'],
+                'gpt_observations' => $gpt['gpt_observations'],
+                'gpt_component_observations' => $gpt['gpt_component_observations'],
+                'gpt_generation_error' => $gpt['gpt_generation_error'],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * Regenerate combined GPT narrative + observations for an accommodation type (all non-empty rooms).
      *
      * @return array{gpt_narrative: ?string, gpt_observations: array<int, string>, gpt_component_observations: array<string, array<int, string>>, gpt_generation_error: ?string}
@@ -1563,6 +1634,7 @@ class SurveyAccommodationDataService
                 'gpt_narrative' => null,
                 'gpt_observations' => [],
                 'gpt_component_observations' => [],
+                'gpt_room_component_observations' => [],
                 'gpt_generation_error' => null,
             ];
         }
@@ -1597,12 +1669,15 @@ class SurveyAccommodationDataService
                 ]
             );
 
-            $this->syncComponentAssessmentGptObservationsFromKeys($survey, $accommodationTypeId, $normalizedByKey);
+            // IMPORTANT: combined component bullets are cross-room by definition. Do not copy the same bullets
+            // onto every room row; generate room-specific bullets instead so clones differ.
+            $this->syncRoomSpecificComponentAssessmentGptObservations($survey, $accommodationTypeId, $type);
 
             return [
                 'gpt_narrative' => $out['narrative'],
                 'gpt_observations' => $out['observations'],
                 'gpt_component_observations' => $normalizedByKey,
+                'gpt_room_component_observations' => $this->buildRoomComponentGptObservationsPayloadForType($survey, $accommodationTypeId, $type),
                 'gpt_generation_error' => null,
             ];
         } catch (\Exception $e) {
@@ -1616,8 +1691,116 @@ class SurveyAccommodationDataService
                 'gpt_narrative' => null,
                 'gpt_observations' => [],
                 'gpt_component_observations' => [],
+                'gpt_room_component_observations' => [],
                 'gpt_generation_error' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Per-room GPT component bullets as persisted on component assessments (for immediate UI refresh).
+     *
+     * @return list<array{accommodation_assessment_id: int, component_observations: array<string, list<string>>}>
+     */
+    public function buildRoomComponentGptObservationsPayloadForType(Survey $survey, int $accommodationTypeId, ?SurveyAccommodationType $type = null): array
+    {
+        $type = $type ?? SurveyAccommodationType::with(['components' => function ($q) {
+            $q->where('is_active', true)->orderBy('sort_order');
+        }])->find($accommodationTypeId);
+
+        if (! $type) {
+            return [];
+        }
+
+        $assessments = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->where('accommodation_type_id', $accommodationTypeId)
+            ->with(['componentAssessments' => function ($q) {
+                $q->with('component');
+            }])
+            ->orderBy('clone_index')
+            ->orderBy('id')
+            ->get();
+
+        $out = [];
+        foreach ($assessments as $assessment) {
+            $byKey = [];
+            foreach ($type->components as $component) {
+                $ca = $assessment->componentAssessments->firstWhere('component_id', $component->id);
+                $raw = $ca ? ($ca->gpt_observations ?? null) : null;
+                $bullets = is_array($raw)
+                    ? array_values(array_filter(array_map(static fn ($s) => trim((string) $s), $raw), static fn ($s) => $s !== ''))
+                    : [];
+                $byKey[$component->key_name] = $bullets;
+            }
+            $out[] = [
+                'accommodation_assessment_id' => (int) $assessment->id,
+                'component_observations' => $byKey,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Generate per-room (per accommodation assessment) component bullets and persist them onto
+     * SurveyAccommodationComponentAssessment.gpt_observations, so clones can differ.
+     */
+    protected function syncRoomSpecificComponentAssessmentGptObservations(
+        Survey $survey,
+        int $accommodationTypeId,
+        SurveyAccommodationType $type
+    ): void {
+        $assessments = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->where('accommodation_type_id', $accommodationTypeId)
+            ->get();
+
+        $componentKeys = $type->components->pluck('key_name')->values()->all();
+
+        foreach ($assessments as $assessment) {
+            if (!$this->assessmentHasReportableData($assessment)) {
+                continue;
+            }
+
+            try {
+                $roomPayload = $this->buildRoomPayloadForAssessment($assessment);
+                $resp = $this->chatGPTService->generateAccommodationRoomComponentObservations([
+                    'accommodation_type' => $type->display_name,
+                    'component_keys' => $componentKeys,
+                    'room' => $roomPayload,
+                ]);
+
+                $byKey = is_array($resp['component_observations'] ?? null) ? $resp['component_observations'] : [];
+
+                foreach ($type->components as $component) {
+                    $key = $component->key_name;
+                    $bullets = $byKey[$key] ?? [];
+                    if (!is_array($bullets)) {
+                        $bullets = [];
+                    }
+                    $bullets = array_values(array_filter(array_map('strval', $bullets), static fn ($s) => trim($s) !== ''));
+
+                    $componentAssessment = SurveyAccommodationComponentAssessment::query()
+                        ->where('accommodation_assessment_id', $assessment->id)
+                        ->where('component_id', $component->id)
+                        ->first();
+
+                    if (!$componentAssessment) {
+                        continue;
+                    }
+
+                    $componentAssessment->gpt_observations = $bullets === [] ? null : $bullets;
+                    $componentAssessment->save();
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Failed to generate room-specific component GPT observations', [
+                    'survey_id' => $survey->id,
+                    'accommodation_type_id' => $accommodationTypeId,
+                    'accommodation_assessment_id' => $assessment->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 
