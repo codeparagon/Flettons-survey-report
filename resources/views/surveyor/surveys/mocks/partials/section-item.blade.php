@@ -54,8 +54,8 @@
         // For sections under an "Accommodation" sub-category, Location options come from the survey's Accommodation room list
         // and allow multi-select. This renders Location between Material and Defects.
         $useAccommodationRoomLocations = !empty($accommodationRoomOptions ?? [])
-            && !empty($subCategoryName ?? '')
-            && stripos((string) $subCategoryName, 'accommodation') !== false;
+            && !empty($subcategoryKey ?? '')
+            && $subcategoryKey === 'accommodation_components';
 
         if ($useAccommodationRoomLocations) {
             $weight = [

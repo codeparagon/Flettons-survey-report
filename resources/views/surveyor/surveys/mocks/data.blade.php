@@ -5356,6 +5356,164 @@ $(document).ready(function() {
         return s ? [s] : [];
     }
 
+    /** Room labels rendered in the section form Location field (same DOM the user sees). */
+    function getRenderedLocationOptionLabelsFromDetails($details) {
+        const $fg = $details.find('.survey-data-mock-field-group[data-option-key="location"]').first();
+        if (!$fg.length) {
+            return [];
+        }
+        const uiGroup = String($fg.data('ui-group') || 'location');
+        const seen = Object.create(null);
+        const out = [];
+        $fg.find('.survey-data-mock-button[data-group="' + uiGroup + '"]').each(function() {
+            const s = String($(this).data('value') || '').trim();
+            if (!s || seen[s]) {
+                return;
+            }
+            seen[s] = true;
+            out.push(s);
+        });
+        return out;
+    }
+
+    /**
+     * Rooms already chosen on sibling rows for the same accommodation component (same acc key or same section definition).
+     */
+    function getUsedAccComponentRoomLabelsBySiblingRows($subCategory, $sourceSectionItem) {
+        const used = Object.create(null);
+        if (!$subCategory || !$subCategory.length || !$sourceSectionItem || !$sourceSectionItem.length) {
+            return used;
+        }
+        const sourceKey = String($sourceSectionItem.attr('data-acc-component-key') || '');
+        const sourceDefId = $sourceSectionItem.data('section-definition-id');
+        $subCategory.find('.survey-data-mock-section-item').each(function() {
+            const $it = $(this);
+            if ($it.is('[data-accommodation-id]')) {
+                return;
+            }
+            if (String($it.attr('data-subcategory-key') || '') !== 'accommodation_components') {
+                return;
+            }
+            let sameComponent = false;
+            if (sourceKey) {
+                sameComponent = String($it.attr('data-acc-component-key') || '') === sourceKey;
+            } else {
+                sameComponent = String($it.data('section-definition-id')) === String(sourceDefId);
+            }
+            if (!sameComponent) {
+                return;
+            }
+            const $d = $it.find('.survey-data-mock-section-details');
+            if (!$d.length) {
+                return;
+            }
+            extractAccommodationComponentRoomTargets(collectSectionOptionsPayload($d)).forEach(function(room) {
+                if (room) {
+                    used[room] = true;
+                }
+            });
+        });
+        return used;
+    }
+
+    /** Clone modal: only rooms shown on this form, excluding rooms already used on this component's other rows. */
+    function getAccommodationComponentCloneLocationChoices($details, $subCategory, $sourceSectionItem) {
+        const rendered = getRenderedLocationOptionLabelsFromDetails($details);
+        const used = getUsedAccComponentRoomLabelsBySiblingRows($subCategory, $sourceSectionItem);
+        return rendered.filter(function(label) {
+            return !used[label];
+        });
+    }
+
+    /** Clone / API "selected_section" for Accommodation Components rows (no section-type picker in UI). */
+    function resolveAccommodationComponentCloneSectionLabel($sectionItem, $details) {
+        const opts = collectSectionOptionsPayload($details);
+        const fromOpts = opts && opts.section_type ? String(opts.section_type).trim() : '';
+        if (fromOpts) {
+            return fromOpts;
+        }
+        const fromBtn = String($details.find('[data-group="section"].active').first().data('value') || '').trim();
+        if (fromBtn) {
+            return fromBtn;
+        }
+        return String($sectionItem.find('.survey-data-mock-section-name').first().text() || '').trim();
+    }
+
+    /**
+     * Enforce: in "accommodation_components" component-driven forms, a room (Location) can only be
+     * assigned once per component across rows. We hide already-selected rooms from the UI (except
+     * the current row's active selections) to avoid re-selection and reduce clutter.
+     */
+    function getAccommodationComponentUsedLocationLabelsByOtherRows($subCategory, $currentItem) {
+        const used = Object.create(null);
+        if (!$subCategory || !$subCategory.length || !$currentItem || !$currentItem.length) return used;
+
+        const currentComponentKey = String($currentItem.attr('data-acc-component-key') || '');
+        const currentDefId = String($currentItem.data('section-definition-id') || '');
+
+        $subCategory.find('.survey-data-mock-section-item').each(function() {
+            const $it = $(this);
+            if ($currentItem && $it[0] === $currentItem[0]) return;
+            if (String($it.attr('data-subcategory-key') || '') !== 'accommodation_components') return;
+
+            let sameComponent = false;
+            if (currentComponentKey) {
+                sameComponent = String($it.attr('data-acc-component-key') || '') === currentComponentKey;
+            } else if (currentDefId) {
+                sameComponent = String($it.data('section-definition-id') || '') === currentDefId;
+            }
+            if (!sameComponent) return;
+
+            const $details = $it.find('.survey-data-mock-section-details').first();
+            if (!$details.length) return;
+
+            // Location is multi-select: collect all active location buttons.
+            $details
+                .find('.survey-data-mock-field-group[data-option-key="location"] .survey-data-mock-button.active')
+                .each(function() {
+                    const label = String($(this).data('value') || '').trim();
+                    if (label) used[label] = true;
+                });
+        });
+
+        return used;
+    }
+
+    function enforceAccommodationComponentLocationUniqueness($subCategory) {
+        if (!$subCategory || !$subCategory.length) return;
+        if (String($subCategory.attr('data-sub-category-key') || '') !== 'accommodation_components') return;
+
+        const $items = $subCategory.find('.survey-data-mock-section-item[data-subcategory-key="accommodation_components"]');
+        if (!$items.length) return;
+
+        $items.each(function() {
+            const $currentItem = $(this);
+            const usedByOthers = getAccommodationComponentUsedLocationLabelsByOtherRows($subCategory, $currentItem);
+
+            const $locationButtons = $currentItem
+                .find('.survey-data-mock-field-group[data-option-key="location"] .survey-data-mock-button[data-group], .survey-data-mock-field-group[data-option-key="location"] .survey-data-mock-button')
+                .filter(function() {
+                    // Only buttons with a data-value participate.
+                    return String($(this).data('value') || '').trim().length > 0;
+                });
+
+            $locationButtons.each(function() {
+                const $btn = $(this);
+                const label = String($btn.data('value') || '').trim();
+                if (!label) return;
+
+                const isActive = $btn.hasClass('active');
+                if (usedByOthers[label] && !isActive) {
+                    // Hide non-active duplicates so the user has zero possibility to re-select.
+                    $btn.hide();
+                    $btn.removeClass('active');
+                } else {
+                    $btn.show();
+                }
+            });
+        });
+    }
+
     /**
      * If a regular section under "Accommodation Components" is saved, reflect the chosen
      * material/defects onto matching per-room Accommodation carousels for that component key.
@@ -6623,6 +6781,13 @@ $(document).ready(function() {
                 $details.data('selected-location', buttonValue);
             }
         }
+
+        // Keep Accommodation Components "Location" uniqueness across rows.
+        // This prevents selecting rooms already assigned to the same component in other rows.
+        if (group === 'location' && subKeyForValidation === 'accommodation_components') {
+            const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
+            enforceAccommodationComponentLocationUniqueness($subCategory);
+        }
         
         // Store selection
         const sectionId = $sectionItem.data('section-id');
@@ -7634,7 +7799,7 @@ $(document).ready(function() {
                     </button>
                 </div>
                 <div class="survey-data-mock-clone-modal-body">
-                    <div class="survey-data-mock-clone-modal-field">
+                    <div class="survey-data-mock-clone-modal-field" id="clone-modal-section-field">
                         <label class="survey-data-mock-clone-modal-label">Select Target Section</label>
                         <div class="survey-data-mock-clone-section-buttons" id="clone-section-buttons">
                             <!-- Buttons will be dynamically generated -->
@@ -7665,6 +7830,7 @@ $(document).ready(function() {
     let selectedCloneSection = null;
     let selectedCloneLocation = null;
     let currentCloneSubCategory = null;
+    let currentCloneSourceSectionItem = null;
 
     // Open Clone Modal (only for regular sections, not accommodations)
     // Use more specific selector to avoid conflicts with accommodation handler
@@ -7724,57 +7890,75 @@ $(document).ready(function() {
         currentCloneSectionDefinitionId = sectionDefId;
         currentCloneData = formData;
         currentCloneCategory = categoryName;
-        selectedCloneSection = null;
         selectedCloneLocation = null;
-        
+
         const $subCategory = $sectionItem.closest('.survey-data-mock-sub-category');
         currentCloneSubCategory = $subCategory;
         const subCategoryKey = $subCategory.attr('data-sub-category-key') || null;
 
-        // Get section options scoped to this category and sub-category only
-        let allSections = [];
-        const sectionOptions = getOptions(categoryName, 'section', [], subCategoryKey);
-        if (sectionOptions && sectionOptions.length > 0) {
-            allSections = sectionOptions;
-        } else {
-            $details.find('[data-group="section"]').each(function() {
-                const sectionValue = $(this).data('value');
-                if (sectionValue) {
-                    allSections.push(sectionValue);
-                }
-            });
-        }
-
+        const $sectionField = $('#clone-modal-section-field');
         const $cloneButtons = $('#clone-section-buttons');
         $cloneButtons.empty();
-        allSections.forEach(function(section) {
-            const $btn = $('<button>')
-                .addClass('survey-data-mock-clone-section-btn')
-                .attr('type', 'button')
-                .data('section', section)
-                .text(section);
-            $cloneButtons.append($btn);
-        });
+
+        if (subCategoryKey === 'accommodation_components') {
+            $sectionField.hide();
+            selectedCloneSection = resolveAccommodationComponentCloneSectionLabel($sectionItem, $details);
+        } else {
+            $sectionField.show();
+            selectedCloneSection = null;
+            let allSections = [];
+            const sectionOptions = getOptions(categoryName, 'section', [], subCategoryKey);
+            if (sectionOptions && sectionOptions.length > 0) {
+                allSections = sectionOptions;
+            } else {
+                $details.find('[data-group="section"]').each(function() {
+                    const sectionValue = $(this).data('value');
+                    if (sectionValue) {
+                        allSections.push(sectionValue);
+                    }
+                });
+            }
+
+            allSections.forEach(function(section) {
+                const $btn = $('<button>')
+                    .addClass('survey-data-mock-clone-section-btn')
+                    .attr('type', 'button')
+                    .data('section', section)
+                    .text(section);
+                $cloneButtons.append($btn);
+            });
+        }
 
         // Get location options scoped to this category and sub-category only
         const $locationButtons = $('#clone-location-buttons');
         $locationButtons.empty();
         $('#clone-location-error').hide();
         const defaultLocationFallback = ['Whole Property', 'Right', 'Left', 'Front', 'Rear'];
-        const locationOptions = getOptions(categoryName, 'location', defaultLocationFallback, subCategoryKey);
-        locationOptions.forEach(function(location) {
-            const $btn = $('<button>')
-                .addClass('survey-data-mock-clone-location-btn')
-                .attr('type', 'button')
-                .data('location', location)
-                .text(location);
-            
-            $locationButtons.append($btn);
-        });
-        
+        let locationOptions;
+        if (subCategoryKey === 'accommodation_components') {
+            currentCloneSourceSectionItem = $sectionItem;
+            locationOptions = getAccommodationComponentCloneLocationChoices($details, $subCategory, $sectionItem);
+        } else {
+            currentCloneSourceSectionItem = null;
+            locationOptions = getOptions(categoryName, 'location', defaultLocationFallback, subCategoryKey);
+        }
+        if (locationOptions.length === 0 && subCategoryKey === 'accommodation_components') {
+            $locationButtons.html('<p class="survey-data-mock-clone-modal-help" style="color: #94A3B8;">No rooms left to assign. Every location shown on this form is already used for this component, or no rooms are configured.</p>');
+        } else {
+            locationOptions.forEach(function(location) {
+                const $btn = $('<button>')
+                    .addClass('survey-data-mock-clone-location-btn')
+                    .attr('type', 'button')
+                    .data('location', location)
+                    .text(location);
+
+                $locationButtons.append($btn);
+            });
+        }
+
         // Show modal
         $('#survey-data-mock-clone-modal').addClass('show');
-        
+
         // Enable/disable clone button based on selection
         updateCloneButtonState();
     });
@@ -7808,18 +7992,37 @@ $(document).ready(function() {
     
     // Validate that section + location combination doesn't already exist
     function validateCloneSelection() {
-        if (!selectedCloneSection || !selectedCloneLocation || !currentCloneSubCategory) {
+        if (!currentCloneSubCategory || !currentCloneSubCategory.length) {
             $('#clone-location-error').hide();
             return true;
         }
 
-        // Accommodation Components can legitimately repeat section+location across clones.
         const cloneSubKey = String(currentCloneSubCategory.attr('data-sub-category-key') || '');
         if (cloneSubKey === 'accommodation_components') {
+            if (!selectedCloneLocation) {
+                $('#clone-location-error').hide();
+                return true;
+            }
+            if (currentCloneSourceSectionItem && currentCloneSourceSectionItem.length) {
+                const allowed = getAccommodationComponentCloneLocationChoices(
+                    currentCloneSourceSectionItem.find('.survey-data-mock-section-details'),
+                    currentCloneSubCategory,
+                    currentCloneSourceSectionItem
+                );
+                if (allowed.indexOf(String(selectedCloneLocation)) === -1) {
+                    $('#clone-location-error').text('That room is already used for this component or is not available. Choose another location.').show();
+                    return false;
+                }
+            }
             $('#clone-location-error').hide();
             return true;
         }
-        
+
+        if (!selectedCloneSection || !selectedCloneLocation) {
+            $('#clone-location-error').hide();
+            return true;
+        }
+
         // Check if this section + location combination already exists
         let isDuplicate = false;
         currentCloneSubCategory.find('.survey-data-mock-section-item').each(function() {
@@ -7847,7 +8050,13 @@ $(document).ready(function() {
     }
 
     function updateCloneButtonState() {
-        const isValid = selectedCloneSection && selectedCloneLocation && validateCloneSelection();
+        const cloneSubKey = String(currentCloneSubCategory && currentCloneSubCategory.attr('data-sub-category-key') || '');
+        let isValid;
+        if (cloneSubKey === 'accommodation_components') {
+            isValid = !!(selectedCloneLocation && validateCloneSelection());
+        } else {
+            isValid = !!(selectedCloneSection && selectedCloneLocation && validateCloneSelection());
+        }
         $('#clone-modal-confirm').prop('disabled', !isValid);
     }
 
@@ -7859,11 +8068,13 @@ $(document).ready(function() {
         currentCloneData = null;
         currentCloneCategory = null;
         currentCloneSubCategory = null;
+        currentCloneSourceSectionItem = null;
         selectedCloneSection = null;
         selectedCloneLocation = null;
         $('.survey-data-mock-clone-section-btn').removeClass('active');
         $('.survey-data-mock-clone-location-btn').removeClass('active');
         $('#clone-location-error').hide();
+        $('#clone-modal-section-field').show();
         $('#clone-modal-confirm').prop('disabled', true);
     });
 
@@ -7876,33 +8087,46 @@ $(document).ready(function() {
             currentCloneData = null;
             currentCloneCategory = null;
             currentCloneSubCategory = null;
+            currentCloneSourceSectionItem = null;
             selectedCloneSection = null;
             selectedCloneLocation = null;
             $('.survey-data-mock-clone-section-btn').removeClass('active');
             $('.survey-data-mock-clone-location-btn').removeClass('active');
             $('#clone-location-error').hide();
+            $('#clone-modal-section-field').show();
             $('#clone-modal-confirm').prop('disabled', true);
         }
     });
 
     // Confirm Clone
     $('#clone-modal-confirm').on('click', function() {
-        if (!selectedCloneSection) {
-            alert('Please select a target section');
-            return;
-        }
-        
         if (!selectedCloneLocation) {
             alert('Please select a location');
             return;
         }
-        
+
         if (!validateCloneSelection()) {
             return;
         }
 
         // Use specific selector to only match regular sections (not accommodations)
         const $sourceItem = $(`.survey-data-mock-section-item:not([data-accommodation-id])[data-section-id="${currentCloneSectionId}"]`);
+        if (!$sourceItem.length) {
+            alert('Error: Source section not found. Please refresh the page.');
+            return;
+        }
+
+        const cloneSubKeyConfirm = String(currentCloneSubCategory && currentCloneSubCategory.attr('data-sub-category-key') || '');
+        const $sourceDetails = $sourceItem.find('.survey-data-mock-section-details');
+        let effectiveSelectedSection = selectedCloneSection;
+        if (cloneSubKeyConfirm === 'accommodation_components') {
+            effectiveSelectedSection = selectedCloneSection || resolveAccommodationComponentCloneSectionLabel($sourceItem, $sourceDetails);
+        }
+        if (!effectiveSelectedSection) {
+            alert('Please select a target section');
+            return;
+        }
+
         const $categorySection = $sourceItem.closest('.survey-data-mock-category');
         const $subCategoryContainer = $sourceItem.closest('.survey-data-mock-sub-category');
         
@@ -7941,17 +8165,16 @@ $(document).ready(function() {
         } else if ($sourceBadge.hasClass('survey-data-mock-condition-badge--1')) {
             conditionRating = '1';
         }
-        
-        const $sourceDetails = $sourceItem.find('.survey-data-mock-section-details');
+
         const baseOptions = collectSectionOptionsPayload($sourceDetails);
         const mergedOptions = Object.assign({}, baseOptions, {
-            section_type: selectedCloneSection || '',
+            section_type: effectiveSelectedSection || '',
             location: selectedCloneLocation || ''
         });
 
         // Prepare form data for AJAX request (options[] + legacy flat keys for PHP normalize)
         const formData = {
-            section: selectedCloneSection || '',
+            section: effectiveSelectedSection || '',
             location: selectedCloneLocation || '',
             structure: mergedOptions.structure !== undefined ? mergedOptions.structure : (currentCloneData.structure || ''),
             material: mergedOptions.material !== undefined ? mergedOptions.material : (currentCloneData.material || ''),
@@ -7979,7 +8202,7 @@ $(document).ready(function() {
                 source_section_id: currentCloneSectionId,
                 source_section_definition_id: parseInt(currentCloneSectionDefinitionId || sourceSectionDefinitionId, 10),
                 source_section_name: originalSectionName,
-                selected_section: selectedCloneSection,
+                selected_section: effectiveSelectedSection,
                 category_name: categoryName,
                 sub_category_name: subCategoryName,
                 form_data: formData
@@ -8007,6 +8230,10 @@ $(document).ready(function() {
                         
                         // Update the header with section name and location
                         updateSectionHeader($newSectionItem);
+
+                        // Hide already-selected rooms in Accommodation Components UI (avoid re-selection)
+                        const $uniqSubCategory = $newSectionItem.closest('.survey-data-mock-sub-category');
+                        enforceAccommodationComponentLocationUniqueness($uniqSubCategory);
                     }
                     
                     // Close modal
@@ -8016,13 +8243,15 @@ $(document).ready(function() {
                     currentCloneData = null;
                     currentCloneCategory = null;
                     currentCloneSubCategory = null;
+                    currentCloneSourceSectionItem = null;
                     selectedCloneSection = null;
                     selectedCloneLocation = null;
                     $('.survey-data-mock-clone-section-btn').removeClass('active');
                     $('.survey-data-mock-clone-location-btn').removeClass('active');
                     $('#clone-location-error').hide();
+                    $('#clone-modal-section-field').show();
                     $confirmBtn.prop('disabled', false).text(originalBtnText);
-                    
+
                     // Scroll to new section
                     $('html, body').animate({
                         scrollTop: $newSectionItem.offset().top - 100
@@ -8098,40 +8327,60 @@ $(document).ready(function() {
             currentCloneSectionDefinitionId = sectionDefId;
             currentCloneData = formData;
             currentCloneCategory = categoryName;
-            selectedCloneSection = null;
             selectedCloneLocation = null;
 
             const $subCategory = $item.closest('.survey-data-mock-sub-category');
             currentCloneSubCategory = $subCategory;
             const subCategoryKey = $subCategory.attr('data-sub-category-key') || null;
 
-            // Get section options scoped to this category and sub-category only
+            const $sectionField = $('#clone-modal-section-field');
+            const $cloneButtons = $('#clone-section-buttons');
+
             let allSections = [];
-            const sectionOptions = getOptions(categoryName, 'section', [], subCategoryKey);
-            if (sectionOptions && sectionOptions.length > 0) {
-                allSections = sectionOptions;
+            if (subCategoryKey === 'accommodation_components') {
+                $sectionField.hide();
+                $cloneButtons.empty();
+                selectedCloneSection = resolveAccommodationComponentCloneSectionLabel($item, $details);
             } else {
-                $details.find('[data-group="section"]').each(function() {
-                    const sectionValue = $(this).data('value');
-                    if (sectionValue) {
-                        allSections.push(sectionValue);
-                    }
-                });
+                $sectionField.show();
+                selectedCloneSection = null;
+                const sectionOptions = getOptions(categoryName, 'section', [], subCategoryKey);
+                if (sectionOptions && sectionOptions.length > 0) {
+                    allSections = sectionOptions;
+                } else {
+                    $details.find('[data-group="section"]').each(function() {
+                        const sectionValue = $(this).data('value');
+                        if (sectionValue) {
+                            allSections.push(sectionValue);
+                        }
+                    });
+                }
             }
 
             const defaultLocationFallback = ['Whole Property', 'Right', 'Left', 'Front', 'Rear'];
-            const locationOptions = getOptions(categoryName, 'location', defaultLocationFallback, subCategoryKey);
+            let locationOptions;
+            if (subCategoryKey === 'accommodation_components') {
+                currentCloneSourceSectionItem = $item;
+                locationOptions = getAccommodationComponentCloneLocationChoices($details, $subCategory, $item);
+            } else {
+                currentCloneSourceSectionItem = null;
+                locationOptions = getOptions(categoryName, 'location', defaultLocationFallback, subCategoryKey);
+            }
             const $locationButtons = $('#clone-location-buttons');
             $locationButtons.empty();
             $('#clone-location-error').hide();
-            locationOptions.forEach(function(location) {
-                const $btn = $('<button>')
-                    .addClass('survey-data-mock-clone-location-btn')
-                    .attr('type', 'button')
-                    .data('location', location)
-                    .text(location);
-                $locationButtons.append($btn);
-            });
+            if (locationOptions.length === 0 && subCategoryKey === 'accommodation_components') {
+                $locationButtons.html('<p class="survey-data-mock-clone-modal-help" style="color: #94A3B8;">No rooms left to assign. Every location shown on this form is already used for this component, or no rooms are configured.</p>');
+            } else {
+                locationOptions.forEach(function(location) {
+                    const $btn = $('<button>')
+                        .addClass('survey-data-mock-clone-location-btn')
+                        .attr('type', 'button')
+                        .data('location', location)
+                        .text(location);
+                    $locationButtons.append($btn);
+                });
+            }
 
             const alreadySelectedSections = [];
             
@@ -8147,33 +8396,32 @@ $(document).ready(function() {
                 }
             });
 
-            // Generate section buttons in modal
-            const $cloneButtons = $('#clone-section-buttons');
-            $cloneButtons.empty();
-            
-            // Filter out already selected sections
-            const availableSections = allSections.filter(section => !alreadySelectedSections.includes(section));
-            
-            if (availableSections.length === 0) {
-                $cloneButtons.html('<p class="survey-data-mock-clone-modal-help" style="color: #94A3B8;">All sections in this sub-category have been used</p>');
-                $('#clone-modal-confirm').prop('disabled', true);
-            } else {
-                allSections.forEach(function(section) {
-                    const isDisabled = alreadySelectedSections.includes(section);
-                    const $btn = $('<button>')
-                        .addClass('survey-data-mock-clone-section-btn')
-                        .attr('type', 'button')
-                        .data('section', section)
-                        .text(section);
-                    
-                    if (isDisabled) {
-                        $btn.addClass('disabled').prop('disabled', true);
-                    }
-                    
-                    $cloneButtons.append($btn);
-                });
+            if (subCategoryKey !== 'accommodation_components') {
+                $cloneButtons.empty();
+
+                const availableSections = allSections.filter(section => !alreadySelectedSections.includes(section));
+
+                if (availableSections.length === 0) {
+                    $cloneButtons.html('<p class="survey-data-mock-clone-modal-help" style="color: #94A3B8;">All sections in this sub-category have been used</p>');
+                    $('#clone-modal-confirm').prop('disabled', true);
+                } else {
+                    allSections.forEach(function(section) {
+                        const isDisabled = alreadySelectedSections.includes(section);
+                        const $btn = $('<button>')
+                            .addClass('survey-data-mock-clone-section-btn')
+                            .attr('type', 'button')
+                            .data('section', section)
+                            .text(section);
+
+                        if (isDisabled) {
+                            $btn.addClass('disabled').prop('disabled', true);
+                        }
+
+                        $cloneButtons.append($btn);
+                    });
+                }
             }
-            
+
             // Show modal
             $('#survey-data-mock-clone-modal').addClass('show');
             

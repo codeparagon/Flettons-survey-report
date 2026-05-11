@@ -16,8 +16,8 @@
     // (including cloned ones) and allow multi-select.
     $useAccommodationRoomLocations = $keyName === 'location'
         && !empty($accommodationRoomOptions ?? [])
-        && !empty($subCategoryName ?? '')
-        && stripos((string) $subCategoryName, 'accommodation') !== false;
+        && !empty($subcategoryKey ?? '')
+        && $subcategoryKey === 'accommodation_components';
 
     if ($useAccommodationRoomLocations) {
         $typeOptions = $accommodationRoomOptions;

@@ -857,18 +857,51 @@ class SurveyController extends Controller
         // Extract base name from source section name
         $sourceSectionName = $request->input('source_section_name', '');
         $baseName = $surveyDataService->extractBaseName($sourceSectionName);
-        
-        // Build new section name: "Base Name [Selected Section]"
-        $newSectionName = $baseName . ' [' . $validated['selected_section'] . ']';
-        
+
         // Generate new unique ID (using timestamp for mock data)
         $newSectionId = 'clone_' . time() . '_' . mt_rand(1000, 9999);
-        
+
         // Get form data from request
         $formData = $validated['form_data'];
         $normalizedOpts = $surveyDataService->normalizeOptionsFromFormData($formData);
 
+        $subcategoryKey = $sectionDefinition->subcategory->name ?? '';
+
+        // Accommodation Components: show component + chosen room (e.g. "Walls [Bedroom 1]"), not "Walls [Walls]"
+        if ($subcategoryKey === 'accommodation_components') {
+            $locRaw = $normalizedOpts['location'] ?? null;
+            $roomLabels = [];
+            if (is_array($locRaw)) {
+                foreach ($locRaw as $v) {
+                    $t = trim((string) $v);
+                    if ($t !== '') {
+                        $roomLabels[] = $t;
+                    }
+                }
+            } else {
+                $t = trim((string) $locRaw);
+                if ($t !== '') {
+                    $roomLabels[] = $t;
+                }
+            }
+            if ($roomLabels !== []) {
+                $normalizedOpts['location'] = $roomLabels;
+            }
+            $roomBracket = $roomLabels[0] ?? '';
+            $newSectionName = $roomBracket !== ''
+                ? ($baseName . ' [' . $roomBracket . ']')
+                : $baseName;
+        } else {
+            // "Base Name [Selected Section]" for standard sections
+            $newSectionName = $baseName . ' [' . $validated['selected_section'] . ']';
+        }
+
         $accComponentKey = $surveyDataService->accommodationComponentKeyFromSectionDefinition($sectionDefinition);
+
+        $legacyLocation = $normalizedOpts['location'] ?? ($formData['location'] ?? '');
+        if (is_array($legacyLocation)) {
+            $legacyLocation = (string) ($legacyLocation[0] ?? '');
+        }
 
         // Build section data array matching transformAssessmentToViewFormat structure
         $sectionData = [
@@ -881,7 +914,7 @@ class SurveyController extends Controller
             'total' => 10,
             'condition_rating' => $formData['condition_rating'] ?? 'ni',
             'selected_section' => $validated['selected_section'],
-            'location' => $normalizedOpts['location'] ?? ($formData['location'] ?? ''),
+            'location' => $legacyLocation,
             'structure' => $normalizedOpts['structure'] ?? ($formData['structure'] ?? ''),
             'material' => $normalizedOpts['material'] ?? ($formData['material'] ?? ''),
             'defects' => isset($normalizedOpts['defects']) ? (array) $normalizedOpts['defects'] : ($formData['defects'] ?? []),
@@ -899,12 +932,24 @@ class SurveyController extends Controller
         // Get options mapping for dynamic options
         $optionsMapping = $surveyDataService->getOptionsMapping();
 
+        // Same room list as the main survey data page (required for Accommodation Components Location buttons)
+        $accommodationDataService = app(SurveyAccommodationDataService::class);
+        $accommodationSectionsForRooms = $accommodationDataService->getAccommodationConfigurationData($survey, false);
+        $accommodationRoomOptions = collect($accommodationSectionsForRooms)
+            ->map(fn ($row) => $row['display_label'] ?? $row['name'] ?? $row['accommodation_type_name'] ?? null)
+            ->filter(fn ($v) => $v !== null && trim((string) $v) !== '')
+            ->map(fn ($v) => trim((string) $v))
+            ->unique()
+            ->values()
+            ->all();
+
         // Render the section-item partial
         $html = view('surveyor.surveys.mocks.partials.section-item', [
             'section' => $sectionData,
             'categoryName' => $validated['category_name'],
             'subCategoryName' => $validated['sub_category_name'],
             'optionsMapping' => $optionsMapping,
+            'accommodationRoomOptions' => $accommodationRoomOptions,
         ])->render();
 
         return response()->json([

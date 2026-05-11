@@ -144,9 +144,6 @@
                                                           rows="4"
                                                           placeholder="One observation per line (merged from GPT; edit as needed)…"
                                                           data-component-key="{{ $component['component_key'] }}">{{ $compGptObsText }}</textarea>
-                                                <button type="button" class="survey-data-mock-mic-btn" title="Voice input">
-                                                    <i class="fas fa-microphone"></i>
-                                                </button>
                                             </div>
                                         </div>
                                     </div>
