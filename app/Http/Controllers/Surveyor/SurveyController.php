@@ -1214,6 +1214,53 @@ class SurveyController extends Controller
                 $service->saveSectionPhotos($result['assessment'], $request->file('photos'));
             }
 
+            // Accommodation Components: copy section photos to per-room accommodation rows whenever
+            // the section has photos (including ones uploaded earlier via the immediate-upload endpoint).
+            $accommodationPhotoUpdates = [];
+            $sectionDefinition->loadMissing('subcategory');
+            if (($sectionDefinition->subcategory->name ?? '') === 'accommodation_components') {
+                $componentKey = $service->accommodationComponentKeyFromSectionDefinition($sectionDefinition);
+
+                if ($componentKey) {
+                    $rawLoc = $validated['options']['location'] ?? ($validated['location'] ?? null);
+                    $roomTargets = [];
+                    if (is_array($rawLoc)) {
+                        foreach ($rawLoc as $v) {
+                            $t = trim((string) $v);
+                            if ($t !== '') {
+                                $roomTargets[] = $t;
+                            }
+                        }
+                    } else {
+                        $t = trim((string) ($rawLoc ?? ''));
+                        if ($t !== '') {
+                            $roomTargets[] = $t;
+                        }
+                    }
+                    $roomTargets = array_values(array_unique(array_filter($roomTargets, static function ($s) {
+                        return is_string($s) && trim($s) !== '';
+                    })));
+
+                    $result['assessment']->refresh();
+                    $result['assessment']->loadMissing(['optionValues.option.optionType', 'location']);
+
+                    if ($roomTargets === []) {
+                        $roomTargets = $service->persistedLocationLabelsForSectionAssessment($result['assessment']);
+                    }
+
+                    if ($roomTargets !== []) {
+                        $result['assessment']->load('photos');
+                        $accService = app(\App\Services\SurveyAccommodationDataService::class);
+                        $accommodationPhotoUpdates = $accService->syncComponentSectionPhotosToSurveyAccommodationsPhotos(
+                            $survey,
+                            $componentKey,
+                            $roomTargets,
+                            $result['assessment']
+                        );
+                    }
+                }
+            }
+
             // Load photos for response so frontend can show them without refresh
             $result['assessment']->load('photos');
             $photos = $result['assessment']->photos->map(function($photo) {
@@ -1232,6 +1279,7 @@ class SurveyController extends Controller
                 'report_content' => $result['report_content'],
                 'photos' => $photos,
                 'accommodation_gpt_updates' => $result['accommodation_gpt_updates'] ?? [],
+                'accommodation_photo_updates' => $accommodationPhotoUpdates,
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1590,7 +1638,9 @@ class SurveyController extends Controller
             ]);
 
             // Reload photos to return them (use storage URL for absolute URLs on production)
-            $assessment->load('photos');
+            $assessment->refresh();
+            $assessment->load(['photos', 'sectionDefinition.subcategory', 'optionValues.option.optionType', 'location']);
+
             $photos = $assessment->photos->map(function($photo) {
                 return [
                     'id' => $photo->id,
@@ -1600,10 +1650,28 @@ class SurveyController extends Controller
                 ];
             });
 
+            $accommodationPhotoUpdates = [];
+            if (($assessment->sectionDefinition->subcategory->name ?? '') === 'accommodation_components') {
+                $componentKey = $service->accommodationComponentKeyFromSectionDefinition($assessment->sectionDefinition);
+                if ($componentKey) {
+                    $roomTargets = $service->persistedLocationLabelsForSectionAssessment($assessment);
+                    if ($roomTargets !== []) {
+                        $accService = app(\App\Services\SurveyAccommodationDataService::class);
+                        $accommodationPhotoUpdates = $accService->syncComponentSectionPhotosToSurveyAccommodationsPhotos(
+                            $survey,
+                            $componentKey,
+                            $roomTargets,
+                            $assessment
+                        );
+                    }
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Photos uploaded successfully',
                 'photos' => $photos,
+                'accommodation_photo_updates' => $accommodationPhotoUpdates,
             ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

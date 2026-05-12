@@ -7279,6 +7279,10 @@ $(document).ready(function() {
                         
                         $existingContainer.show();
                     }
+
+                    if (response.accommodation_photo_updates && typeof window.applyAccommodationPhotoUpdatesFromResponse === 'function') {
+                        window.applyAccommodationPhotoUpdatesFromResponse(response.accommodation_photo_updates);
+                    }
                     
                     // Reset upload area
                     $uploadArea.find('.survey-data-mock-upload-text').text(originalText);
@@ -7612,6 +7616,13 @@ $(document).ready(function() {
                             material: formData.material || '',
                             defects: Array.isArray(formData.defects) ? formData.defects : []
                         }, extractAccommodationComponentRoomTargets(formData.options));
+                    }
+
+                    // Copy component form images into the matching Accommodation room photo grids.
+                    if (subKey === 'accommodation_components' && response.accommodation_photo_updates && typeof response.accommodation_photo_updates === 'object') {
+                        if (typeof window.applyAccommodationPhotoUpdatesFromResponse === 'function') {
+                            window.applyAccommodationPhotoUpdatesFromResponse(response.accommodation_photo_updates);
+                        }
                     }
                     if (Array.isArray(response.accommodation_gpt_updates) && response.accommodation_gpt_updates.length > 0) {
                         applyAccommodationGptUpdatesFromSectionSaveResponse(response);
@@ -10269,6 +10280,10 @@ $(document).ready(function() {
                         (window.addPhotosToGrid || addPhotosToGrid)($sectionItem, response.photos);
                         (window.updateImageCount || updateImageCount)($sectionItem);
                     }
+
+                    if (!accommodationId && response.accommodation_photo_updates && typeof window.applyAccommodationPhotoUpdatesFromResponse === 'function') {
+                        window.applyAccommodationPhotoUpdatesFromResponse(response.accommodation_photo_updates);
+                    }
                     
                     $uploadTitle.text(originalTitle);
                     $dropzone.css('pointer-events', 'auto');
@@ -10405,6 +10420,31 @@ $(document).ready(function() {
     
     // Expose to global scope for save success callbacks in other document.ready blocks
     window.updateImageCount = updateImageCount;
+
+    /**
+     * Append synced photos to every Accommodation row DOM node matching each assessment id (pool + sidebar).
+     */
+    window.applyAccommodationPhotoUpdatesFromResponse = function(photoUpdates) {
+        if (!photoUpdates || typeof photoUpdates !== 'object') {
+            return;
+        }
+        const addFn = window.addPhotosToGrid;
+        const countFn = window.updateImageCount;
+        if (typeof addFn !== 'function' || typeof countFn !== 'function') {
+            return;
+        }
+        Object.keys(photoUpdates).forEach(function(accAssessmentId) {
+            const photos = photoUpdates[accAssessmentId];
+            if (!Array.isArray(photos) || photos.length === 0) {
+                return;
+            }
+            $('.survey-data-mock-section-item[data-accommodation-id="' + accAssessmentId + '"]').each(function() {
+                const $accItem = $(this);
+                addFn($accItem, photos);
+                countFn($accItem);
+            });
+        });
+    };
     
     // Initialize all sections
     $('.survey-data-mock-section-item').each(function() {

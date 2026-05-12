@@ -1311,6 +1311,38 @@ class SurveyDataService
     }
 
     /**
+     * Human-readable location labels currently stored on a section assessment (supports multi-select).
+     *
+     * @return list<string>
+     */
+    public function persistedLocationLabelsForSectionAssessment(SurveySectionAssessment $assessment): array
+    {
+        $assessment->loadMissing(['optionValues.option.optionType', 'location']);
+
+        $labels = [];
+        foreach ($assessment->optionValues as $ov) {
+            $type = $ov->optionType ?? null;
+            if (! $type || $type->key_name !== 'location') {
+                continue;
+            }
+            $opt = $ov->option ?? null;
+            $t = trim((string) ($opt->value ?? ''));
+            if ($t !== '') {
+                $labels[] = $t;
+            }
+        }
+
+        $labels = array_values(array_unique($labels));
+        if ($labels !== []) {
+            return $labels;
+        }
+
+        $single = trim((string) ($assessment->location->value ?? ''));
+
+        return $single !== '' ? [$single] : [];
+    }
+
+    /**
      * Room row labels from the Accommodation Components section "Location" field (which rooms the row applies to).
      *
      * @return list<string>

@@ -1495,6 +1495,151 @@ class SurveyAccommodationDataService
     }
 
     /**
+     * Copy photos uploaded on an "Accommodation Components" section assessment onto
+     * the matching per-room Accommodation assessments (rooms in $roomDisplayLabels).
+     *
+     * This allows component form photos to immediately appear in the Accommodation form UI
+     * for the selected rooms.
+     *
+     * @return array<int, array<int, array{ id:int, file_path:string, file_name:string, url:string }>> keyed by accommodation_assessment_id
+     */
+    public function syncComponentSectionPhotosToSurveyAccommodationsPhotos(
+        Survey $survey,
+        string $componentKey,
+        array $roomDisplayLabels,
+        \App\Models\SurveySectionAssessment $sourceSectionAssessment
+    ): array {
+        $componentKey = trim($componentKey);
+        if ($componentKey === '') {
+            return [];
+        }
+
+        $roomDisplayLabels = array_values(array_unique(array_filter(array_map(static function ($s) {
+            return trim((string) $s);
+        }, $roomDisplayLabels), static function ($s) {
+            return $s !== '';
+        })));
+
+        if ($roomDisplayLabels === []) {
+            return [];
+        }
+
+        // Source photos (uploaded via component section form)
+        $sourcePhotos = \App\Models\SurveySectionPhoto::query()
+            ->where('section_assessment_id', $sourceSectionAssessment->id)
+            ->orderBy('sort_order')
+            ->get();
+
+        if ($sourcePhotos->isEmpty()) {
+            return [];
+        }
+
+        $component = SurveyAccommodationComponent::where('key_name', $componentKey)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $component) {
+            return [];
+        }
+
+        $allowedByNormalized = [];
+        foreach ($roomDisplayLabels as $lbl) {
+            $norm = strtolower(trim((string) $lbl));
+            if ($norm !== '') {
+                $allowedByNormalized[$norm] = true;
+            }
+        }
+
+        $disk = Storage::disk('public');
+        $out = [];
+
+        // Only rooms (accommodation assessments) whose accommodation type includes this component.
+        $assessments = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->whereHas('accommodationType.components', function ($q) use ($component) {
+                $q->where('survey_accommodation_components.id', $component->id);
+            })
+            ->get();
+
+        foreach ($assessments as $assessment) {
+            $rowLabel = $this->accommodationAssessmentDisplayLabel($assessment);
+            $rowNorm = strtolower(trim($rowLabel));
+            if ($rowNorm === '' || ! isset($allowedByNormalized[$rowNorm])) {
+                continue;
+            }
+
+            $destDir = "accommodation-photos/{$survey->id}/{$assessment->id}";
+            try {
+                $disk->makeDirectory($destDir);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to create accommodation photo dir', [
+                    'assessment_id' => $assessment->id,
+                    'destDir' => $destDir,
+                    'error' => $e->getMessage(),
+                ]);
+                continue;
+            }
+
+            $nextSortOrder = (\App\Models\SurveyAccommodationPhoto::where('accommodation_assessment_id', $assessment->id)->max('sort_order') ?? -1);
+            $addedForThisAssessment = [];
+
+            foreach ($sourcePhotos as $photo) {
+                $sourceRelPath = (string) ($photo->file_path ?? '');
+                if ($sourceRelPath === '') {
+                    continue;
+                }
+                if (! $disk->exists($sourceRelPath)) {
+                    continue;
+                }
+
+                $destRelPath = $destDir . '/' . basename($sourceRelPath);
+
+                // Avoid duplicating the same copied photo on repeated saves.
+                $exists = \App\Models\SurveyAccommodationPhoto::query()
+                    ->where('accommodation_assessment_id', $assessment->id)
+                    ->where('file_path', $destRelPath)
+                    ->exists();
+                if ($exists) {
+                    continue;
+                }
+
+                try {
+                    $disk->copy($sourceRelPath, $destRelPath);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to copy accommodation photo', [
+                        'source' => $sourceRelPath,
+                        'dest' => $destRelPath,
+                        'assessment_id' => $assessment->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    continue;
+                }
+
+                $nextSortOrder += 1;
+                $created = \App\Models\SurveyAccommodationPhoto::create([
+                    'accommodation_assessment_id' => $assessment->id,
+                    'file_path' => $destRelPath,
+                    'file_name' => (string) ($photo->file_name ?? ''),
+                    'file_size' => (int) ($photo->file_size ?? 0),
+                    'mime_type' => (string) ($photo->mime_type ?? ''),
+                    'sort_order' => $nextSortOrder,
+                ]);
+
+                $out[$assessment->id][] = [
+                    'id' => $created->id,
+                    'file_path' => $created->file_path,
+                    'file_name' => $created->file_name,
+                    'url' => $disk->url($created->file_path),
+                ];
+
+                $addedForThisAssessment[] = $created->id;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Save photos for an accommodation assessment.
      */
     public function saveAccommodationPhotos(SurveyAccommodationAssessment $assessment, array $photos): void
