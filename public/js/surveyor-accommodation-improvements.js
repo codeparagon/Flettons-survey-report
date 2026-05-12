@@ -44,7 +44,7 @@
         var accommodationName = $item.find('.survey-data-mock-section-name').first().text().trim();
         var formData = {
             custom_name: accommodationName,
-            notes: $details.find('.survey-data-mock-accommodation-form-column-right .survey-data-mock-notes-input').val() || '',
+            notes: '',
             location: '',
             components: []
         };
@@ -65,13 +65,15 @@
             var gptObs = gptRaw.split(/\r?\n/).map(function (l) {
                 return l.trim();
             }).filter(Boolean);
+            var additionalNotes = ($slide.find('.survey-data-mock-accommodation-additional-notes-input').val() || '').trim();
             formData.components.push({
                 component_key: componentKey,
                 component_name: componentName,
                 location: componentLocation,
                 material: material,
                 defects: defects,
-                gpt_observations: gptObs
+                gpt_observations: gptObs,
+                additional_notes: additionalNotes
             });
         });
 
@@ -88,7 +90,8 @@
                     location: c.location || '',
                     material: c.material || '',
                     defects: (c.defects || []).slice().sort(),
-                    gpt_observations: (c.gpt_observations || []).slice()
+                    gpt_observations: (c.gpt_observations || []).slice(),
+                    additional_notes: (c.additional_notes || '').trim()
                 };
             })
         };

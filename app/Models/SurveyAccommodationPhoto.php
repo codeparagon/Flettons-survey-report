@@ -11,6 +11,7 @@ class SurveyAccommodationPhoto extends Model
 
     protected $fillable = [
         'accommodation_assessment_id',
+        'component_assessment_id',
         'file_path',
         'file_name',
         'file_size',
@@ -26,6 +27,11 @@ class SurveyAccommodationPhoto extends Model
     public function accommodationAssessment()
     {
         return $this->belongsTo(SurveyAccommodationAssessment::class, 'accommodation_assessment_id');
+    }
+
+    public function componentAssessment()
+    {
+        return $this->belongsTo(SurveyAccommodationComponentAssessment::class, 'component_assessment_id');
     }
 }
 

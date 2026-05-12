@@ -58,99 +58,173 @@
                 @endforeach
             </div>
 
-            <!-- Form Grid: single-column layout (stacked) -->
-            <div class="survey-data-mock-accommodation-form-grid">
-                <!-- Top: Carousel with Material and Defects -->
-                <div class="survey-data-mock-accommodation-form-column-left" data-column="left">
+            <!-- Form: carousel — each slide = one component (materials/defects/GPT + notes + images for that element) -->
+            <div class="survey-data-mock-accommodation-form-grid survey-data-mock-accommodation-form-grid--per-component">
+                <div class="survey-data-mock-accommodation-form-column-left survey-data-mock-accommodation-form-column-full" data-column="left">
                     <div class="survey-data-mock-carousel-wrapper">
                         <div class="survey-data-mock-carousel-track" data-carousel-track>
                             @foreach($accommodation['components'] as $index => $component)
                                 @php
                                     $compGptObsEditable = is_array($component['gpt_observations'] ?? null) ? $component['gpt_observations'] : [];
                                     $compGptObsText = implode("\n", array_map('strval', $compGptObsEditable));
+                                    $compPhotos = isset($component['photos']) && is_array($component['photos']) ? $component['photos'] : [];
+                                    $compPhotoCount = count($compPhotos);
+                                    $compAdditionalNotes = trim((string) ($component['additional_notes'] ?? ''));
                                 @endphp
                                 <div class="survey-data-mock-carousel-slide {{ $index === 0 ? 'active' : '' }}" 
                                      data-slide-index="{{ $index }}"
                                      data-component-key="{{ $component['component_key'] }}">
-                                    <div class="survey-data-mock-accommodation-component-form">
-                                        @php
-                                            $componentLocationOptions = app(\App\Services\SurveyAccommodationDataService::class)
-                                                ->getComponentLocations($component['component_key']);
-                                            $selectedComponentLocation = $component['location'] ?? '';
-                                        @endphp
-                                        @if(!empty($componentLocationOptions))
-                                            <div class="survey-data-mock-field-group survey-data-mock-accommodation-component-location-field">
-                                                <label class="survey-data-mock-field-label">Location</label>
-                                                <div class="survey-data-mock-button-group">
-                                                    @foreach($componentLocationOptions as $loc)
-                                                        <button type="button"
-                                                                class="survey-data-mock-button {{ $selectedComponentLocation === $loc ? 'active' : '' }}"
-                                                                data-value="{{ $loc }}"
-                                                                data-group="location"
-                                                                data-component-key="{{ $component['component_key'] }}">
-                                                            {{ $loc }}
-                                                        </button>
-                                                    @endforeach
+                                    <div class="survey-data-mock-accommodation-slide-split">
+                                        <div class="survey-data-mock-accommodation-slide-main">
+                                            <div class="survey-data-mock-accommodation-component-form">
+                                                @php
+                                                    $componentLocationOptions = app(\App\Services\SurveyAccommodationDataService::class)
+                                                        ->getComponentLocations($component['component_key']);
+                                                    $selectedComponentLocation = $component['location'] ?? '';
+                                                @endphp
+                                                @if(!empty($componentLocationOptions))
+                                                    <div class="survey-data-mock-field-group survey-data-mock-accommodation-component-location-field">
+                                                        <label class="survey-data-mock-field-label">Location</label>
+                                                        <div class="survey-data-mock-button-group">
+                                                            @foreach($componentLocationOptions as $loc)
+                                                                <button type="button"
+                                                                        class="survey-data-mock-button {{ $selectedComponentLocation === $loc ? 'active' : '' }}"
+                                                                        data-value="{{ $loc }}"
+                                                                        data-group="location"
+                                                                        data-component-key="{{ $component['component_key'] }}">
+                                                                    {{ $loc }}
+                                                                </button>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                                <div class="survey-data-mock-field-group">
+                                                    <label class="survey-data-mock-field-label">
+                                                        {{ $component['component_name'] }} Material
+                                                    </label>
+                                                    <div class="survey-data-mock-button-group">
+                                                        @php
+                                                            $materials = app(\App\Services\SurveyAccommodationDataService::class)->getComponentMaterials($component['component_key']);
+                                                        @endphp
+                                                        @foreach($materials as $material)
+                                                            <button type="button" 
+                                                                    class="survey-data-mock-button {{ $component['material'] === $material ? 'active' : '' }}" 
+                                                                    data-value="{{ $material }}" 
+                                                                    data-group="material"
+                                                                    data-component-key="{{ $component['component_key'] }}">
+                                                                {{ $material }}
+                                                            </button>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+
+                                                <div class="survey-data-mock-field-group">
+                                                    <label class="survey-data-mock-field-label">Defects</label>
+                                                    <div class="survey-data-mock-button-group">
+                                                        @php
+                                                            $defects = app(\App\Services\SurveyAccommodationDataService::class)
+                                                                ->getComponentDefects($component['component_key']);
+                                                        @endphp
+                                                        @foreach($defects as $defect)
+                                                            <button type="button" 
+                                                                    class="survey-data-mock-button {{ in_array($defect, $component['defects'] ?? []) ? 'active' : '' }}" 
+                                                                    data-value="{{ $defect }}" 
+                                                                    data-group="defects"
+                                                                    data-multiple="true"
+                                                                    data-component-key="{{ $component['component_key'] }}">
+                                                                {{ $defect }}
+                                                            </button>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+
+                                                <div class="survey-data-mock-field-group">
+                                                    <label class="survey-data-mock-field-label">GPT observations (this element)</label>
+                                                    <div class="survey-data-mock-notes-wrapper">
+                                                        <textarea class="survey-data-mock-notes-input survey-data-mock-accommodation-gpt-notes-input"
+                                                                  rows="4"
+                                                                  placeholder="One observation per line (merged from GPT; edit as needed)…"
+                                                                  data-component-key="{{ $component['component_key'] }}">{{ $compGptObsText }}</textarea>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        @endif
-                                        <!-- Material Buttons -->
-                                        <div class="survey-data-mock-field-group">
-                                            <label class="survey-data-mock-field-label">
-                                                {{ $component['component_name'] }} Material
-                                            </label>
-                                            <div class="survey-data-mock-button-group">
-                                                @php
-                                                    $materials = app(\App\Services\SurveyAccommodationDataService::class)->getComponentMaterials($component['component_key']);
-                                                @endphp
-                                                @foreach($materials as $material)
-                                                    <button type="button" 
-                                                            class="survey-data-mock-button {{ $component['material'] === $material ? 'active' : '' }}" 
-                                                            data-value="{{ $material }}" 
-                                                            data-group="material"
-                                                            data-component-key="{{ $component['component_key'] }}">
-                                                        {{ $material }}
-                                                    </button>
-                                                @endforeach
-                                            </div>
                                         </div>
 
-                                        <!-- Defects Buttons -->
-                                        <div class="survey-data-mock-field-group">
-                                            <label class="survey-data-mock-field-label">Defects</label>
-                                            <div class="survey-data-mock-button-group">
-                                                @php
-                                                    $defects = app(\App\Services\SurveyAccommodationDataService::class)
-                                                        ->getComponentDefects($component['component_key']);
-                                                @endphp
-                                                @foreach($defects as $defect)
-                                                    <button type="button" 
-                                                            class="survey-data-mock-button {{ in_array($defect, $component['defects'] ?? []) ? 'active' : '' }}" 
-                                                            data-value="{{ $defect }}" 
-                                                            data-group="defects"
-                                                            data-multiple="true"
-                                                            data-component-key="{{ $component['component_key'] }}">
-                                                        {{ $defect }}
+                                        <div class="survey-data-mock-accommodation-component-media"
+                                             data-component-key="{{ $component['component_key'] }}"
+                                             data-accommodation-id="{{ $accommodation['id'] }}">
+                                            <div class="survey-data-mock-field-group">
+                                                <label class="survey-data-mock-field-label">Additional notes ({{ $component['component_name'] }})</label>
+                                                <div class="survey-data-mock-notes-wrapper">
+                                                    <textarea class="survey-data-mock-notes-input survey-data-mock-accommodation-additional-notes-input"
+                                                              rows="4"
+                                                              placeholder="Additional notes for this element…"
+                                                              data-component-key="{{ $component['component_key'] }}">{{ $compAdditionalNotes }}</textarea>
+                                                    <button type="button" class="survey-data-mock-mic-btn" title="Voice input">
+                                                        <i class="fas fa-microphone"></i>
                                                     </button>
-                                                @endforeach
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <!-- GPT / merged observations for this element (editable; one line per bullet) -->
-                                        <div class="survey-data-mock-field-group">
-                                            <label class="survey-data-mock-field-label">GPT observations (this element)</label>
-                                            <div class="survey-data-mock-notes-wrapper">
-                                                <textarea class="survey-data-mock-notes-input survey-data-mock-accommodation-gpt-notes-input"
-                                                          rows="4"
-                                                          placeholder="One observation per line (merged from GPT; edit as needed)…"
-                                                          data-component-key="{{ $component['component_key'] }}">{{ $compGptObsText }}</textarea>
+                                            <div class="survey-data-mock-field-group survey-data-mock-images-section">
+                                                <input type="file" class="survey-data-mock-file-input" multiple accept="image/*" style="display: none;">
+
+                                                <div class="survey-data-mock-upload-dropzone"
+                                                     data-accommodation-id="{{ $accommodation['id'] }}"
+                                                     data-component-key="{{ $component['component_key'] }}">
+                                                    <i class="fas fa-cloud-upload-alt survey-data-mock-upload-icon-main"></i>
+                                                    <p class="survey-data-mock-upload-title">
+                                                        Drop images here ({{ $compPhotoCount }} image{{ $compPhotoCount === 1 ? '' : 's' }})
+                                                    </p>
+                                                    <p class="survey-data-mock-upload-subtitle">or <span class="survey-data-mock-upload-browse">browse</span> to upload</p>
+                                                </div>
+
+                                                <div class="survey-data-mock-images-preview" style="display: none;">
+                                                    <div class="survey-data-mock-images-grid-enhanced"></div>
+                                                </div>
+
+                                                @if($compPhotoCount > 0)
+                                                    <div class="survey-data-mock-existing-images">
+                                                        <div class="survey-data-mock-images-grid-enhanced">
+                                                            @foreach($compPhotos as $pi => $photo)
+                                                                @if(is_array($photo) && isset($photo['id']))
+                                                                    @php
+                                                                        $imageUrl = $photo['url'] ?? '';
+                                                                        if (empty($imageUrl) && isset($photo['file_path'])) {
+                                                                            $imageUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($photo['file_path']);
+                                                                        }
+                                                                        if (empty($imageUrl) && isset($photo['s3_url'])) {
+                                                                            $imageUrl = $photo['s3_url'];
+                                                                        }
+                                                                    @endphp
+                                                                    <div class="survey-data-mock-image-card" data-photo-id="{{ $photo['id'] }}" data-image-url="{{ $imageUrl }}">
+                                                                        <div class="survey-data-mock-image-wrapper">
+                                                                            <img src="{{ $imageUrl }}" alt="" class="survey-data-mock-image-thumb" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                                            <div class="survey-data-mock-image-error"><i class="fas fa-image"></i></div>
+                                                                            <div class="survey-data-mock-image-overlay">
+                                                                                <button type="button" class="survey-data-mock-image-action survey-data-mock-image-preview-btn" title="Preview">
+                                                                                    <i class="fas fa-expand"></i>
+                                                                                </button>
+                                                                                <button type="button" class="survey-data-mock-image-action survey-data-mock-image-delete" data-photo-id="{{ $photo['id'] }}" title="Delete">
+                                                                                    <i class="fas fa-trash-alt"></i>
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="survey-data-mock-image-info">
+                                                                            <span class="survey-data-mock-image-number">#{{ $pi + 1 }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             @endforeach
                         </div>
-                        <!-- Carousel Indicator Dots -->
                         <div class="survey-data-mock-carousel-indicators" data-carousel-indicators>
                             @foreach($accommodation['components'] as $index => $component)
                                 <button type="button" 
@@ -160,82 +234,6 @@
                                 </button>
                             @endforeach
                         </div>
-                    </div>
-                </div>
-
-                <!-- Bottom: Shared Additional Notes and Images -->
-                <div class="survey-data-mock-accommodation-form-column-right" data-column="right">
-                    <!-- Additional Notes -->
-                    <div class="survey-data-mock-field-group">
-                        <label class="survey-data-mock-field-label">Additional Notes</label>
-                        <div class="survey-data-mock-notes-wrapper">
-                            <textarea class="survey-data-mock-notes-input" 
-                                      rows="4" 
-                                      placeholder="Enter additional notes..."
-                                      data-accommodation-id="{{ $accommodation['id'] }}">{{ $accommodation['notes'] ?? '' }}</textarea>
-                            <button type="button" class="survey-data-mock-mic-btn" title="Voice input">
-                                <i class="fas fa-microphone"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Images Upload -->
-                    <div class="survey-data-mock-field-group survey-data-mock-images-section">
-                        @php $photoCount = count($accommodation['photos'] ?? []); @endphp
-                        <input type="file" class="survey-data-mock-file-input" multiple accept="image/*" style="display: none;">
-                        
-                        <!-- Upload Area -->
-                        <div class="survey-data-mock-upload-dropzone" data-accommodation-id="{{ $accommodation['id'] }}">
-                            <i class="fas fa-cloud-upload-alt survey-data-mock-upload-icon-main"></i>
-                            <p class="survey-data-mock-upload-title">
-                                Drop images here ({{ $photoCount }} image{{ $photoCount == 1 ? '' : 's' }})
-                            </p>
-                            <p class="survey-data-mock-upload-subtitle">or <span class="survey-data-mock-upload-browse">browse</span> to upload</p>
-                        </div>
-                        
-                        <!-- Image Preview Area (for unsaved files) -->
-                        <div class="survey-data-mock-images-preview" style="display: none;">
-                            <div class="survey-data-mock-images-grid-enhanced"></div>
-                        </div>
-                        
-                        <!-- Existing Images Display -->
-                        @if(isset($accommodation['photos']) && is_array($accommodation['photos']) && count($accommodation['photos']) > 0)
-                            <div class="survey-data-mock-existing-images">
-                                <div class="survey-data-mock-images-grid-enhanced">
-                                    @foreach($accommodation['photos'] as $index => $photo)
-                                        @if(is_array($photo) && isset($photo['id']))
-                                            @php
-                                                $imageUrl = $photo['url'] ?? '';
-                                                if (empty($imageUrl) && isset($photo['file_path'])) {
-                                                    $imageUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($photo['file_path']);
-                                                }
-                                                // Fallback for S3 URLs
-                                                if (empty($imageUrl) && isset($photo['s3_url'])) {
-                                                    $imageUrl = $photo['s3_url'];
-                                                }
-                                            @endphp
-                                            <div class="survey-data-mock-image-card" data-photo-id="{{ $photo['id'] }}" data-image-url="{{ $imageUrl }}">
-                                                <div class="survey-data-mock-image-wrapper">
-                                                    <img src="{{ $imageUrl }}" alt="" class="survey-data-mock-image-thumb" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                                    <div class="survey-data-mock-image-error"><i class="fas fa-image"></i></div>
-                                                    <div class="survey-data-mock-image-overlay">
-                                                        <button type="button" class="survey-data-mock-image-action survey-data-mock-image-preview-btn" title="Preview">
-                                                            <i class="fas fa-expand"></i>
-                                                        </button>
-                                                        <button type="button" class="survey-data-mock-image-action survey-data-mock-image-delete" data-photo-id="{{ $photo['id'] }}" title="Delete">
-                                                            <i class="fas fa-trash-alt"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="survey-data-mock-image-info">
-                                                    <span class="survey-data-mock-image-number">#{{ $index + 1 }}</span>
-                                                </div>
-                                            </div>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
                     </div>
                 </div>
             </div>

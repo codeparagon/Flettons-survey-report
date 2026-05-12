@@ -986,6 +986,7 @@ class SurveyController extends Controller
                 'form_data.components.*.material' => 'nullable|string',
                 'form_data.components.*.location' => 'nullable|string|max:255',
                 'form_data.components.*.defects' => 'nullable|array',
+                'form_data.components.*.additional_notes' => 'nullable|string',
                 'form_data.condition_rating' => 'nullable|string',
                 'form_data.location' => 'nullable|string|max:255',
             ]);
@@ -1041,6 +1042,8 @@ class SurveyController extends Controller
                         'material' => '',
                         'defects' => [],
                         'gpt_observations' => [],
+                        'additional_notes' => '',
+                        'photos' => [],
                     ];
                 })->toArray();
             } else {
@@ -1068,6 +1071,9 @@ class SurveyController extends Controller
 
                 if (! isset($component['gpt_observations']) || ! is_array($component['gpt_observations'])) {
                     $component['gpt_observations'] = [];
+                }
+                if (! array_key_exists('additional_notes', $component)) {
+                    $component['additional_notes'] = '';
                 }
 
                 return $component;
@@ -1257,6 +1263,17 @@ class SurveyController extends Controller
                             $roomTargets,
                             $result['assessment']
                         );
+                        $pruned = $accService->removeAccommodationPhotosCopiedFromComponentSectionForRoomsNotInTargets(
+                            $survey,
+                            $componentKey,
+                            $roomTargets,
+                            $result['assessment']
+                        );
+                        foreach ($pruned as $aid => $rows) {
+                            foreach ($rows as $row) {
+                                $accommodationPhotoUpdates[$aid][] = $row;
+                            }
+                        }
                     }
                 }
             }
@@ -1329,11 +1346,13 @@ class SurveyController extends Controller
                 'components.*.defects.*' => 'nullable|string',
                 'components.*.gpt_observations' => 'nullable|array',
                 'components.*.gpt_observations.*' => 'nullable|string|max:2000',
+                'components.*.additional_notes' => 'nullable|string',
                 'notes' => 'nullable|string',
                 'location' => 'nullable|string|max:255',
                 'condition_rating' => 'nullable|string|in:1,2,3,ni',
                 'photos' => 'nullable|array',
-                'photos.*' => 'nullable|image|max:10240', // Max 10MB per image
+                'photos.*' => 'nullable|image|max:10240', // Max 10MB per image (legacy flat upload)
+                'component_photos' => 'nullable|array',
             ]);
 
             // Get accommodation type
@@ -1377,10 +1396,34 @@ class SurveyController extends Controller
             
             // Save assessment and generate report
             $result = $service->saveAccommodationAssessment($survey, $accommodationTypeId, $validated, $isClone, $assessmentId);
-            
-            // Save photos if provided
+
+            $accService = app(\App\Services\SurveyAccommodationDataService::class);
+
+            // Save legacy flat photos if provided (no component key)
             if ($request->hasFile('photos')) {
-                $service->saveAccommodationPhotos($result['assessment'], $request->file('photos'));
+                $files = $request->file('photos');
+                $accService->saveAccommodationPhotos($result['assessment'], is_array($files) ? $files : [$files]);
+            }
+
+            // Per-component uploads: component_photos[{component_key}][] 
+            $allFiles = $request->allFiles();
+            $componentPhotosBag = $allFiles['component_photos'] ?? [];
+            if (is_array($componentPhotosBag)) {
+                foreach ($componentPhotosBag as $componentKey => $files) {
+                    $key = is_string($componentKey) ? trim($componentKey) : '';
+                    if ($key === '') {
+                        continue;
+                    }
+                    $list = is_array($files) ? array_values($files) : [$files];
+                    $list = array_values(array_filter($list));
+                    if ($list === []) {
+                        continue;
+                    }
+                    $compAssessId = $accService->resolveComponentAssessmentIdForKey($result['assessment'], $key);
+                    if ($compAssessId) {
+                        $accService->saveAccommodationPhotos($result['assessment'], $list, $compAssessId);
+                    }
+                }
             }
 
             // Load photos for response so frontend can show them without refresh
@@ -1391,8 +1434,33 @@ class SurveyController extends Controller
                     'file_path' => $photo->file_path,
                     'file_name' => $photo->file_name,
                     'url' => Storage::disk('public')->url($photo->file_path),
+                    'component_assessment_id' => $photo->component_assessment_id,
                 ];
             })->values()->toArray();
+
+            $photosByComponent = [];
+            foreach ($result['assessment']->photos as $photo) {
+                $compKey = null;
+                if ($photo->component_assessment_id) {
+                    $photo->loadMissing('componentAssessment.component');
+                    if ($photo->componentAssessment && $photo->componentAssessment->component) {
+                        $compKey = $photo->componentAssessment->component->key_name;
+                    }
+                }
+                $row = [
+                    'id' => $photo->id,
+                    'file_path' => $photo->file_path,
+                    'file_name' => $photo->file_name,
+                    'url' => Storage::disk('public')->url($photo->file_path),
+                    'component_key' => $compKey,
+                ];
+                if ($compKey) {
+                    if (! isset($photosByComponent[$compKey])) {
+                        $photosByComponent[$compKey] = [];
+                    }
+                    $photosByComponent[$compKey][] = $row;
+                }
+            }
 
             $message = $isClone 
                 ? 'Accommodation cloned successfully' 
@@ -1410,6 +1478,7 @@ class SurveyController extends Controller
                 'gpt_room_component_observations' => $result['gpt_room_component_observations'] ?? [],
                 'gpt_generation_error' => $result['gpt_generation_error'] ?? null,
                 'photos' => $photos,
+                'photos_by_component' => $photosByComponent,
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1663,6 +1732,17 @@ class SurveyController extends Controller
                             $roomTargets,
                             $assessment
                         );
+                        $pruned = $accService->removeAccommodationPhotosCopiedFromComponentSectionForRoomsNotInTargets(
+                            $survey,
+                            $componentKey,
+                            $roomTargets,
+                            $assessment
+                        );
+                        foreach ($pruned as $aid => $rows) {
+                            foreach ($rows as $row) {
+                                $accommodationPhotoUpdates[$aid][] = $row;
+                            }
+                        }
                     }
                 }
             }
@@ -1836,24 +1916,43 @@ class SurveyController extends Controller
             // Get service
             $service = app(\App\Services\SurveyAccommodationDataService::class);
             
+            $componentKey = trim((string) $request->input('component_key', ''));
+            $compAssessId = null;
+            if ($componentKey !== '') {
+                $compAssessId = $service->resolveComponentAssessmentIdForKey($assessmentModel, $componentKey);
+            }
+
             // Save photos - ensure we pass an array
-            $service->saveAccommodationPhotos($assessmentModel, array_values($photos));
+            $service->saveAccommodationPhotos($assessmentModel, array_values($photos), $compAssessId);
 
             Log::info('Accommodation photos uploaded', [
                 'assessment_id' => $assessmentModel->id,
                 'photos_count' => count($photos),
+                'component_key' => $componentKey ?: null,
             ]);
 
             // Reload photos to return them (use storage URL for absolute URLs on production)
-            $assessmentModel->load('photos');
+            $assessmentModel->load(['photos.componentAssessment.component']);
             $uploadedPhotos = $assessmentModel->photos->map(function($photo) {
+                $ck = null;
+                if ($photo->componentAssessment && $photo->componentAssessment->component) {
+                    $ck = $photo->componentAssessment->component->key_name;
+                }
+
                 return [
                     'id' => $photo->id,
                     'file_path' => $photo->file_path,
                     'file_name' => $photo->file_name,
                     'url' => Storage::disk('public')->url($photo->file_path),
+                    'component_key' => $ck,
                 ];
             });
+
+            if ($componentKey !== '') {
+                $uploadedPhotos = $uploadedPhotos->filter(function (array $row) use ($componentKey) {
+                    return ($row['component_key'] ?? null) === $componentKey;
+                })->values();
+            }
 
             return response()->json([
                 'success' => true,

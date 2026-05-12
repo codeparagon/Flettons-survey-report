@@ -12,6 +12,8 @@ use App\Models\SurveyAccommodationType;
 use App\Models\SurveyAccommodationComponentAssessment;
 use App\Models\SurveyAccommodationComponentSummary;
 use App\Models\SurveyAccommodationGptOutput;
+use App\Models\SurveyAccommodationPhoto;
+use App\Models\SurveySectionPhoto;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -618,6 +620,16 @@ class SurveyAccommodationDataService
             ? $accommodationTypeName
             : ($accommodationTypeName . ' ' . ($cloneIndex + 1));
     }
+
+    /**
+     * Normalized label for matching section "Location" room targets to accommodation row headers (case/spacing).
+     */
+    protected function normalizeAccommodationRoomLabelForCompare(string $label): string
+    {
+        $s = strtolower(trim(preg_replace('/\s+/', ' ', $label)));
+
+        return $s;
+    }
     
     /**
      * Map an assessment to the array format expected by the view.
@@ -650,10 +662,22 @@ class SurveyAccommodationDataService
         $componentAssessmentsByComponentId = $assessment->componentAssessments
             ->keyBy('component_id');
 
+        $assessment->loadMissing('photos');
+        $photosByComponentAssessmentId = [];
+        $orphanPhotos = collect();
+        foreach ($assessment->photos ?? [] as $photo) {
+            $cid = $photo->component_assessment_id ?? null;
+            if ($cid) {
+                $photosByComponentAssessmentId[(int) $cid][] = $photo;
+            } else {
+                $orphanPhotos->push($photo);
+            }
+        }
+
         $componentsArray = [];
         $completedComponents = 0;
 
-        foreach ($typeComponents as $component) {
+        foreach ($typeComponents as $componentIndex => $component) {
             $componentAssessment = $componentAssessmentsByComponentId->get($component->id);
 
             $materialValue = '';
@@ -689,6 +713,38 @@ class SurveyAccommodationDataService
                 $gptObsComp = $componentAssessment->gpt_observations;
             }
 
+            $componentPhotosOut = [];
+            if ($componentAssessment) {
+                $bucket = $photosByComponentAssessmentId[$componentAssessment->id] ?? [];
+                foreach ($bucket as $photo) {
+                    $url = \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path);
+                    $componentPhotosOut[] = [
+                        'id' => $photo->id,
+                        'file_path' => $photo->file_path,
+                        'file_name' => $photo->file_name,
+                        'url' => $url,
+                        'component_key' => $component->key_name,
+                    ];
+                }
+            }
+            if ($componentIndex === 0 && $orphanPhotos->isNotEmpty()) {
+                foreach ($orphanPhotos as $photo) {
+                    $url = \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path);
+                    $componentPhotosOut[] = [
+                        'id' => $photo->id,
+                        'file_path' => $photo->file_path,
+                        'file_name' => $photo->file_name,
+                        'url' => $url,
+                        'component_key' => $component->key_name,
+                    ];
+                }
+            }
+
+            $additionalNotes = '';
+            if ($componentAssessment && isset($componentAssessment->additional_notes)) {
+                $additionalNotes = (string) $componentAssessment->additional_notes;
+            }
+
             $componentsArray[] = [
                 'component_id' => $component->id,
                 'component_key' => $component->key_name,
@@ -697,6 +753,8 @@ class SurveyAccommodationDataService
                 'defects' => $defectsValues,
                 'location' => $componentLocationValue,
                 'gpt_observations' => $gptObsComp,
+                'additional_notes' => $additionalNotes,
+                'photos' => $componentPhotosOut,
             ];
         }
 
@@ -732,6 +790,7 @@ class SurveyAccommodationDataService
             'photos' => $assessment->photos ? $assessment->photos->sortBy('sort_order')->map(function($photo) {
                 // Use storage disk URL so production gets absolute URL from APP_URL
                 $url = \Illuminate\Support\Facades\Storage::disk('public')->url($photo->file_path);
+
                 return [
                     'id' => $photo->id,
                     'file_path' => $photo->file_path,
@@ -1072,29 +1131,40 @@ class SurveyAccommodationDataService
                 ]);
                 
                 // Copy component assessments from source
+                $componentAssessmentIdMap = [];
                 if ($sourceAssessment->componentAssessments->count() > 0) {
                     foreach ($sourceAssessment->componentAssessments as $sourceComponent) {
+                        $oldCompAssessId = (int) $sourceComponent->id;
                         $clonedComponent = $sourceComponent->replicate();
                         $clonedComponent->accommodation_assessment_id = $assessment->id;
                         $clonedComponent->save();
-                        
+                        $componentAssessmentIdMap[$oldCompAssessId] = (int) $clonedComponent->id;
+
                         // Copy defects relationship
                         if ($sourceComponent->defects->count() > 0) {
                             $clonedComponent->defects()->sync($sourceComponent->defects->pluck('id')->toArray());
                         }
                     }
                 }
-                
-                // Copy photos from source
+
+                // Copy photos from source (per-component when linked)
                 if ($sourceAssessment->photos->count() > 0) {
-                    $maxSortOrder = \App\Models\SurveyAccommodationPhoto::where('accommodation_assessment_id', $assessment->id)
-                        ->max('sort_order') ?? 0;
-                    
                     foreach ($sourceAssessment->photos as $sourcePhoto) {
                         $clonedPhoto = $sourcePhoto->replicate();
                         $clonedPhoto->accommodation_assessment_id = $assessment->id;
-                        $maxSortOrder += 1;
-                        $clonedPhoto->sort_order = $maxSortOrder;
+                        $oldCa = $sourcePhoto->component_assessment_id ? (int) $sourcePhoto->component_assessment_id : null;
+                        $clonedPhoto->component_assessment_id = $oldCa && isset($componentAssessmentIdMap[$oldCa])
+                            ? $componentAssessmentIdMap[$oldCa]
+                            : null;
+
+                        $scopeQuery = \App\Models\SurveyAccommodationPhoto::where('accommodation_assessment_id', $assessment->id);
+                        if ($clonedPhoto->component_assessment_id) {
+                            $scopeQuery->where('component_assessment_id', $clonedPhoto->component_assessment_id);
+                        } else {
+                            $scopeQuery->whereNull('component_assessment_id');
+                        }
+                        $maxSortOrder = $scopeQuery->max('sort_order') ?? -1;
+                        $clonedPhoto->sort_order = $maxSortOrder + 1;
                         $clonedPhoto->save();
                     }
                 }
@@ -1316,6 +1386,13 @@ class SurveyAccommodationDataService
                 $componentAssessment->gpt_observations = $bullets === [] ? null : $bullets;
             }
 
+            if (array_key_exists('additional_notes', $componentData)) {
+                $n = $componentData['additional_notes'];
+                $componentAssessment->additional_notes = ($n !== null && $n !== '')
+                    ? (string) $n
+                    : null;
+            }
+
             $componentAssessment->save();
 
             if (isset($componentData['defects']) && is_array($componentData['defects'])) {
@@ -1400,7 +1477,9 @@ class SurveyAccommodationDataService
      * By default, this only fills blanks (does not overwrite room-specific selections).
      *
      * The section "Location" control lists accommodation rooms (e.g. Bedroom 1); only rows whose
-     * display label is in {@see $roomDisplayLabels} are updated. It is not written to component location_id.
+     * display label is in {@see $roomDisplayLabels} are updated. Rows not in the list have this
+     * component's material, placement location, defects, and GPT observations cleared when
+     * {@see $onlyWhenEmpty} is false (section save path).
      *
      * @param array{material?: string, defects?: array<int,string>} $selections
      * @param list<string> $roomDisplayLabels
@@ -1441,7 +1520,13 @@ class SurveyAccommodationDataService
             ? array_values(array_filter(array_map(static fn ($v) => trim((string) $v), $selections['defects']), static fn ($v) => $v !== ''))
             : [];
 
-        $allowedRooms = array_flip(array_map(static fn ($s) => trim((string) $s), $roomDisplayLabels));
+        $allowedNorm = [];
+        foreach ($roomDisplayLabels as $lbl) {
+            $n = $this->normalizeAccommodationRoomLabelForCompare((string) $lbl);
+            if ($n !== '') {
+                $allowedNorm[$n] = true;
+            }
+        }
 
         // Only target accommodation assessments whose type includes this component.
         $assessments = SurveyAccommodationAssessment::query()
@@ -1458,12 +1543,24 @@ class SurveyAccommodationDataService
             ->get();
 
         foreach ($assessments as $assessment) {
-            $rowLabel = $this->accommodationAssessmentDisplayLabel($assessment);
-            if (! isset($allowedRooms[$rowLabel])) {
+            $rowLabel = trim($this->accommodationAssessmentDisplayLabel($assessment));
+            $rowNorm = $this->normalizeAccommodationRoomLabelForCompare($rowLabel);
+
+            /** @var \App\Models\SurveyAccommodationComponentAssessment|null $componentAssessment */
+            $componentAssessment = $assessment->componentAssessments->first();
+
+            if ($rowNorm === '' || ! isset($allowedNorm[$rowNorm])) {
+                if ($componentAssessment && $componentAssessment->exists) {
+                    $componentAssessment->material_id = null;
+                    $componentAssessment->location_id = null;
+                    $componentAssessment->gpt_observations = [];
+                    $componentAssessment->save();
+                    $componentAssessment->defects()->sync([]);
+                }
+
                 continue;
             }
 
-            $componentAssessment = $assessment->componentAssessments->first();
             if (! $componentAssessment) {
                 $componentAssessment = new SurveyAccommodationComponentAssessment();
                 $componentAssessment->accommodation_assessment_id = $assessment->id;
@@ -1475,21 +1572,38 @@ class SurveyAccommodationDataService
                 ? ($componentAssessment->defects && $componentAssessment->defects->count() > 0)
                 : false;
 
-            if ($materialVal !== '' && (! $onlyWhenEmpty || ! $hasMaterial)) {
-                $componentAssessment->material_id = $this->findAccommodationOptionId($materialType->id, $materialVal, $component->id);
-            }
+            if (! $onlyWhenEmpty) {
+                $componentAssessment->material_id = $materialVal !== ''
+                    ? $this->findAccommodationOptionId($materialType->id, $materialVal, $component->id)
+                    : null;
 
-            // Save before syncing defects if it's a new row.
-            if (! $componentAssessment->exists) {
-                $componentAssessment->save();
-                $componentAssessment->refresh();
-            } else {
-                $componentAssessment->save();
-            }
+                if (! $componentAssessment->exists) {
+                    $componentAssessment->save();
+                    $componentAssessment->refresh();
+                } else {
+                    $componentAssessment->save();
+                }
 
-            if (! empty($defectVals) && (! $onlyWhenEmpty || ! $hasDefects)) {
-                $defectOptionIds = $this->findAccommodationDefectOptionIds($defectType->id, $defectVals, $component->id);
+                $defectOptionIds = $defectVals !== []
+                    ? $this->findAccommodationDefectOptionIds($defectType->id, $defectVals, $component->id)
+                    : [];
                 $componentAssessment->defects()->sync($defectOptionIds);
+            } else {
+                if ($materialVal !== '' && ! $hasMaterial) {
+                    $componentAssessment->material_id = $this->findAccommodationOptionId($materialType->id, $materialVal, $component->id);
+                }
+
+                if (! $componentAssessment->exists) {
+                    $componentAssessment->save();
+                    $componentAssessment->refresh();
+                } else {
+                    $componentAssessment->save();
+                }
+
+                if (! empty($defectVals) && ! $hasDefects) {
+                    $defectOptionIds = $this->findAccommodationDefectOptionIds($defectType->id, $defectVals, $component->id);
+                    $componentAssessment->defects()->sync($defectOptionIds);
+                }
             }
         }
     }
@@ -1544,7 +1658,7 @@ class SurveyAccommodationDataService
 
         $allowedByNormalized = [];
         foreach ($roomDisplayLabels as $lbl) {
-            $norm = strtolower(trim((string) $lbl));
+            $norm = $this->normalizeAccommodationRoomLabelForCompare((string) $lbl);
             if ($norm !== '') {
                 $allowedByNormalized[$norm] = true;
             }
@@ -1563,8 +1677,17 @@ class SurveyAccommodationDataService
 
         foreach ($assessments as $assessment) {
             $rowLabel = $this->accommodationAssessmentDisplayLabel($assessment);
-            $rowNorm = strtolower(trim($rowLabel));
+            $rowNorm = $this->normalizeAccommodationRoomLabelForCompare($rowLabel);
             if ($rowNorm === '' || ! isset($allowedByNormalized[$rowNorm])) {
+                continue;
+            }
+
+            $componentAssessment = SurveyAccommodationComponentAssessment::query()
+                ->where('accommodation_assessment_id', $assessment->id)
+                ->where('component_id', $component->id)
+                ->first();
+
+            if (! $componentAssessment) {
                 continue;
             }
 
@@ -1580,7 +1703,10 @@ class SurveyAccommodationDataService
                 continue;
             }
 
-            $nextSortOrder = (\App\Models\SurveyAccommodationPhoto::where('accommodation_assessment_id', $assessment->id)->max('sort_order') ?? -1);
+            $nextSortOrder = (SurveyAccommodationPhoto::query()
+                ->where('accommodation_assessment_id', $assessment->id)
+                ->where('component_assessment_id', $componentAssessment->id)
+                ->max('sort_order') ?? -1);
             $addedForThisAssessment = [];
 
             foreach ($sourcePhotos as $photo) {
@@ -1595,8 +1721,9 @@ class SurveyAccommodationDataService
                 $destRelPath = $destDir . '/' . basename($sourceRelPath);
 
                 // Avoid duplicating the same copied photo on repeated saves.
-                $exists = \App\Models\SurveyAccommodationPhoto::query()
+                $exists = SurveyAccommodationPhoto::query()
                     ->where('accommodation_assessment_id', $assessment->id)
+                    ->where('component_assessment_id', $componentAssessment->id)
                     ->where('file_path', $destRelPath)
                     ->exists();
                 if ($exists) {
@@ -1616,8 +1743,9 @@ class SurveyAccommodationDataService
                 }
 
                 $nextSortOrder += 1;
-                $created = \App\Models\SurveyAccommodationPhoto::create([
+                $created = SurveyAccommodationPhoto::create([
                     'accommodation_assessment_id' => $assessment->id,
+                    'component_assessment_id' => $componentAssessment->id,
                     'file_path' => $destRelPath,
                     'file_name' => (string) ($photo->file_name ?? ''),
                     'file_size' => (int) ($photo->file_size ?? 0),
@@ -1630,6 +1758,7 @@ class SurveyAccommodationDataService
                     'file_path' => $created->file_path,
                     'file_name' => $created->file_name,
                     'url' => $disk->url($created->file_path),
+                    'component_key' => $componentKey,
                 ];
 
                 $addedForThisAssessment[] = $created->id;
@@ -1640,9 +1769,144 @@ class SurveyAccommodationDataService
     }
 
     /**
-     * Save photos for an accommodation assessment.
+     * Delete per-room accommodation photos that were copied from this component section's images for
+     * survey rooms no longer listed in the section Location targets, and return UI markers so the
+     * mock page can clear the component photo grid without a full reload.
+     *
+     * Matching rule: same basename as a current section assessment photo, stored under this room's
+     * accommodation photo directory for the given component.
+     *
+     * @param list<string> $roomDisplayLabels
+     * @return array<int, list<array{component_key: string, removed_photo_ids: list<int>}>>
      */
-    public function saveAccommodationPhotos(SurveyAccommodationAssessment $assessment, array $photos): void
+    public function removeAccommodationPhotosCopiedFromComponentSectionForRoomsNotInTargets(
+        Survey $survey,
+        string $componentKey,
+        array $roomDisplayLabels,
+        \App\Models\SurveySectionAssessment $sourceSectionAssessment
+    ): array {
+        $componentKey = trim($componentKey);
+        if ($componentKey === '') {
+            return [];
+        }
+
+        $roomDisplayLabels = array_values(array_unique(array_filter(array_map(static function ($s) {
+            return trim((string) $s);
+        }, $roomDisplayLabels), static function ($s) {
+            return $s !== '';
+        })));
+
+        $allowedNorm = [];
+        foreach ($roomDisplayLabels as $lbl) {
+            $n = $this->normalizeAccommodationRoomLabelForCompare((string) $lbl);
+            if ($n !== '') {
+                $allowedNorm[$n] = true;
+            }
+        }
+
+        if ($allowedNorm === []) {
+            return [];
+        }
+
+        $component = SurveyAccommodationComponent::where('key_name', $componentKey)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $component) {
+            return [];
+        }
+
+        $sourceBasenames = SurveySectionPhoto::query()
+            ->where('section_assessment_id', $sourceSectionAssessment->id)
+            ->get()
+            ->map(static fn ($p) => basename((string) ($p->file_path ?? '')))
+            ->filter(static fn ($b) => $b !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $disk = Storage::disk('public');
+        $markers = [];
+
+        $assessments = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->whereHas('accommodationType.components', function ($q) use ($component) {
+                $q->where('survey_accommodation_components.id', $component->id);
+            })
+            ->get();
+
+        foreach ($assessments as $assessment) {
+            $rowNorm = $this->normalizeAccommodationRoomLabelForCompare($this->accommodationAssessmentDisplayLabel($assessment));
+            if ($rowNorm === '' || isset($allowedNorm[$rowNorm])) {
+                continue;
+            }
+
+            // Copies live under accommodation-photos/{surveyId}/{assessmentId}/ with the same basename
+            // as the section file. Scan that folder (not only this component row) so stray copies still prune.
+            $pathPrefix = 'accommodation-photos/' . (int) $survey->id . '/' . (int) $assessment->id . '/';
+            $photos = SurveyAccommodationPhoto::query()
+                ->where('accommodation_assessment_id', $assessment->id)
+                ->where('file_path', 'like', $pathPrefix . '%')
+                ->get();
+
+            $removedIds = [];
+
+            foreach ($photos as $photo) {
+                $rel = (string) ($photo->file_path ?? '');
+                if ($rel === '') {
+                    continue;
+                }
+                if ($sourceBasenames === [] || ! in_array(basename($rel), $sourceBasenames, true)) {
+                    continue;
+                }
+
+                $pid = (int) ($photo->component_assessment_id ?? 0);
+                if ($pid > 0) {
+                    $caRow = SurveyAccommodationComponentAssessment::query()
+                        ->where('id', $pid)
+                        ->where('accommodation_assessment_id', $assessment->id)
+                        ->first();
+                    if (! $caRow || (int) $caRow->component_id !== (int) $component->id) {
+                        continue;
+                    }
+                }
+                $removedIds[] = (int) $photo->id;
+                try {
+                    if ($disk->exists($rel)) {
+                        $disk->delete($rel);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to delete pruned accommodation photo file', [
+                        'photo_id' => $photo->id,
+                        'path' => $rel,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+                try {
+                    $photo->delete();
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to delete pruned accommodation photo row', [
+                        'photo_id' => $photo->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            if ($removedIds !== []) {
+                $markers[$assessment->id][] = [
+                    'component_key' => $componentKey,
+                    'removed_photo_ids' => $removedIds,
+                ];
+            }
+        }
+
+        return $markers;
+    }
+
+    /**
+     * Save photos for an accommodation assessment (optional per-component scope).
+     */
+    public function saveAccommodationPhotos(SurveyAccommodationAssessment $assessment, array $photos, ?int $componentAssessmentId = null): void
     {
         if (empty($photos)) {
             return;
@@ -1654,9 +1918,14 @@ class SurveyAccommodationDataService
         
         // Ensure storage directory exists
         \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory($storagePath);
-        
-        $maxSortOrder = \App\Models\SurveyAccommodationPhoto::where('accommodation_assessment_id', $assessmentId)
-            ->max('sort_order') ?? -1;
+
+        $sortQuery = \App\Models\SurveyAccommodationPhoto::where('accommodation_assessment_id', $assessmentId);
+        if ($componentAssessmentId !== null) {
+            $sortQuery->where('component_assessment_id', $componentAssessmentId);
+        } else {
+            $sortQuery->whereNull('component_assessment_id');
+        }
+        $maxSortOrder = $sortQuery->max('sort_order') ?? -1;
         
         foreach ($photos as $index => $photo) {
             try {
@@ -1680,14 +1949,16 @@ class SurveyAccommodationDataService
                     ]);
                     continue;
                 }
-                
+
+                $maxSortOrder += 1;
                 \App\Models\SurveyAccommodationPhoto::create([
                     'accommodation_assessment_id' => $assessmentId,
+                    'component_assessment_id' => $componentAssessmentId,
                     'file_path' => $filePath,
                     'file_name' => $photo->getClientOriginalName(),
                     'file_size' => $photo->getSize(),
                     'mime_type' => $photo->getMimeType(),
-                    'sort_order' => $maxSortOrder + $index + 1,
+                    'sort_order' => $maxSortOrder,
                 ]);
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Error saving accommodation photo', [
@@ -1702,14 +1973,95 @@ class SurveyAccommodationDataService
     }
 
     /**
+     * Resolve component_assessment.id for an accommodation row + component key.
+     */
+    public function resolveComponentAssessmentIdForKey(SurveyAccommodationAssessment $assessment, string $componentKey): ?int
+    {
+        $componentKey = trim($componentKey);
+        if ($componentKey === '') {
+            return null;
+        }
+
+        $component = SurveyAccommodationComponent::where('key_name', $componentKey)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $component) {
+            return null;
+        }
+
+        $row = SurveyAccommodationComponentAssessment::query()
+            ->where('accommodation_assessment_id', $assessment->id)
+            ->where('component_id', $component->id)
+            ->first();
+
+        return $row ? (int) $row->id : null;
+    }
+
+    /**
+     * After combined GPT regeneration, strip this component's GPT bullets from accommodation rows
+     * that are not in the section "Location" (which rooms) list — those rows must not inherit
+     * observations from a component section that no longer applies to them.
+     *
+     * @param list<string> $roomDisplayLabels
+     */
+    protected function clearAccommodationComponentGptObservationsForSurveyRoomsNotInTargets(
+        Survey $survey,
+        SurveyAccommodationComponent $component,
+        array $roomDisplayLabels
+    ): void {
+        $allowed = [];
+        foreach ($roomDisplayLabels as $lbl) {
+            $n = $this->normalizeAccommodationRoomLabelForCompare((string) $lbl);
+            if ($n !== '') {
+                $allowed[$n] = true;
+            }
+        }
+        if ($allowed === []) {
+            return;
+        }
+
+        $assessments = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->whereHas('accommodationType.components', function ($q) use ($component) {
+                $q->where('survey_accommodation_components.id', $component->id);
+            })
+            ->get();
+
+        foreach ($assessments as $assessment) {
+            $rowNorm = $this->normalizeAccommodationRoomLabelForCompare($this->accommodationAssessmentDisplayLabel($assessment));
+            if ($rowNorm === '' || isset($allowed[$rowNorm])) {
+                continue;
+            }
+
+            $ca = SurveyAccommodationComponentAssessment::query()
+                ->where('accommodation_assessment_id', $assessment->id)
+                ->where('component_id', $component->id)
+                ->first();
+
+            if ($ca) {
+                $ca->gpt_observations = null;
+                $ca->save();
+            }
+        }
+    }
+
+    /**
      * Regenerate combined GPT for every accommodation type on this survey that includes the given component.
      * Used when a surveyor saves an "Accommodation Components" section (acc_component__{key}) so room rows
      * and persisted component observations stay aligned without opening the Accommodation form.
      *
-     * @return list<array{accommodation_type_id: int, gpt_narrative: ?string, gpt_observations: array<int, string>, gpt_component_observations: array<string, array<int, string>>, gpt_generation_error: ?string}>
+     * @param list<string> $sectionRoomDisplayLabels When non-empty (Accommodation Components section save),
+     *        GPT bullets for this component are cleared on survey rooms not in this list after regeneration,
+     *        and per-room observation payloads in the API response are refreshed from the database.
+     *
+     * @return list<array{accommodation_type_id: int, gpt_narrative: ?string, gpt_observations: array<int, string>, gpt_component_observations: array<string, array<int, string>>, gpt_room_component_observations?: list<array<string, mixed>>, gpt_generation_error: ?string}>
      */
-    public function regenerateAccommodationGptForTypesUsingComponent(Survey $survey, string $componentKey): array
-    {
+    public function regenerateAccommodationGptForTypesUsingComponent(
+        Survey $survey,
+        string $componentKey,
+        array $sectionRoomDisplayLabels = []
+    ): array {
         $componentKey = trim($componentKey);
         if ($componentKey === '') {
             return [];
@@ -1745,8 +2097,26 @@ class SurveyAccommodationDataService
                 'gpt_narrative' => $gpt['gpt_narrative'],
                 'gpt_observations' => $gpt['gpt_observations'],
                 'gpt_component_observations' => $gpt['gpt_component_observations'],
+                'gpt_room_component_observations' => $gpt['gpt_room_component_observations'] ?? [],
                 'gpt_generation_error' => $gpt['gpt_generation_error'],
             ];
+        }
+
+        if ($sectionRoomDisplayLabels !== []) {
+            $this->clearAccommodationComponentGptObservationsForSurveyRoomsNotInTargets($survey, $component, $sectionRoomDisplayLabels);
+            foreach ($out as &$block) {
+                $tid = (int) ($block['accommodation_type_id'] ?? 0);
+                if ($tid <= 0) {
+                    continue;
+                }
+                $type = SurveyAccommodationType::with(['components' => function ($q) {
+                    $q->where('is_active', true)->orderBy('sort_order');
+                }])->find($tid);
+                if ($type) {
+                    $block['gpt_room_component_observations'] = $this->buildRoomComponentGptObservationsPayloadForType($survey, $tid, $type);
+                }
+            }
+            unset($block);
         }
 
         return $out;
@@ -2385,7 +2755,7 @@ class SurveyAccommodationDataService
 
         $notes = trim((string) ($assessment->notes ?? ''));
         if ($notes !== '') {
-            $lines[] = 'Additional notes: ' . $notes;
+            $lines[] = 'Room notes (legacy): ' . $notes;
         }
 
         $lines[] = '';
@@ -2401,10 +2771,14 @@ class SurveyAccommodationDataService
             $name = $component->display_name ?? 'Component';
             $material = $compAssessment->material !== null ? (string) ($compAssessment->material->value ?? '') : '';
             $defects = $compAssessment->defects->pluck('value')->filter()->values()->all();
+            $addNotes = trim((string) ($compAssessment->additional_notes ?? ''));
 
             $lines[] = $name;
             $lines[] = '  Material: ' . ($material !== '' ? $material : '—');
             $lines[] = '  Defects: ' . (!empty($defects) ? implode(', ', $defects) : '—');
+            if ($addNotes !== '') {
+                $lines[] = '  Additional notes: ' . $addNotes;
+            }
             $lines[] = '';
         }
 

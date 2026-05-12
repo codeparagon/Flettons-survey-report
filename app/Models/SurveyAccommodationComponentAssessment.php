@@ -15,6 +15,7 @@ class SurveyAccommodationComponentAssessment extends Model
         'material_id',
         'location_id',
         'gpt_observations',
+        'additional_notes',
     ];
 
     protected $casts = [
@@ -49,6 +50,11 @@ class SurveyAccommodationComponentAssessment extends Model
     public function location()
     {
         return $this->belongsTo(SurveyAccommodationOption::class, 'location_id');
+    }
+
+    public function photos()
+    {
+        return $this->hasMany(SurveyAccommodationPhoto::class, 'component_assessment_id')->orderBy('sort_order');
     }
 }
 

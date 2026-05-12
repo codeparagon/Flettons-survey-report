@@ -2104,7 +2104,7 @@ class SurveyDataService
                 if ($accComponentKey) {
                     try {
                         $accommodationGptUpdates = app(\App\Services\SurveyAccommodationDataService::class)
-                            ->regenerateAccommodationGptForTypesUsingComponent($survey, $accComponentKey);
+                            ->regenerateAccommodationGptForTypesUsingComponent($survey, $accComponentKey, $accommodationComponentRoomTargets);
                     } catch (\Throwable $e) {
                         Log::warning('Failed to regenerate accommodation GPT after component section save', [
                             'survey_id' => $survey->id,
