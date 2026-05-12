@@ -520,7 +520,8 @@
         inset: 0;
         z-index: 4;
         background: #f9fafb;
-        padding: var(--survey-data-mock-block) var(--survey-data-mock-x-0);
+        /* Match .survey-data-mock-body padding so loading state matches loaded layout width */
+        padding: var(--survey-data-mock-block) 0;
         padding-top: var(--survey-data-mock-y);
         padding-bottom: calc(var(--survey-data-mock-block) + 62px);
         overflow: hidden;
@@ -537,8 +538,10 @@
         display: flex;
         flex-direction: column;
         gap: var(--survey-data-mock-block);
-        max-width: 960px;
-        margin: 0 auto;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        box-sizing: border-box;
     }
 
     .survey-data-mock-skeleton-block {
@@ -550,7 +553,7 @@
     .survey-data-mock-skeleton-cat {
         height: 52px;
         border-radius: 6px;
-        background: var(--survey-data-mock-header-bg);
+        background: #e2e8f0;
         position: relative;
         overflow: hidden;
     }
@@ -559,7 +562,7 @@
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
         transform: translateX(-100%);
         animation: survey-data-mock-skeleton-sweep 1.35s ease-in-out infinite;
     }
@@ -568,7 +571,7 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-        padding: 0 0.25rem 0.5rem;
+        padding: 0 0 0.5rem;
     }
 
     .survey-data-mock-skeleton-line {
@@ -961,10 +964,11 @@
         margin-bottom: 0;
     }
 
-    /* Category Header - same survey-dark as main header, light font */
+    /* Category header — no bar; dark type + chevron for hierarchy on light body */
     .survey-data-mock-category-header {
-        background: var(--survey-data-mock-header-bg);
-        padding: 1.25rem var(--survey-data-mock-x);
+        background: transparent;
+        /* No extra left inset — aligns with sub-categories / section column (wrapper padding only) */
+        padding: 1.25rem var(--survey-data-mock-x) 1.25rem 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -973,23 +977,31 @@
     }
 
     .survey-data-mock-category-header:hover {
-        background: var(--survey-data-mock-header-bg);
+        background: rgba(27, 32, 43, 0.04);
     }
 
     .survey-data-mock-category-title {
-        font-size: 30px;
-        color: #FFFFFF !important;
+        font-size: clamp(2rem, 3.1vw, 2.5rem);
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: -0.025em;
+        color: var(--survey-data-mock-header-bg) !important;
         margin: 0;
+        padding: 0;
         font-family: 'Poppins', sans-serif;
     }
 
     .survey-data-mock-category-toggle-icon {
-        font-size: 1.8rem;
-        color: #C1EC4A;
-        transition: transform 0.3s ease;
+        font-size: 2rem;
+        color: var(--survey-data-mock-header-bg);
+        transition: transform 0.3s ease, color 0.2s ease;
         display: inline-block !important;
         visibility: visible !important;
         opacity: 1 !important;
+    }
+
+    .survey-data-mock-category-header:hover .survey-data-mock-category-toggle-icon {
+        color: #0f172a;
     }
 
     .survey-data-mock-category.collapsed .survey-data-mock-category-toggle-icon {
@@ -1028,9 +1040,10 @@
     }
 
     .survey-data-mock-sub-category-title {
-        font-size: 1.8rem;
-        font-weight: 400!important;
-        color: #FFFFFF;
+        font-size: 1.0625rem;
+        font-weight: 500;
+        line-height: 1.35;
+        color: #475569;
         margin: 0 0 0.25rem 0;
         padding: 0;
         font-family: 'Poppins', sans-serif;
@@ -3122,9 +3135,9 @@
         position: relative;
         display: block;
         background: #fff;
-        border: 1px solid rgba(148, 163, 184, 0.22);
-        border-radius: 10px;
-        overflow: hidden;
+        border: 1px solid #1e293b1c;
+        border-radius: 0;
+        overflow: visible;
     }
 
     .survey-data-mock-accommodation-shell-header {
@@ -3253,6 +3266,7 @@
         padding: 0.75rem 0.85rem;
         border-bottom: 1px solid rgba(255,255,255,0.08);
         white-space: nowrap;
+        border-radius: 0;
     }
 
     .survey-data-mock-accommodation-table tbody td {
@@ -3262,6 +3276,7 @@
         color: #0f172a;
         background: #fff;
         vertical-align: middle;
+        border-radius: 0;
     }
 
     .survey-data-mock-accommodation-row {
@@ -4060,12 +4075,17 @@
         }
 
         .survey-data-mock-category-header {
-            padding: var(--survey-data-mock-y) var(--survey-data-mock-x);
+            padding: var(--survey-data-mock-y) var(--survey-data-mock-x) var(--survey-data-mock-y) 0;
         }
 
         .survey-data-mock-category-title {
+            font-size: clamp(1.5rem, 5.2vw, 1.875rem);
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .survey-data-mock-category-toggle-icon {
             font-size: 1.35rem;
-            line-height: 1.3;
         }
 
         .survey-data-mock-sub-category {
@@ -4073,10 +4093,12 @@
         }
 
         .survey-data-mock-sub-category-title {
-            font-size: 1.1rem;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            line-height: 1.35;
             margin: 0 0 0.75rem 0;
             padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            border-bottom: 1px solid rgba(15, 23, 42, 0.1);
         }
 
         .survey-data-mock-sub-category-sections {
