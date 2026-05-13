@@ -1400,8 +1400,26 @@ class SurveyDataService
         if (isset($formData['section']) && !array_key_exists('section_type', $options)) {
             $options['section_type'] = $formData['section'];
         }
-        if (isset($formData['location']) && !array_key_exists('location', $options)) {
-            $options['location'] = $formData['location'];
+
+        // Prefer top-level `location[]` when it carries multiple rooms (Accommodation Components multi-select).
+        // Some clients only populate legacy flat keys; `options[location]` alone can otherwise be a single value.
+        $optLoc = $options['location'] ?? null;
+        $optRoomCount = is_array($optLoc)
+            ? count(array_values(array_filter(array_map(static fn ($v) => trim((string) $v), $optLoc), static fn ($v) => $v !== '')))
+            : (is_string($optLoc) && trim($optLoc) !== '' ? 1 : 0);
+        $optIsClearlyMultiRoom = is_array($optLoc) && $optRoomCount > 1;
+
+        if (isset($formData['location']) && is_array($formData['location'])) {
+            $flatNorm = array_values(array_filter(
+                array_map(static fn ($v) => trim((string) $v), $formData['location']),
+                static fn ($v) => $v !== ''
+            ));
+            if ($flatNorm !== [] && (!$optIsClearlyMultiRoom || count($flatNorm) > $optRoomCount)) {
+                $options['location'] = $flatNorm;
+            }
+        } elseif (isset($formData['location']) && !array_key_exists('location', $options)) {
+            $loc = $formData['location'];
+            $options['location'] = is_string($loc) ? trim($loc) : $loc;
         }
         if (isset($formData['structure']) && !array_key_exists('structure', $options)) {
             $options['structure'] = $formData['structure'];

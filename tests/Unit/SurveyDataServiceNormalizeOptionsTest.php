@@ -44,4 +44,20 @@ class SurveyDataServiceNormalizeOptionsTest extends TestCase
         $this->assertSame('Rear', $out['location']);
         $this->assertSame('Good light', $out['pros']);
     }
+
+    public function test_normalize_prefers_flat_location_array_for_multi_room_accommodation_components(): void
+    {
+        $service = app(SurveyDataService::class);
+
+        $out = $service->normalizeOptionsFromFormData([
+            'options' => [
+                'material' => 'Concrete',
+                'location' => 'Bedroom 2',
+            ],
+            'location' => ['Bedroom 1', 'Bedroom 2', 'Bedroom 3'],
+        ]);
+
+        $this->assertSame(['Bedroom 1', 'Bedroom 2', 'Bedroom 3'], $out['location']);
+        $this->assertSame('Concrete', $out['material']);
+    }
 }

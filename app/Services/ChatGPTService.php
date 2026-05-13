@@ -187,11 +187,11 @@ class ChatGPTService
             ]);
 
             $instruction = 'You are ' . $surveyorName . ', an experienced UK residential surveyor. '
-                . 'You will receive JSON with accommodation_type, surveyor_name, component_keys (array of component_key strings), and rooms[]. Each room has room_label, accommodation_title (same wording as the Location multi-select for that row), location, notes, condition_rating, and components (component_key, component_name, material, defects, location). '
+                . 'You will receive JSON with accommodation_type, surveyor_name, component_keys (array of component_key strings), and rooms[]. Each room has room_label, accommodation_title (same wording as each other and as the Location multi-select for that row), clone_index (0-based row order), location, notes, condition_rating, and components (component_key, component_name, material, defects, location). '
                 . 'If selected_location_accommodation_titles is present, it lists every accommodation room title the surveyor selected in this section\'s Location field for this submission; you must explicitly reference each listed title in the narrative where it relates to the supplied room data, and reflect that scope in general observations. '
-                . 'Write ONE professional UK-English narrative in "narrative" covering all rooms; reference room_label and accommodation_title where useful. Only use supplied data. '
+                . 'Write ONE professional UK-English narrative in "narrative" covering all rooms; when multiple rooms exist, structure by room: each time you move to another row, name it using accommodation_title (and room_label — they match) so main and cloned rows are never conflated. Do not reuse identical long sentences across rooms unless their supplied materials, defects, room location, component locations, and notes are truly the same; if any field differs, the prose must differ and stay tied to that room. Only use supplied data. '
                 . 'Put cross-element or general bullets only in "observations" (array of strings); may be empty. '
-                . 'Put element-specific factual bullets in "component_observations": an object whose keys are EXACTLY the strings in component_keys, each value an array of short bullet strings for that element across all rooms (use [] if nothing notable). '
+                . 'Put element-specific factual bullets in "component_observations": an object whose keys are EXACTLY the strings in component_keys, each value an array of short bullet strings for that element across all rooms (use [] if nothing notable). When the same component differs between rooms, prefix bullets with the accommodation_title they apply to. '
                 . 'Respond with ONLY valid JSON (no markdown fences) with keys: "narrative" (string), "observations" (array of strings), "component_observations" (object).';
 
             $responseText = $this->callChatCompletionsJsonObject($payload, $instruction);
@@ -221,10 +221,10 @@ class ChatGPTService
 
         $instruction = 'You are ' . $surveyorName . ', an experienced UK residential surveyor. '
             . 'You will receive JSON with accommodation_type, surveyor_name, component_keys (array of component_key strings), and room (object). '
-            . 'Room has: room_label, accommodation_title (same wording as the Location multi-select for this row), location, notes, condition_rating, and components (component_key, component_name, material, defects, location). '
+            . 'Room has: room_label, accommodation_title (same wording as the Location multi-select for this row), clone_index, location, notes, condition_rating, and components (component_key, component_name, material, defects, location). '
             . 'If selected_location_accommodation_titles is present, it lists every accommodation title the surveyor selected in the section Location field for this submission; use that list for overall scope and cross-room context, while bullets remain specific to this single room only. '
             . 'Return ONLY valid JSON with key "component_observations" where keys are EXACTLY the strings in component_keys and each value is an array of short factual bullet strings '
-            . 'ONLY for this single room (do not combine with other rooms; do not include general observations). '
+            . 'ONLY for this single room (do not combine with other rooms; do not include general observations). Bullets must be unique to this room\'s supplied data — avoid generic boilerplate that could apply unchanged to another row. '
             . 'IMPORTANT: write at least 3 bullets per component when there is any input for it (material and/or defects and/or location and/or relevant notes). '
             . 'Bullets must be specific to the supplied data: reference the selected material/defects/location, and use cautious professional phrasing (e.g. "noted", "recorded", "no significant defects recorded"). '
             . 'Do NOT invent measurements, causes, or remediation unless explicitly provided. If there is genuinely no input for a component, use an empty list [].';
@@ -457,10 +457,11 @@ class ChatGPTService
             ]);
 
             $instruction = 'You are ' . $surveyorName . ', an experienced UK residential surveyor. '
-                . 'You will receive JSON with accommodation_type, component_name, component_key, and rooms (each room has room_label, accommodation_title when applicable, material, defects, notes, location, condition_rating). '
+                . 'You will receive JSON with accommodation_type, component_name, component_key, and rooms (each room has room_label, accommodation_title, clone_index, material, defects, notes, location, condition_rating). '
                 . 'If selected_location_accommodation_titles is present, it lists every accommodation room title chosen in the section Location field; reference each title in the narrative when tying rooms together. '
                 . 'Write ONE combined UK-English narrative for this single component across all listed rooms. '
-                . 'Reference rooms by their room_label when comparing; mention location when provided for a room. Only use supplied data; do not invent defects or materials. '
+                . 'When more than one room is listed, treat each row distinctly: name the accommodation_title (same as room_label) whenever you discuss that row\'s finishes, and do not copy-paste identical paragraphs where materials, defects, or locations differ — each room must read as its own assessment within the whole. '
+                . 'Mention location when provided for a room. Only use supplied data; do not invent defects or materials. '
                 . 'Keep a professional survey tone; no preamble.';
 
             $responseText = $this->callAssistantApi($payload, $instruction);

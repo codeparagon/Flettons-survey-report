@@ -5428,6 +5428,41 @@ $(document).ready(function() {
         return s ? [s] : [];
     }
 
+    /**
+     * Union of Location targets from every Accommodation Components row in the DOM for this component key
+     * (original + clones). Used so saving one row does not clear rooms still mapped on another row.
+     */
+    function getMergedAccComponentRoomTargetsFromAllSections(componentKey) {
+        const ck = String(componentKey || '').trim();
+        if (!ck) {
+            return [];
+        }
+        const seen = Object.create(null);
+        const out = [];
+        $('.survey-data-mock-section-item[data-subcategory-key="accommodation_components"]').each(function () {
+            if (String($(this).attr('data-acc-component-key') || '') !== ck) {
+                return;
+            }
+            const $d = $(this).find('.survey-data-mock-section-details').first();
+            if (!$d.length) {
+                return;
+            }
+            extractAccommodationComponentRoomTargets(collectSectionOptionsPayload($d)).forEach(function (r) {
+                const t = String(r || '').trim();
+                if (!t) {
+                    return;
+                }
+                const nk = normalizeAccRoomLabelForMatch(t);
+                if (seen[nk]) {
+                    return;
+                }
+                seen[nk] = true;
+                out.push(t);
+            });
+        });
+        return out;
+    }
+
     /** Case-insensitive match for room row title vs component-form Location targets */
     function normalizeAccRoomLabelForMatch(s) {
         return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -5748,6 +5783,8 @@ $(document).ready(function() {
             ? roomDisplayLabels.map(function (s) { return String(s || '').trim(); }).filter(Boolean)
             : [];
 
+        const mergedFromAllRows = getMergedAccComponentRoomTargetsFromAllSections(ck);
+
         const desiredMaterial = selections && selections.material ? String(selections.material) : '';
         const desiredDefects = selections && Array.isArray(selections.defects) ? selections.defects.map(String) : [];
 
@@ -5776,8 +5813,8 @@ $(document).ready(function() {
             const $slide = $accItem.find('.survey-data-mock-carousel-slide[data-component-key="' + ck + '"]').first();
             if (!$slide.length) return;
 
-            // No target rooms = this component does not apply to any row; clear everywhere.
-            if (labels.length === 0) {
+            // Nothing targets any room on any row for this component: clear everywhere.
+            if (mergedFromAllRows.length === 0) {
                 clearSyncedFieldsForComponentSlide($accItem, $slide);
                 if (window.SurveyorAccommodationImprovements) {
                     window.SurveyorAccommodationImprovements.updateRoomStalenessUi($accItem);
@@ -5789,7 +5826,11 @@ $(document).ready(function() {
                 return;
             }
 
+            // Still mapped on another component section row — do not clear this room.
             if (!roomIsInAccommodationComponentTargets(roomName, labels)) {
+                if (roomIsInAccommodationComponentTargets(roomName, mergedFromAllRows)) {
+                    return;
+                }
                 clearSyncedFieldsForComponentSlide($accItem, $slide);
                 if (window.SurveyorAccommodationImprovements) {
                     window.SurveyorAccommodationImprovements.updateRoomStalenessUi($accItem);
@@ -6739,7 +6780,14 @@ $(document).ready(function() {
             const $fg = $(this);
             const key = $fg.data('option-key');
             const uiGroup = $fg.data('ui-group');
-            const isMultiple = $fg.data('option-multiple') === true || $fg.data('option-multiple') === 'true';
+            let isMultiple = $fg.attr('data-option-multiple') === 'true'
+                || $fg.data('option-multiple') === true
+                || $fg.data('option-multiple') === 'true';
+            const $hostSection = $fg.closest('.survey-data-mock-section-item');
+            // Accommodation Components: Location is always multi-room; never collapse to a single .first() value.
+            if (key === 'location' && String($hostSection.attr('data-subcategory-key') || '') === 'accommodation_components') {
+                isMultiple = true;
+            }
             if (!key || !uiGroup) {
                 return;
             }
@@ -6773,6 +6821,28 @@ $(document).ready(function() {
                 formDataObj.append('options[' + key + ']', v);
             }
         });
+    }
+
+    /**
+     * Legacy flat `location` sent alongside options[]. Arrays must use location[] or PHP/Laravel only keeps one value.
+     */
+    function appendLegacyLocationFieldToFormData(formDataObj, locationVal) {
+        if (locationVal === undefined || locationVal === null) {
+            return;
+        }
+        if (Array.isArray(locationVal)) {
+            locationVal.forEach(function(item) {
+                const s = String(item !== undefined && item !== null ? item : '').trim();
+                if (s !== '') {
+                    formDataObj.append('location[]', s);
+                }
+            });
+            return;
+        }
+        const s = String(locationVal).trim();
+        if (s !== '') {
+            formDataObj.append('location', s);
+        }
     }
 
     function applyOptionSelectionsFromObject($details, sel) {
@@ -7819,7 +7889,7 @@ $(document).ready(function() {
         formDataObj.append('_token', '{{ csrf_token() }}');
         formDataObj.append('section_id', sectionId);
         formDataObj.append('section', formData.section);
-        formDataObj.append('location', formData.location);
+        appendLegacyLocationFieldToFormData(formDataObj, formData.location);
         formDataObj.append('structure', formData.structure);
         formDataObj.append('material', formData.material);
         formDataObj.append('remaining_life', formData.remaining_life);
@@ -9151,7 +9221,7 @@ $(document).ready(function() {
             formDataObj.append('_token', '{{ csrf_token() }}');
             formDataObj.append('section_id', sectionId);
             formDataObj.append('section', formData.section);
-            formDataObj.append('location', formData.location);
+            appendLegacyLocationFieldToFormData(formDataObj, formData.location);
             formDataObj.append('structure', formData.structure);
             formDataObj.append('material', formData.material);
             formDataObj.append('remaining_life', formData.remaining_life);

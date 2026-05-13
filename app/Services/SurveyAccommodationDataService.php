@@ -13,6 +13,8 @@ use App\Models\SurveyAccommodationComponentAssessment;
 use App\Models\SurveyAccommodationComponentSummary;
 use App\Models\SurveyAccommodationGptOutput;
 use App\Models\SurveyAccommodationPhoto;
+use App\Models\SurveySectionAssessment;
+use App\Models\SurveySectionDefinition;
 use App\Models\SurveySectionPhoto;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -110,8 +112,8 @@ class SurveyAccommodationDataService
             return [
                 [
                     'id' => 'accommodation_1',
-                    'name' => $accommodationTypeName . ' 1',
-                    'display_label' => $accommodationTypeName . ' 1',
+                    'name' => $accommodationTypeName,
+                    'display_label' => $accommodationTypeName,
                     'clone_index' => 0,
                     'accommodation_type_id' => $accommodationTypeId,
                     'accommodation_type_name' => $accommodationTypeName,
@@ -629,6 +631,49 @@ class SurveyAccommodationDataService
         $s = strtolower(trim(preg_replace('/\s+/', ' ', $label)));
 
         return $s;
+    }
+
+    /**
+     * Normalized accommodation row titles still targeted by any saved "Accommodation Components"
+     * section row (original or clone) for this component key — union of each section's persisted Location.
+     *
+     * @return array<string, true> keyed by normalizeAccommodationRoomLabelForCompare()
+     */
+    protected function normalizedRoomLabelsClaimedByPersistedComponentSections(Survey $survey, string $componentKey): array
+    {
+        $componentKey = trim($componentKey);
+        if ($componentKey === '') {
+            return [];
+        }
+
+        $sectionName = 'acc_component__' . $componentKey;
+        $definitionIds = SurveySectionDefinition::query()
+            ->where('name', $sectionName)
+            ->pluck('id');
+
+        if ($definitionIds->isEmpty()) {
+            return [];
+        }
+
+        /** @var SurveyDataService $surveyDataService */
+        $surveyDataService = app(SurveyDataService::class);
+
+        $out = [];
+        $sectionAssessments = SurveySectionAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->whereIn('section_definition_id', $definitionIds->all())
+            ->get();
+
+        foreach ($sectionAssessments as $sectionAssessment) {
+            foreach ($surveyDataService->persistedLocationLabelsForSectionAssessment($sectionAssessment) as $lbl) {
+                $n = $this->normalizeAccommodationRoomLabelForCompare((string) $lbl);
+                if ($n !== '') {
+                    $out[$n] = true;
+                }
+            }
+        }
+
+        return $out;
     }
     
     /**
@@ -1528,6 +1573,8 @@ class SurveyAccommodationDataService
             }
         }
 
+        $persistedClaimNorm = $this->normalizedRoomLabelsClaimedByPersistedComponentSections($survey, $componentKey);
+
         // Only target accommodation assessments whose type includes this component.
         $assessments = SurveyAccommodationAssessment::query()
             ->where('survey_id', $survey->id)
@@ -1550,6 +1597,9 @@ class SurveyAccommodationDataService
             $componentAssessment = $assessment->componentAssessments->first();
 
             if ($rowNorm === '' || ! isset($allowedNorm[$rowNorm])) {
+                if ($persistedClaimNorm !== [] && isset($persistedClaimNorm[$rowNorm])) {
+                    continue;
+                }
                 if ($componentAssessment && $componentAssessment->exists) {
                     $componentAssessment->material_id = null;
                     $componentAssessment->location_id = null;
@@ -2000,26 +2050,13 @@ class SurveyAccommodationDataService
 
     /**
      * After combined GPT regeneration, strip this component's GPT bullets from accommodation rows
-     * that are not in the section "Location" (which rooms) list — those rows must not inherit
-     * observations from a component section that no longer applies to them.
-     *
-     * @param list<string> $roomDisplayLabels
+     * that are not targeted by any saved Accommodation Components section row for this component.
      */
     protected function clearAccommodationComponentGptObservationsForSurveyRoomsNotInTargets(
         Survey $survey,
-        SurveyAccommodationComponent $component,
-        array $roomDisplayLabels
+        SurveyAccommodationComponent $component
     ): void {
-        $allowed = [];
-        foreach ($roomDisplayLabels as $lbl) {
-            $n = $this->normalizeAccommodationRoomLabelForCompare((string) $lbl);
-            if ($n !== '') {
-                $allowed[$n] = true;
-            }
-        }
-        if ($allowed === []) {
-            return;
-        }
+        $union = $this->normalizedRoomLabelsClaimedByPersistedComponentSections($survey, $component->key_name);
 
         $assessments = SurveyAccommodationAssessment::query()
             ->where('survey_id', $survey->id)
@@ -2030,7 +2067,11 @@ class SurveyAccommodationDataService
 
         foreach ($assessments as $assessment) {
             $rowNorm = $this->normalizeAccommodationRoomLabelForCompare($this->accommodationAssessmentDisplayLabel($assessment));
-            if ($rowNorm === '' || isset($allowed[$rowNorm])) {
+            if ($rowNorm === '') {
+                continue;
+            }
+
+            if ($union !== [] && isset($union[$rowNorm])) {
                 continue;
             }
 
@@ -2103,7 +2144,7 @@ class SurveyAccommodationDataService
         }
 
         if ($sectionRoomDisplayLabels !== []) {
-            $this->clearAccommodationComponentGptObservationsForSurveyRoomsNotInTargets($survey, $component, $sectionRoomDisplayLabels);
+            $this->clearAccommodationComponentGptObservationsForSurveyRoomsNotInTargets($survey, $component);
             foreach ($out as &$block) {
                 $tid = (int) ($block['accommodation_type_id'] ?? 0);
                 if ($tid <= 0) {
@@ -2452,6 +2493,9 @@ class SurveyAccommodationDataService
     /**
      * One room entry for the combined ChatGPT payload (all components in admin order).
      *
+     * room_label and accommodation_title are identical and match the survey UI / Location multi-select.
+     * clone_index disambiguates main vs cloned rows for the model (0 = primary row).
+     *
      * @return array<string, mixed>
      */
     protected function buildRoomPayloadForAssessment(SurveyAccommodationAssessment $assessment): array
@@ -2510,9 +2554,13 @@ class SurveyAccommodationDataService
             $roomLocation = (string) ($assessment->location->value ?? '');
         }
 
+        $rowTitle = $this->accommodationAssessmentDisplayLabel($assessment);
+
         return [
-            'room_label' => $this->accommodationNumberedDisplayName($assessment),
-            'accommodation_title' => $this->accommodationAssessmentDisplayLabel($assessment),
+            // Must match accommodation_title and UI Location options (see accommodationAssessmentDisplayLabel).
+            'room_label' => $rowTitle,
+            'accommodation_title' => $rowTitle,
+            'clone_index' => (int) ($assessment->clone_index ?? 0),
             'notes' => (string) ($assessment->notes ?? ''),
             'location' => $roomLocation,
             'condition_rating' => $assessment->condition_rating !== null ? (string) $assessment->condition_rating : null,
@@ -2673,9 +2721,12 @@ class SurveyAccommodationDataService
             } elseif ($assessment->relationLoaded('location') && $assessment->location) {
                 $locationStr = (string) ($assessment->location->value ?? '');
             }
+            $rowTitle = $this->accommodationAssessmentDisplayLabel($assessment);
+
             $rooms[] = [
-                'room_label' => $this->accommodationNumberedDisplayName($assessment),
-                'accommodation_title' => $this->accommodationAssessmentDisplayLabel($assessment),
+                'room_label' => $rowTitle,
+                'accommodation_title' => $rowTitle,
+                'clone_index' => (int) ($assessment->clone_index ?? 0),
                 'material' => $material,
                 'defects' => $defects,
                 'notes' => $assessment->notes ?? '',
@@ -2743,14 +2794,11 @@ class SurveyAccommodationDataService
     }
 
     /**
-     * Human-readable label per assessment (e.g. Bedroom 1, Bedroom 2).
+     * Human-readable label per assessment (matches headers and Location multi-select; see accommodationAssessmentDisplayLabel).
      */
     protected function accommodationNumberedDisplayName(SurveyAccommodationAssessment $assessment): string
     {
-        $typeName = $assessment->accommodationType->display_name ?? '';
-        $cloneIndex = (int) ($assessment->clone_index ?? 0);
-
-        return trim($typeName . ' ' . ($cloneIndex + 1));
+        return $this->accommodationAssessmentDisplayLabel($assessment);
     }
 
     /**
