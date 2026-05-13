@@ -2189,6 +2189,12 @@ class SurveyDataService
             $assessment->load(['sectionType', 'location', 'structure', 'material', 'remainingLife', 'defects', 'optionValues.option.optionType', 'costs']);
             
             $chatGPTData = $this->prepareSectionChatGPTData($assessment, $formData);
+            if (($sectionDefinition->subcategory->name ?? '') === 'accommodation_components' && $accommodationComponentRoomTargets !== []) {
+                $chatGPTData['selected_location_accommodation_titles'] = array_values(array_unique(array_filter(
+                    array_map(static fn ($s) => trim((string) $s), $accommodationComponentRoomTargets),
+                    static fn ($s) => $s !== ''
+                )));
+            }
             
             $reportContent = '';
             try {

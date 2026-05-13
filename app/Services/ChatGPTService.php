@@ -57,12 +57,23 @@ class ChatGPTService
                 'surveyor_name'  => $surveyorName,
             ];
 
+            if (! empty($assessmentData['selected_location_accommodation_titles']) && is_array($assessmentData['selected_location_accommodation_titles'])) {
+                $locTitles = array_values(array_unique(array_filter(
+                    array_map(static fn ($s) => trim((string) $s), $assessmentData['selected_location_accommodation_titles']),
+                    static fn ($s) => $s !== ''
+                )));
+                if ($locTitles !== []) {
+                    $sectionPayload['selected_location_accommodation_titles'] = $locTitles;
+                }
+            }
+
             Log::info('ChatGPT section payload', [
                 'payload' => $sectionPayload,
             ]);
             $instruction = 'You are ' . $surveyorName . ', an experienced property surveyor. '
                 . 'You will be given JSON data describing one survey section in the exact field order: '
                 . 'section, element, location, structure, material, defects, remaining_life, costs, notes, surveyor_name. '
+                . 'If selected_location_accommodation_titles is present, it lists every accommodation room title the surveyor tied to this row via the Location field; mention each title explicitly when relating this section to those rooms. '
                 . 'Use this data to write a clear, UK-English narrative for a residential survey report. '
                 . 'Keep the tone professional and concise, and only describe what is in the data without inventing additional facts.';
 
@@ -159,7 +170,8 @@ class ChatGPTService
     /**
      * Combined UK survey narrative and bullet observations for all rooms of an accommodation type.
      *
-     * @param array $payload Must include accommodation_type, rooms[], and component_keys (list of component_key strings for this type)
+     * @param array $payload Must include accommodation_type, rooms[], and component_keys (list of component_key strings for this type).
+     *                        May include selected_location_accommodation_titles: list of accommodation row titles from the section Location field (same strings as the Location multi-select).
      * @return array{narrative: string, observations: array<int, string>, component_observations: array<string, array<int, string>>}
      * @throws \Exception
      */
@@ -175,8 +187,9 @@ class ChatGPTService
             ]);
 
             $instruction = 'You are ' . $surveyorName . ', an experienced UK residential surveyor. '
-                . 'You will receive JSON with accommodation_type, surveyor_name, component_keys (array of component_key strings), and rooms[]. Each room has room_label, location, notes, condition_rating, and components (component_key, component_name, material, defects, location). '
-                . 'Write ONE professional UK-English narrative in "narrative" covering all rooms; reference room_label where useful. Only use supplied data. '
+                . 'You will receive JSON with accommodation_type, surveyor_name, component_keys (array of component_key strings), and rooms[]. Each room has room_label, accommodation_title (same wording as the Location multi-select for that row), location, notes, condition_rating, and components (component_key, component_name, material, defects, location). '
+                . 'If selected_location_accommodation_titles is present, it lists every accommodation room title the surveyor selected in this section\'s Location field for this submission; you must explicitly reference each listed title in the narrative where it relates to the supplied room data, and reflect that scope in general observations. '
+                . 'Write ONE professional UK-English narrative in "narrative" covering all rooms; reference room_label and accommodation_title where useful. Only use supplied data. '
                 . 'Put cross-element or general bullets only in "observations" (array of strings); may be empty. '
                 . 'Put element-specific factual bullets in "component_observations": an object whose keys are EXACTLY the strings in component_keys, each value an array of short bullet strings for that element across all rooms (use [] if nothing notable). '
                 . 'Respond with ONLY valid JSON (no markdown fences) with keys: "narrative" (string), "observations" (array of strings), "component_observations" (object).';
@@ -196,7 +209,8 @@ class ChatGPTService
     /**
      * Room-specific bullet observations for each component for one accommodation room row.
      *
-     * @param array $payload Must include accommodation_type, room (object), and component_keys (list of component_key strings for this type)
+     * @param array $payload Must include accommodation_type, room (object), and component_keys (list of component_key strings for this type).
+     *                        May include selected_location_accommodation_titles: every accommodation title selected in the section Location for this submission.
      * @return array{component_observations: array<string, array<int, string>>}
      * @throws \Exception
      */
@@ -207,7 +221,8 @@ class ChatGPTService
 
         $instruction = 'You are ' . $surveyorName . ', an experienced UK residential surveyor. '
             . 'You will receive JSON with accommodation_type, surveyor_name, component_keys (array of component_key strings), and room (object). '
-            . 'Room has: room_label, location, notes, condition_rating, and components (component_key, component_name, material, defects, location). '
+            . 'Room has: room_label, accommodation_title (same wording as the Location multi-select for this row), location, notes, condition_rating, and components (component_key, component_name, material, defects, location). '
+            . 'If selected_location_accommodation_titles is present, it lists every accommodation title the surveyor selected in the section Location field for this submission; use that list for overall scope and cross-room context, while bullets remain specific to this single room only. '
             . 'Return ONLY valid JSON with key "component_observations" where keys are EXACTLY the strings in component_keys and each value is an array of short factual bullet strings '
             . 'ONLY for this single room (do not combine with other rooms; do not include general observations). '
             . 'IMPORTANT: write at least 3 bullets per component when there is any input for it (material and/or defects and/or location and/or relevant notes). '
@@ -442,7 +457,8 @@ class ChatGPTService
             ]);
 
             $instruction = 'You are ' . $surveyorName . ', an experienced UK residential surveyor. '
-                . 'You will receive JSON with accommodation_type, component_name, component_key, and rooms (each room has room_label, material, defects, notes, location, condition_rating). '
+                . 'You will receive JSON with accommodation_type, component_name, component_key, and rooms (each room has room_label, accommodation_title when applicable, material, defects, notes, location, condition_rating). '
+                . 'If selected_location_accommodation_titles is present, it lists every accommodation room title chosen in the section Location field; reference each title in the narrative when tying rooms together. '
                 . 'Write ONE combined UK-English narrative for this single component across all listed rooms. '
                 . 'Reference rooms by their room_label when comparing; mention location when provided for a room. Only use supplied data; do not invent defects or materials. '
                 . 'Keep a professional survey tone; no preamble.';

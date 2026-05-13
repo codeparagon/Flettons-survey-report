@@ -2091,7 +2091,7 @@ class SurveyAccommodationDataService
             if ($tid <= 0) {
                 continue;
             }
-            $gpt = $this->regenerateAccommodationTypeCombinedGpt($survey, $tid);
+            $gpt = $this->regenerateAccommodationTypeCombinedGpt($survey, $tid, $sectionRoomDisplayLabels);
             $out[] = [
                 'accommodation_type_id' => $tid,
                 'gpt_narrative' => $gpt['gpt_narrative'],
@@ -2125,9 +2125,10 @@ class SurveyAccommodationDataService
     /**
      * Regenerate combined GPT narrative + observations for an accommodation type (all non-empty rooms).
      *
+     * @param  list<string>  $selectedLocationAccommodationTitles  Accommodation row titles from the section "Location" field (same strings as the Location multi-select), when regenerating after an Accommodation Components save.
      * @return array{gpt_narrative: ?string, gpt_observations: array<int, string>, gpt_component_observations: array<string, array<int, string>>, gpt_generation_error: ?string}
      */
-    public function regenerateAccommodationTypeCombinedGpt(Survey $survey, int $accommodationTypeId): array
+    public function regenerateAccommodationTypeCombinedGpt(Survey $survey, int $accommodationTypeId, array $selectedLocationAccommodationTitles = []): array
     {
         $assessments = $this->loadAssessmentsForAccommodationType($survey, $accommodationTypeId);
         $rooms = [];
@@ -2158,11 +2159,19 @@ class SurveyAccommodationDataService
             $q->where('is_active', true)->orderBy('sort_order');
         }])->findOrFail($accommodationTypeId);
 
+        $selectedTitles = array_values(array_unique(array_filter(
+            array_map(static fn ($s) => trim((string) $s), $selectedLocationAccommodationTitles),
+            static fn ($s) => $s !== ''
+        )));
+
         $payload = [
             'accommodation_type' => $type->display_name,
             'component_keys' => $type->components->pluck('key_name')->values()->all(),
             'rooms' => $rooms,
         ];
+        if ($selectedTitles !== []) {
+            $payload['selected_location_accommodation_titles'] = $selectedTitles;
+        }
 
         try {
             $out = $this->chatGPTService->generateAccommodationCombinedReport($payload);
@@ -2186,7 +2195,7 @@ class SurveyAccommodationDataService
 
             // IMPORTANT: combined component bullets are cross-room by definition. Do not copy the same bullets
             // onto every room row; generate room-specific bullets instead so clones differ.
-            $this->syncRoomSpecificComponentAssessmentGptObservations($survey, $accommodationTypeId, $type);
+            $this->syncRoomSpecificComponentAssessmentGptObservations($survey, $accommodationTypeId, $type, $selectedTitles);
 
             return [
                 'gpt_narrative' => $out['narrative'],
@@ -2264,7 +2273,8 @@ class SurveyAccommodationDataService
     protected function syncRoomSpecificComponentAssessmentGptObservations(
         Survey $survey,
         int $accommodationTypeId,
-        SurveyAccommodationType $type
+        SurveyAccommodationType $type,
+        array $selectedLocationAccommodationTitles = []
     ): void {
         $assessments = SurveyAccommodationAssessment::query()
             ->where('survey_id', $survey->id)
@@ -2280,11 +2290,15 @@ class SurveyAccommodationDataService
 
             try {
                 $roomPayload = $this->buildRoomPayloadForAssessment($assessment);
-                $resp = $this->chatGPTService->generateAccommodationRoomComponentObservations([
+                $roomGptPayload = [
                     'accommodation_type' => $type->display_name,
                     'component_keys' => $componentKeys,
                     'room' => $roomPayload,
-                ]);
+                ];
+                if ($selectedLocationAccommodationTitles !== []) {
+                    $roomGptPayload['selected_location_accommodation_titles'] = $selectedLocationAccommodationTitles;
+                }
+                $resp = $this->chatGPTService->generateAccommodationRoomComponentObservations($roomGptPayload);
 
                 $byKey = is_array($resp['component_observations'] ?? null) ? $resp['component_observations'] : [];
 
@@ -2498,6 +2512,7 @@ class SurveyAccommodationDataService
 
         return [
             'room_label' => $this->accommodationNumberedDisplayName($assessment),
+            'accommodation_title' => $this->accommodationAssessmentDisplayLabel($assessment),
             'notes' => (string) ($assessment->notes ?? ''),
             'location' => $roomLocation,
             'condition_rating' => $assessment->condition_rating !== null ? (string) $assessment->condition_rating : null,
@@ -2660,6 +2675,7 @@ class SurveyAccommodationDataService
             }
             $rooms[] = [
                 'room_label' => $this->accommodationNumberedDisplayName($assessment),
+                'accommodation_title' => $this->accommodationAssessmentDisplayLabel($assessment),
                 'material' => $material,
                 'defects' => $defects,
                 'notes' => $assessment->notes ?? '',
