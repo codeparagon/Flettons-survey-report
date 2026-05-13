@@ -122,6 +122,144 @@
         font-size: 13px;
         color: #6b7280;
     }
+
+    /* Accommodation placement — full width bar, brand left / controls right (matches stats bar width) */
+    .acc-components-placement {
+        width: 100%;
+        margin-bottom: 18px;
+    }
+    .acc-placement-surface {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        width: 100%;
+        padding: 14px 22px 16px;
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        box-shadow: 0 1px 8px rgba(15, 23, 42, 0.08);
+    }
+    .acc-placement-toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        column-gap: 24px;
+        row-gap: 12px;
+        width: 100%;
+    }
+    .acc-placement-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+    .acc-placement-brand .acc-placement-ico {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: rgba(193, 236, 74, 0.12);
+        color: #c1ec4a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        border: 1px solid rgba(193, 236, 74, 0.22);
+        flex-shrink: 0;
+    }
+    .acc-placement-brand .acc-placement-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: #f8fafc;
+        letter-spacing: -0.01em;
+        margin: 0;
+    }
+    .acc-placement-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px 12px;
+        justify-self: end;
+    }
+    .acc-placement-controls label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #94a3b8;
+        margin: 0;
+        white-space: nowrap;
+    }
+    .acc-placement-controls select {
+        min-width: 11rem;
+        width: min(18rem, 42vw);
+        max-width: 100%;
+        min-height: 36px;
+        padding: 0 10px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        font-size: 13px;
+        font-weight: 500;
+        color: #0f172a;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+    .acc-placement-controls select:focus {
+        outline: none;
+        border-color: #c1ec4a;
+        box-shadow: 0 0 0 2px rgba(193, 236, 74, 0.35);
+    }
+    .acc-placement-save {
+        min-height: 36px;
+        padding: 0 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        font-weight: 700;
+        font-size: 13px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+        background: #c1ec4a;
+        color: #0f172a;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .acc-placement-save:hover {
+        background: #b8e345;
+        transform: translateY(-1px);
+    }
+    .acc-placement-save:active {
+        transform: translateY(0);
+    }
+    .acc-placement-save:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+        transform: none;
+    }
+    .acc-components-placement .acc-help {
+        font-size: 12px;
+        line-height: 1.45;
+        color: rgba(226, 232, 240, 0.58);
+        margin: 12px 0 0;
+        padding: 12px 0 0;
+        width: 100%;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    @media (max-width: 720px) {
+        .acc-placement-toolbar {
+            grid-template-columns: 1fr;
+        }
+        .acc-placement-controls {
+            justify-self: stretch;
+            justify-content: stretch;
+        }
+        .acc-placement-controls select {
+            width: 100%;
+        }
+        .acc-placement-save {
+            width: 100%;
+        }
+    }
     
     /* Main Content Layout */
     .builder-layout {
@@ -1387,6 +1525,33 @@
     </div>
 </div>
 
+@if($categories->where('is_active', true)->isNotEmpty())
+<div class="acc-components-placement">
+    <div class="acc-placement-surface">
+        <div class="acc-placement-toolbar">
+            <div class="acc-placement-brand">
+                <span class="acc-placement-ico" aria-hidden="true"><i class="fas fa-layer-group"></i></span>
+                <span class="acc-placement-name">Accommodation components</span>
+            </div>
+            <div class="acc-placement-controls">
+                <label for="accComponentsCategorySelect">Category</label>
+                <select id="accComponentsCategorySelect" name="accommodation_components_category_id">
+                    @foreach($categories->where('is_active', true)->sortBy('sort_order') as $cat)
+                        <option value="{{ $cat->id }}" @selected((int) ($accommodationComponentsCategoryId ?? 0) === (int) $cat->id)>
+                            {{ $cat->display_name }}
+                        </option>
+                    @endforeach
+                </select>
+                <button type="button" class="acc-placement-save" id="accComponentsCategorySaveBtn" onclick="saveAccommodationComponentsCategory(this)">
+                    <i class="fas fa-check"></i> Apply
+                </button>
+            </div>
+        </div>
+        <p class="acc-help">Survey data stays on the same sections; this only moves the &ldquo;Accommodation Components&rdquo; group in the checklist tree.</p>
+    </div>
+</div>
+@endif
+
 <!-- Main Layout -->
 <div class="builder-layout">
     <!-- Tree Panel -->
@@ -1671,6 +1836,42 @@ function setButtonLoading(button, isLoading, loadingText) {
             button.innerHTML = button.dataset.originalHtml;
         }
         button.disabled = false;
+    }
+}
+
+async function saveAccommodationComponentsCategory(button) {
+    const sel = document.getElementById('accComponentsCategorySelect');
+    if (!sel) {
+        return;
+    }
+    const categoryId = parseInt(sel.value, 10);
+    if (!categoryId) {
+        toast('Choose a category', 'error');
+        return;
+    }
+    const btn = button || document.getElementById('accComponentsCategorySaveBtn');
+    setButtonLoading(btn, true, 'Saving…');
+    try {
+        const res = await fetch('/admin/api/accommodation-components-category', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+            },
+            body: JSON.stringify({ category_id: categoryId }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+            toast(json.message || 'Could not update placement', 'error');
+            return;
+        }
+        toast('Accommodation component sections moved.', 'success');
+        window.location.reload();
+    } catch (e) {
+        toast('Network error', 'error');
+    } finally {
+        setButtonLoading(btn, false);
     }
 }
 

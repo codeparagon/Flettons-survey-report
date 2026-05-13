@@ -185,6 +185,8 @@ Route::prefix('admin')->middleware(['auth', 'super.admin'])->group(function () {
     
     // Preview API
     Route::get('/api/preview', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'preview']);
+
+    Route::put('/api/accommodation-components-category', [\App\Http\Controllers\Admin\SurveyBuilderController::class, 'updateAccommodationComponentsCategory']);
     
     // ============================================
     // ACCOMMODATION BUILDER API ENDPOINTS

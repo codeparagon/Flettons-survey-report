@@ -35,8 +35,52 @@ class SurveyBuilderController extends Controller
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->get();
-        
-        return view('admin.survey-builder.index', compact('categories', 'levels', 'surveyOptionTypes'));
+
+        $accommodationComponentsCategoryId = app(SurveyDataService::class)
+            ->resolveAccommodationComponentsParentCategory()?->id;
+
+        return view('admin.survey-builder.index', compact(
+            'categories',
+            'levels',
+            'surveyOptionTypes',
+            'accommodationComponentsCategoryId'
+        ));
+    }
+
+    /**
+     * Place the "Accommodation Components" subcategory (Ceiling, Walls, …) under the chosen survey category.
+     */
+    public function updateAccommodationComponentsCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'category_id' => 'required|integer|exists:survey_categories,id',
+        ]);
+
+        $category = SurveyCategory::query()
+            ->whereKey($validated['category_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (!$category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Category must be active.',
+            ], 422);
+        }
+
+        try {
+            app(SurveyDataService::class)->configureAccommodationComponentsParentCategory((int) $category->id);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Category not found or inactive.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'category_id' => $category->id,
+        ]);
     }
 
     // ===================

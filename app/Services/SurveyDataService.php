@@ -14,6 +14,7 @@ use App\Models\SurveySectionCost;
 use App\Models\SurveySectionOptionValue;
 use App\Models\SurveyAccommodationAssessment;
 use App\Models\SurveyAccommodationComponent;
+use App\Models\SurveyGlobalSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -276,11 +277,41 @@ class SurveyDataService
     }
 
     /**
-     * Ensures Interior → Accommodation Components exists with one section definition per accommodation component,
-     * required option fields (material, location, defects), and links on every survey level.
-     * Safe to call repeatedly (matches migration behaviour).
+     * Survey builder: explicitly chosen category for the "Accommodation Components" subcategory (Ceiling, Walls, …).
      */
-    protected function bootstrapAccommodationComponentSurveyDefinitionsIfMissing(): void
+    public function getConfiguredAccommodationComponentsCategoryId(): ?int
+    {
+        $raw = SurveyGlobalSetting::getValue(SurveyGlobalSetting::KEY_ACCOMMODATION_COMPONENTS_CATEGORY_ID);
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        return (int) $raw;
+    }
+
+    /**
+     * Effective parent category for accommodation component section definitions (configured or legacy default).
+     */
+    public function resolveAccommodationComponentsParentCategory(): ?SurveyCategory
+    {
+        $configuredId = $this->getConfiguredAccommodationComponentsCategoryId();
+        if ($configuredId) {
+            $category = SurveyCategory::query()
+                ->whereKey($configuredId)
+                ->where('is_active', true)
+                ->first();
+            if ($category) {
+                return $category;
+            }
+        }
+
+        return $this->defaultAccommodationComponentsParentCategory();
+    }
+
+    /**
+     * Legacy default when no admin override is set: prefer Interior, then first active category.
+     */
+    protected function defaultAccommodationComponentsParentCategory(): ?SurveyCategory
     {
         $category = SurveyCategory::query()
             ->where('is_active', true)
@@ -294,26 +325,104 @@ class SurveyDataService
             $category = SurveyCategory::query()->where('is_active', true)->orderBy('sort_order')->first();
         }
 
+        return $category;
+    }
+
+    /**
+     * Persist admin choice and ensure definitions exist under that category.
+     */
+    public function configureAccommodationComponentsParentCategory(int $categoryId): void
+    {
+        $category = SurveyCategory::query()
+            ->whereKey($categoryId)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        SurveyGlobalSetting::setValue(
+            SurveyGlobalSetting::KEY_ACCOMMODATION_COMPONENTS_CATEGORY_ID,
+            (string) $category->id
+        );
+
+        $this->bootstrapAccommodationComponentSurveyDefinitionsIfMissing();
+    }
+
+    /**
+     * Ensures exactly one "accommodation_components" subcategory exists and sits under $category.
+     * Merges duplicate subs (same name, different categories) into one row so section definitions and assessments stay valid.
+     */
+    protected function ensureAccommodationComponentsSubcategoryBelongsToCategory(SurveyCategory $category): SurveySubcategory
+    {
+        return DB::transaction(function () use ($category) {
+            $subs = SurveySubcategory::query()
+                ->where('name', 'accommodation_components')
+                ->withCount('sectionDefinitions')
+                ->orderBy('id')
+                ->get();
+
+            if ($subs->isEmpty()) {
+                return SurveySubcategory::query()->create([
+                    'category_id' => $category->id,
+                    'name' => 'accommodation_components',
+                    'display_name' => 'Accommodation Components',
+                    'sort_order' => (int) (SurveySubcategory::where('category_id', $category->id)->max('sort_order') ?? 0) + 1,
+                    'is_active' => true,
+                ]);
+            }
+
+            $canonical = $subs->firstWhere('category_id', $category->id)
+                ?? $subs->sortByDesc('section_definitions_count')->first();
+
+            foreach ($subs as $other) {
+                if ($other->id === $canonical->id) {
+                    continue;
+                }
+                $defsToMove = SurveySectionDefinition::query()
+                    ->where('subcategory_id', $other->id)
+                    ->orderBy('id')
+                    ->get();
+                foreach ($defsToMove as $def) {
+                    $clash = SurveySectionDefinition::query()
+                        ->where('subcategory_id', $canonical->id)
+                        ->where('name', $def->name)
+                        ->first();
+                    if ($clash) {
+                        SurveySectionAssessment::query()
+                            ->where('section_definition_id', $def->id)
+                            ->update(['section_definition_id' => $clash->id]);
+                        DB::table('survey_level_section_definitions')->where('section_definition_id', $def->id)->delete();
+                        DB::table('survey_section_required_fields')->where('section_definition_id', $def->id)->delete();
+                        $def->delete();
+                    } else {
+                        $def->update(['subcategory_id' => $canonical->id]);
+                    }
+                }
+                $other->delete();
+            }
+
+            $canonical->forceFill([
+                'category_id' => $category->id,
+                'display_name' => 'Accommodation Components',
+                'is_active' => true,
+            ])->save();
+
+            return $canonical->fresh();
+        });
+    }
+
+    /**
+     * Ensures the Accommodation Components subcategory exists under the configured (or default) category,
+     * with one section definition per accommodation component, required option fields (material, location, defects),
+     * and links on every survey level. Safe to call repeatedly.
+     */
+    protected function bootstrapAccommodationComponentSurveyDefinitionsIfMissing(): void
+    {
+        $category = $this->resolveAccommodationComponentsParentCategory();
+
         if (!$category) {
             return;
         }
 
-        $sub = SurveySubcategory::query()->firstOrCreate(
-            [
-                'category_id' => $category->id,
-                'name' => 'accommodation_components',
-            ],
-            [
-                'display_name' => 'Accommodation Components',
-                'sort_order' => (int) (SurveySubcategory::where('category_id', $category->id)->max('sort_order') ?? 0) + 1,
-                'is_active' => true,
-            ]
-        );
-
-        $sub->forceFill([
-            'display_name' => 'Accommodation Components',
-            'is_active' => true,
-        ])->save();
+        $sub = $this->ensureAccommodationComponentsSubcategoryBelongsToCategory($category);
 
         $components = SurveyAccommodationComponent::query()
             ->where('is_active', true)
