@@ -223,9 +223,213 @@ class SurveyDataService
                 }
             }
         }
-        
+
+        $categoriesRaw = $this->mergeAccommodationComponentCloneRowsInCategoriesRaw($survey, $categoriesRaw);
+
         // Group by sub-category using the existing method
         return $this->groupSectionsBySubCategory($categoriesRaw);
+    }
+
+    /**
+     * When multiple SurveySectionAssessment rows exist for the same Accommodation Components definition
+     * (clones), collapse them into one UI group with a single combined GPT narrative while preserving
+     * per-room forms under the group for editing.
+     *
+     * @param  array<string, list<array<string, mixed>>>  $categoriesRaw
+     * @return array<string, list<array<string, mixed>>>
+     */
+    protected function mergeAccommodationComponentCloneRowsInCategoriesRaw(Survey $survey, array $categoriesRaw): array
+    {
+        $summariesByType = app(SurveyAccommodationDataService::class)->getComponentSummariesForSurvey($survey);
+
+        foreach ($categoriesRaw as $categoryName => &$sections) {
+            if (! is_array($sections) || $sections === []) {
+                continue;
+            }
+
+            $newList = [];
+            $n = count($sections);
+            $i = 0;
+            while ($i < $n) {
+                $row = $sections[$i];
+                $sk = $row['subcategory_key'] ?? '';
+                if ($sk !== 'accommodation_components' || empty($row['section_id'])) {
+                    $newList[] = $row;
+                    $i++;
+
+                    continue;
+                }
+
+                $sid = (int) $row['section_id'];
+                $run = [$row];
+                $j = $i + 1;
+                while ($j < $n) {
+                    $next = $sections[$j];
+                    if (($next['subcategory_key'] ?? '') === 'accommodation_components'
+                        && (int) ($next['section_id'] ?? 0) === $sid) {
+                        $run[] = $next;
+                        $j++;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (count($run) < 2) {
+                    foreach ($run as $one) {
+                        $newList[] = $one;
+                    }
+                    $i = $j;
+
+                    continue;
+                }
+
+                usort($run, static function ($a, $b) {
+                    return ($a['clone_index'] ?? 0) <=> ($b['clone_index'] ?? 0);
+                });
+
+                $accKey = $run[0]['acc_component_key'] ?? null;
+                $mergedBody = ($accKey !== null && $accKey !== '')
+                    ? $this->buildMergedAccommodationComponentGroupReportBody($survey, (string) $accKey, $summariesByType, $run)
+                    : $this->concatenateAccommodationComponentSectionReports($run);
+
+                $anyReport = false;
+                foreach ($run as $r) {
+                    if (! empty($r['has_report'])) {
+                        $anyReport = true;
+
+                        break;
+                    }
+                }
+
+                $sumCompletion = 0;
+                $sumTotal = 0;
+                $sumPhotos = 0;
+                foreach ($run as $r) {
+                    $sumCompletion += (int) ($r['completion'] ?? 0);
+                    $sumTotal += (int) ($r['total'] ?? 0);
+                    $sumPhotos += count($r['photos'] ?? []);
+                }
+
+                $first = $run[0];
+                $mergeRow = [
+                    'merged_accommodation_component_group' => true,
+                    'id' => 'merge_acc_comp_'.$sid,
+                    'section_id' => $sid,
+                    'name' => $this->extractBaseName((string) ($first['name'] ?? 'Section')),
+                    'subcategory_key' => 'accommodation_components',
+                    'acc_component_key' => $accKey,
+                    'completion' => $sumCompletion,
+                    'total' => $sumTotal,
+                    'aggregate_photo_count' => $sumPhotos,
+                    'condition_rating' => $first['condition_rating'] ?? 'ni',
+                    'enabled_option_fields' => $first['enabled_option_fields'] ?? [],
+                    'merged_report_content' => $mergedBody,
+                    'has_report' => $anyReport && trim((string) $mergedBody) !== '',
+                    'child_sections' => array_map(function (array $child): array {
+                        return array_merge($child, [
+                            'as_merged_accommodation_child' => true,
+                            'merged_acc_room_label' => $this->deriveAccommodationComponentRoomLabelForSectionRow($child),
+                        ]);
+                    }, $run),
+                    'photos' => [],
+                    'costs' => [],
+                    'notes' => '',
+                    'option_selections' => [],
+                ];
+
+                $newList[] = $mergeRow;
+                $i = $j;
+            }
+
+            $sections = $newList;
+            unset($sections);
+        }
+
+        return $categoriesRaw;
+    }
+
+    /**
+     * @param  array<int, array<string, array{content: string, component_id: int, input_hash: string|null}>>  $summariesByType
+     * @param  list<array<string, mixed>>  $childRows
+     */
+    protected function buildMergedAccommodationComponentGroupReportBody(
+        Survey $survey,
+        string $componentKey,
+        array $summariesByType,
+        array $childRows
+    ): string {
+        $composed = app(SurveyAccommodationDataService::class)->composeMergedComponentGroupReportContent(
+            $survey,
+            $componentKey,
+            $summariesByType
+        );
+        if (trim($composed) !== '') {
+            return $composed;
+        }
+
+        return $this->concatenateAccommodationComponentSectionReports($childRows);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $childRows
+     */
+    protected function concatenateAccommodationComponentSectionReports(array $childRows): string
+    {
+        $blocks = [];
+        foreach ($childRows as $row) {
+            $rc = trim((string) ($row['report_content'] ?? ''));
+            if ($rc === '') {
+                continue;
+            }
+            $label = $this->deriveAccommodationComponentRoomLabelForSectionRow($row);
+            $blocks[] = $label."\n\n".$rc;
+        }
+
+        return implode("\n\n---\n\n", $blocks);
+    }
+
+    /**
+     * @param  array<string, mixed>  $section
+     */
+    protected function deriveAccommodationComponentRoomLabelForSectionRow(array $section): string
+    {
+        $sel = $section['option_selections'] ?? [];
+        $loc = $sel['location'] ?? null;
+        if (is_array($loc)) {
+            $parts = array_values(array_filter(array_map('strval', $loc), static fn ($s) => trim($s) !== ''));
+
+            return $parts !== [] ? implode(', ', $parts) : 'Room';
+        }
+
+        $s = trim((string) $loc);
+
+        return $s !== '' ? $s : 'Room';
+    }
+
+    /**
+     * Fallback when component summaries are empty: stitch saved section assessment report_content rows.
+     */
+    protected function buildFallbackMergedComponentTextFromSectionAssessments(Survey $survey, int $sectionDefinitionId): string
+    {
+        $assessments = SurveySectionAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->where('section_definition_id', $sectionDefinitionId)
+            ->orderBy('clone_index')
+            ->orderBy('id')
+            ->get(['clone_index', 'report_content']);
+
+        $blocks = [];
+        foreach ($assessments as $a) {
+            $rc = trim((string) ($a->report_content ?? ''));
+            if ($rc === '') {
+                continue;
+            }
+            $idx = (int) ($a->clone_index ?? 0);
+            $label = $idx === 0 ? 'Primary' : ('Clone '.$idx);
+            $blocks[] = $label."\n\n".$rc;
+        }
+
+        return implode("\n\n---\n\n", $blocks);
     }
 
     /**
@@ -683,6 +887,8 @@ class SurveyDataService
             })->values()->toArray() : [],
             'report_content' => $assessment && $assessment->report_content ? $assessment->report_content : null,
             'has_report' => $assessment && !empty(trim($assessment->report_content ?? '')),
+            'clone_index' => $assessment ? (int) ($assessment->clone_index ?? 0) : 0,
+            'is_clone' => $assessment ? (bool) ($assessment->is_clone ?? false) : false,
         ];
     }
 
@@ -2232,12 +2438,20 @@ class SurveyDataService
             DB::commit();
 
             $accommodationGptUpdates = [];
+            $accommodationComponentMergedReport = null;
             if (($sectionDefinition->subcategory->name ?? '') === 'accommodation_components') {
                 $accComponentKey = $this->componentKeyFromAccommodationComponentSectionDefinition($sectionDefinition);
                 if ($accComponentKey) {
                     try {
-                        $accommodationGptUpdates = app(\App\Services\SurveyAccommodationDataService::class)
-                            ->regenerateAccommodationGptForTypesUsingComponent($survey, $accComponentKey, $accommodationComponentRoomTargets);
+                        $gptPack = app(\App\Services\SurveyAccommodationDataService::class)
+                            ->regenerateAccommodationGptForTypesUsingComponent(
+                                $survey,
+                                $accComponentKey,
+                                $accommodationComponentRoomTargets,
+                                true
+                            );
+                        $accommodationGptUpdates = $gptPack['accommodation_gpt_updates'] ?? [];
+                        $accommodationComponentMergedReport = $gptPack['merged_component_report'] ?? null;
                     } catch (\Throwable $e) {
                         Log::warning('Failed to regenerate accommodation GPT after component section save', [
                             'survey_id' => $survey->id,
@@ -2245,6 +2459,12 @@ class SurveyDataService
                             'component_key' => $accComponentKey,
                             'error' => $e->getMessage(),
                         ]);
+                    }
+                    if (trim((string) ($accommodationComponentMergedReport ?? '')) === '') {
+                        $accommodationComponentMergedReport = $this->buildFallbackMergedComponentTextFromSectionAssessments(
+                            $survey,
+                            (int) $sectionDefinition->id
+                        );
                     }
                 }
             }
@@ -2254,6 +2474,7 @@ class SurveyDataService
                 'assessment' => $assessment,
                 'report_content' => $reportContent,
                 'accommodation_gpt_updates' => $accommodationGptUpdates,
+                'accommodation_component_merged_report' => $accommodationComponentMergedReport,
             ];
 
         } catch (\Exception $e) {

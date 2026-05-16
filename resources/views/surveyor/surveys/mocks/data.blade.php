@@ -66,13 +66,23 @@
                                 
                                 <div class="survey-data-mock-sub-category-sections">
                                     @foreach($sections as $section)
-                                        @include('surveyor.surveys.mocks.partials.section-item', [
-                                            'section' => $section,
-                                            'categoryName' => $categoryName,
-                                            'subCategoryName' => $subCategoryName,
-                                            'optionsMapping' => $optionsMapping ?? [],
-                                            'accommodationRoomOptions' => $accommodationRoomOptions ?? [],
-                                        ])
+                                        @if(!empty($section['merged_accommodation_component_group']))
+                                            @include('surveyor.surveys.mocks.partials.section-item-accommodation-component-merged', [
+                                                'section' => $section,
+                                                'categoryName' => $categoryName,
+                                                'subCategoryName' => $subCategoryName,
+                                                'optionsMapping' => $optionsMapping ?? [],
+                                                'accommodationRoomOptions' => $accommodationRoomOptions ?? [],
+                                            ])
+                                        @else
+                                            @include('surveyor.surveys.mocks.partials.section-item', [
+                                                'section' => $section,
+                                                'categoryName' => $categoryName,
+                                                'subCategoryName' => $subCategoryName,
+                                                'optionsMapping' => $optionsMapping ?? [],
+                                                'accommodationRoomOptions' => $accommodationRoomOptions ?? [],
+                                            ])
+                                        @endif
                                     @endforeach
                                     
                                     {{-- Content sections linked to this subcategory --}}
@@ -3623,6 +3633,11 @@
         display: block;
     }
 
+    /* Combined accommodation component: per-room GPT panel stays hidden; narrative is on the merged host */
+    .survey-data-mock-acc-comp-merged-children > .survey-data-mock-section-item .survey-data-mock-report-content {
+        display: none !important;
+    }
+
     @media (max-width: 768px) {
         .survey-data-mock-accommodation-sidebar {
             width: 100vw;
@@ -5468,6 +5483,194 @@ $(document).ready(function() {
         return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
     }
 
+    /**
+     * Base component title (e.g. "Ceiling") from a row header, stripping room bracket suffix.
+     */
+    function extractAccComponentBaseTitleFromSectionItem($item) {
+        const $clone = $item.find('.survey-data-mock-section-name').first().clone();
+        $clone.find('.text-muted').remove();
+        let s = $clone.text().trim().replace(/\s+/g, ' ');
+        s = s.replace(/\s*\[[^\]]+\]\s*$/, '').trim();
+        return s || 'Component';
+    }
+
+    function getAccComponentStandaloneRows($subCategory, sectionDefinitionId, accComponentKey) {
+        const sid = parseInt(sectionDefinitionId, 10);
+        const ck = String(accComponentKey || '').trim();
+        if (!sid || !ck) {
+            return $();
+        }
+        return $subCategory.find('.survey-data-mock-section-item[data-subcategory-key="accommodation_components"]').filter(function() {
+            const $t = $(this);
+            if ($t.attr('data-merged-acc-host') === '1') {
+                return false;
+            }
+            if ($t.closest('.survey-data-mock-acc-comp-merged-children').length) {
+                return false;
+            }
+            return parseInt($t.attr('data-section-definition-id'), 10) === sid && String($t.attr('data-acc-component-key') || '') === ck;
+        });
+    }
+
+    function refreshMergedAccHostAggregateUi($host) {
+        const $kids = $host.children('.survey-data-mock-acc-comp-merged-children').children('.survey-data-mock-section-item');
+        const n = $kids.length;
+        const $nameCell = $host.children('.survey-data-mock-section-header').find('.survey-data-mock-section-name').first();
+        $nameCell.find('.js-merged-loc-count').remove();
+        if (n > 1) {
+            $nameCell.append(
+                $('<span class="text-muted js-merged-loc-count" style="font-size:0.8125rem;font-weight:400;"> (' + n + ' locations)</span>')
+            );
+        }
+        let photos = 0;
+        $kids.each(function() {
+            const t = $(this).children('.survey-data-mock-section-header').find('.survey-data-mock-status-text').first().text().trim();
+            photos += parseInt(t, 10) || 0;
+        });
+        $host.children('.survey-data-mock-section-header').find('.survey-data-mock-status-text').first().text(String(photos));
+    }
+
+    function bindMergedAccHostHeaderToggle($host) {
+        $host.children('.survey-data-mock-section-header[data-expandable="true"]')
+            .off('click.mergedAccHost')
+            .on('click.mergedAccHost', function() {
+                const $sectionItem = $(this).closest('.survey-data-mock-section-item');
+                if ($sectionItem.attr('data-merged-acc-host') !== '1') {
+                    return;
+                }
+                const $reportContent = $sectionItem.find('[data-merged-report-wrap="1"]');
+                const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
+                const $children = $sectionItem.find('.survey-data-mock-acc-comp-merged-children');
+                $sectionItem.toggleClass('expanded');
+                if ($sectionItem.hasClass('expanded')) {
+                    $titleBar.slideDown(300);
+                    $children.slideUp(200);
+                    $reportContent.slideDown(300);
+                } else {
+                    $reportContent.slideUp(300);
+                    $titleBar.slideUp(300);
+                    $children.slideUp(200);
+                }
+            });
+    }
+
+    function buildAccComponentMergedHostShell(baseTitle, sectionDefinitionId, accComponentKey) {
+        const sid = parseInt(sectionDefinitionId, 10);
+        const ck = String(accComponentKey || '').trim();
+        const esc = $('<div/>').text(baseTitle).html();
+        const html =
+            '<div class="survey-data-mock-section-item survey-data-mock-acc-comp-merged survey-data-mock-combined-narrative-item" ' +
+            'data-merged-acc-host="1" data-section-definition-id="' + sid + '" data-acc-component-key="' + $('<div/>').text(ck).html() + '" ' +
+            'data-has-report="false" data-saved="false" data-locked="false">' +
+            '<div class="survey-data-mock-section-header" data-expandable="true">' +
+            '<div class="survey-data-mock-section-name">' + esc + '</div>' +
+            '<div class="survey-data-mock-section-status">' +
+            '<span class="survey-data-mock-status-info">' +
+            '<i class="fas fa-camera survey-data-mock-status-icon"></i>' +
+            '<span class="survey-data-mock-status-text">0</span>' +
+            '<span class="survey-data-mock-status-separator">|</span>' +
+            '<i class="fas fa-sticky-note survey-data-mock-status-icon"></i>' +
+            '<span class="survey-data-mock-status-text">0/0</span>' +
+            '</span>' +
+            '<span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--ni" data-current-rating="ni">NI</span>' +
+            '<i class="fas fa-chevron-down survey-data-mock-expand-icon"></i>' +
+            '</div></div>' +
+            '<div class="survey-data-mock-section-title-bar" style="display: none;">' +
+            '<h3 class="survey-data-mock-section-title-text">' + esc + '</h3>' +
+            '<div class="d-flex align-items-center" style="gap: 10px;">' +
+            '<span class="survey-data-mock-condition-badge survey-data-mock-condition-badge--ni" data-current-rating="ni">NI</span>' +
+            '<i class="fas fa-chevron-up survey-data-mock-section-title-collapse"></i>' +
+            '</div></div>' +
+            '<div class="survey-data-mock-report-content" data-merged-report-wrap="1" style="display: none;">' +
+            '<div class="survey-data-mock-report-content-wrapper">' +
+            '<p class="survey-data-mock-field-label" style="margin:0 0 0.5rem 0;">Surveyor\'s overall opinion (combined for all rooms)</p>' +
+            '<textarea class="survey-data-mock-report-textarea" rows="14" readonly data-merged-component-report-textarea="1" ' +
+            'placeholder="Combined narrative will appear after you save each location form."></textarea>' +
+            '<div class="survey-data-mock-action-icons">' +
+            '<button type="button" class="survey-data-mock-action-icon-btn" data-action="speaker" title="Text to Speech"><i class="fas fa-volume-up"></i></button>' +
+            '<button type="button" class="survey-data-mock-action-icon-btn" data-action="lock" title="Lock/Unlock Editing"><i class="fas fa-lock"></i></button>' +
+            '<button type="button" class="survey-data-mock-action-icon-btn" data-action="edit" title="Edit all location forms"><i class="fas fa-pencil-alt"></i></button>' +
+            '<button type="button" class="survey-data-mock-action-icon-btn" data-action="refresh" title="Regenerate Content"><i class="fas fa-sync-alt"></i></button>' +
+            '<button type="button" class="survey-data-mock-action-icon-btn" data-action="eye" title="Preview"><i class="fas fa-eye"></i></button>' +
+            '</div></div></div>' +
+            '<div class="survey-data-mock-acc-comp-merged-children" style="display: block;"></div>' +
+            '</div>';
+        return $(html);
+    }
+
+    /**
+     * When two or more Accommodation Component rows share the same definition + component key, replace sibling
+     * layout with the same merged host used on full page load so the combined narrative updates without refresh.
+     * @param {boolean} [skipVisibility=false] When true (e.g. after section save), only merge DOM and optional textarea; leave expand/collapse to the save handler.
+     */
+    window.ensureAccComponentMergedGroupInDom = function($subCategory, sectionDefinitionId, accComponentKey, mergedReportTextOpt, skipVisibility) {
+        const sid = parseInt(sectionDefinitionId, 10);
+        const ck = String(accComponentKey || '').trim();
+        if (!$subCategory || !$subCategory.length || !sid || !ck) {
+            return null;
+        }
+        const deferVisibility = skipVisibility === true;
+
+        let $host = $subCategory.find('.survey-data-mock-acc-comp-merged[data-merged-acc-host="1"]').filter(function() {
+            return parseInt($(this).attr('data-section-definition-id'), 10) === sid && String($(this).attr('data-acc-component-key') || '') === ck;
+        }).first();
+
+        const $standalone = getAccComponentStandaloneRows($subCategory, sid, ck);
+        const insideCount = $host.length ? $host.children('.survey-data-mock-acc-comp-merged-children').children('.survey-data-mock-section-item').length : 0;
+        const total = insideCount + $standalone.length;
+
+        if (total < 2) {
+            return $host.length ? $host : null;
+        }
+
+        if (!$host.length) {
+            const baseTitle = extractAccComponentBaseTitleFromSectionItem($standalone.first());
+            $host = buildAccComponentMergedHostShell(baseTitle, sid, ck);
+            $standalone.first().before($host);
+            $standalone.appendTo($host.children('.survey-data-mock-acc-comp-merged-children'));
+        } else if ($standalone.length) {
+            $standalone.appendTo($host.children('.survey-data-mock-acc-comp-merged-children'));
+        }
+
+        const $children = $host.children('.survey-data-mock-acc-comp-merged-children');
+        $children.children('.survey-data-mock-section-item').each(function() {
+            const $c = $(this);
+            $c.addClass('survey-data-mock-section-item--merged-acc-child').attr('data-merged-acc-child', '1');
+            $c.find('.survey-data-mock-report-content').hide();
+            if (typeof window.initEnhancedUpload === 'function') {
+                window.initEnhancedUpload($c);
+            }
+        });
+
+        refreshMergedAccHostAggregateUi($host);
+        bindMergedAccHostHeaderToggle($host);
+
+        const $ta = $host.find('[data-merged-component-report-textarea="1"]');
+        if (mergedReportTextOpt !== undefined && mergedReportTextOpt !== null) {
+            $ta.val(String(mergedReportTextOpt || ''));
+        }
+
+        if (deferVisibility) {
+            return $host;
+        }
+
+        const hasMerged = String($ta.val() || '').trim() !== '';
+        if (hasMerged) {
+            $host.attr('data-has-report', 'true').attr('data-saved', 'true').addClass('expanded');
+            $host.find('[data-merged-report-wrap="1"]').show();
+            $host.children('.survey-data-mock-section-title-bar').show();
+            $host.children('.survey-data-mock-acc-comp-merged-children').css('display', 'none');
+            $host.find('.survey-data-mock-acc-comp-merged-children .survey-data-mock-section-details').hide();
+        } else {
+            $host.attr('data-has-report', 'false').attr('data-saved', 'false').removeClass('expanded');
+            $host.find('[data-merged-report-wrap="1"]').hide();
+            $host.children('.survey-data-mock-section-title-bar').hide();
+            $host.children('.survey-data-mock-acc-comp-merged-children').css('display', 'block');
+        }
+
+        return $host;
+    };
+
     function roomIsInAccommodationComponentTargets(roomDisplayName, roomTargets) {
         if (!roomTargets || roomTargets.length === 0) {
             return true;
@@ -6166,6 +6369,23 @@ $(document).ready(function() {
         }
 
         // Combined accommodation narratives: report-style body only (no form details)
+        if ($sectionItem.attr('data-merged-acc-host') === '1') {
+            const $reportContent = $sectionItem.find('[data-merged-report-wrap="1"]');
+            const $titleBar = $sectionItem.find('.survey-data-mock-section-title-bar');
+            const $children = $sectionItem.find('.survey-data-mock-acc-comp-merged-children');
+            $sectionItem.toggleClass('expanded');
+            if ($sectionItem.hasClass('expanded')) {
+                $titleBar.slideDown(300);
+                $children.slideUp(200);
+                $reportContent.slideDown(300);
+            } else {
+                $reportContent.slideUp(300);
+                $titleBar.slideUp(300);
+                $children.slideUp(200);
+            }
+            return;
+        }
+
         if ($sectionItem.hasClass('survey-data-mock-combined-narrative-item')) {
             const $details = $sectionItem.find('.survey-data-mock-section-details');
             const $reportContent = $sectionItem.find('.survey-data-mock-report-content');
@@ -7881,8 +8101,10 @@ $(document).ready(function() {
 
         formData.condition_rating = conditionRating;
         
-        // Get selected image files
-        const selectedFiles = $sectionItem.data('selectedFiles') || [];
+        // Get selected image files (clones / unsaved rows keep files in selectedFiles until first save)
+        const pendingPhotoFiles = (typeof window.collectPendingPhotoFilesForSection === 'function')
+            ? window.collectPendingPhotoFilesForSection($sectionItem)
+            : ($sectionItem.data('selectedFiles') || []).filter(function(f) { return f instanceof File; });
         
         // Create FormData for file upload
         const formDataObj = new FormData();
@@ -7916,7 +8138,7 @@ $(document).ready(function() {
         }
         
         // Append image files (only new File objects - never re-send existing images)
-        (selectedFiles || []).filter(function(f) { return f instanceof File; }).forEach(function(file, index) {
+        pendingPhotoFiles.forEach(function(file, index) {
             formDataObj.append('photos[' + index + ']', file);
         });
         
@@ -7937,6 +8159,9 @@ $(document).ready(function() {
                         $sectionItem.attr('data-section-id', response.assessment_id);
                         // Update all references to the section ID
                         $sectionItem.find('[data-section-id]').attr('data-section-id', response.assessment_id);
+                        if (typeof window.initEnhancedUpload === 'function') {
+                            window.initEnhancedUpload($sectionItem);
+                        }
                     }
                     
                     // Clear selected files and preview, then add saved photos to grid so they show without refresh
@@ -7950,11 +8175,53 @@ $(document).ready(function() {
                         (window.addPhotosToGrid || addPhotosToGrid)($sectionItem, response.photos);
                         (window.updateImageCount || updateImageCount)($sectionItem);
                     }
+
+                    const subKeyMergeEnsure = String($sectionItem.attr('data-subcategory-key') || '');
+                    const accCkMergeEnsure = String($sectionItem.attr('data-acc-component-key') || '');
+                    let mergedReportOpt = undefined;
+                    if (response.accommodation_component_merged_report !== undefined && response.accommodation_component_merged_report !== null) {
+                        mergedReportOpt = String(response.accommodation_component_merged_report || '');
+                    }
+                    if (subKeyMergeEnsure === 'accommodation_components' && accCkMergeEnsure && typeof window.ensureAccComponentMergedGroupInDom === 'function') {
+                        window.ensureAccComponentMergedGroupInDom(
+                            $sectionItem.closest('.survey-data-mock-sub-category'),
+                            sectionDefinitionId,
+                            accCkMergeEnsure,
+                            mergedReportOpt,
+                            true
+                        );
+                    }
                     
-                    // Hide form, show report
-                    $details.slideUp(300);
-                    $reportContent.find('.survey-data-mock-report-textarea').val(response.report_content || '');
-                    $reportContent.slideDown(300);
+                    // Hide form, show report (merged Accommodation Components: single combined narrative on host)
+                    const isMergedAccChild = $sectionItem.attr('data-merged-acc-child') === '1';
+                    const $mergedAccHostSave = $sectionItem.closest('[data-merged-acc-host="1"]');
+                    if (isMergedAccChild && $mergedAccHostSave.length) {
+                        $details.slideUp(300);
+                        const $mergedTa = $mergedAccHostSave.find('[data-merged-component-report-textarea="1"]');
+                        if (response.accommodation_component_merged_report !== undefined && response.accommodation_component_merged_report !== null) {
+                            $mergedTa.val(String(response.accommodation_component_merged_report || ''));
+                        }
+                        const mergedTrim = String($mergedTa.val() || '').trim();
+                        if (mergedTrim) {
+                            $mergedAccHostSave.find('.survey-data-mock-acc-comp-merged-children .survey-data-mock-section-details').slideUp(300);
+                            $mergedAccHostSave.attr('data-saved', 'true');
+                            $mergedAccHostSave.attr('data-has-report', 'true');
+                            $mergedAccHostSave.addClass('expanded');
+                            $mergedAccHostSave.find('.survey-data-mock-section-title-bar').slideDown(200);
+                            $mergedAccHostSave.find('[data-merged-report-wrap="1"]').slideDown(300);
+                        } else {
+                            $mergedAccHostSave.attr('data-has-report', 'false');
+                            $mergedAccHostSave.attr('data-saved', 'false');
+                            $mergedAccHostSave.removeClass('expanded');
+                            $mergedAccHostSave.find('[data-merged-report-wrap="1"]').hide();
+                            $mergedAccHostSave.find('.survey-data-mock-section-title-bar').hide();
+                            $mergedAccHostSave.children('.survey-data-mock-acc-comp-merged-children').css('display', 'block');
+                        }
+                    } else {
+                        $details.slideUp(300);
+                        $reportContent.find('.survey-data-mock-report-textarea').val(response.report_content || '');
+                        $reportContent.slideDown(300);
+                    }
                     
                     // Mark section as saved and has report
                     $sectionItem.attr('data-saved', 'true');
@@ -7985,7 +8252,7 @@ $(document).ready(function() {
                     }, 0);
                     
                     // Initialize lock state (unlocked by default)
-                    updateLockState($sectionItem, false);
+                    updateLockState(isMergedAccChild && $mergedAccHostSave.length ? $mergedAccHostSave : $sectionItem, false);
                     
                     // Show success message
                     if (typeof toastr !== 'undefined') {
@@ -8077,6 +8344,25 @@ $(document).ready(function() {
                 break;
                 
             case 'edit':
+                const $mergedAccHost = $button.closest('[data-merged-acc-host="1"]');
+                if ($mergedAccHost.length) {
+                    $mergedAccHost.data('selectedFiles', []);
+                    $mergedAccHost.find('.survey-data-mock-file-input').val('');
+                    $mergedAccHost.find('.survey-data-mock-upload-dropzone input[type="file"]').val('');
+                    $mergedAccHost.find('[data-merged-report-wrap="1"]').slideUp(300);
+                    $mergedAccHost.find('.survey-data-mock-acc-comp-merged-children').slideDown(300, function() {
+                        $mergedAccHost.find('.survey-data-mock-acc-comp-merged-children .survey-data-mock-section-item').each(function() {
+                            const $c = $(this);
+                            $c.find('.survey-data-mock-report-content').hide();
+                            $c.find('.survey-data-mock-section-details').slideDown(200, function() {
+                                if (isSwiperAvailable()) {
+                                    initializeSectionCarousels($c);
+                                }
+                            });
+                        });
+                    });
+                    break;
+                }
                 // Toggle back to form view - clear file state so existing images are not re-submitted
                 $sectionItem.data('selectedFiles', []);
                 $sectionItem.find('.survey-data-mock-file-input').val('');
@@ -8105,6 +8391,14 @@ $(document).ready(function() {
                 
             case 'refresh':
                 // Regenerate content
+                if ($sectionItem.attr('data-merged-acc-host') === '1') {
+                    if (typeof toastr !== 'undefined') {
+                        toastr.info('Save any location row again to refresh the combined narrative, or use Accommodation regenerate flows.');
+                    } else {
+                        alert('Save any location row again to refresh the combined narrative.');
+                    }
+                    break;
+                }
                 const $detailsForRefresh = $sectionItem.find('.survey-data-mock-section-details');
                 const isAccommodationRefresh = $sectionItem.attr('data-accommodation-id') !== undefined;
                 
@@ -8514,6 +8808,14 @@ $(document).ready(function() {
             alert('Error: Section definition ID not found. Please refresh the page.');
             return;
         }
+
+        let accCloneIndexPayload = 0;
+        if (cloneSubKeyConfirm === 'accommodation_components') {
+            const ckAcc = String($sourceItem.attr('data-acc-component-key') || '');
+            if (ckAcc) {
+                accCloneIndexPayload = getAccComponentStandaloneRows($subCategoryContainer, sourceSectionDefinitionId, ckAcc).length;
+            }
+        }
         
         // Get original section name from the source item
         const originalSectionName = $sourceItem.find('.survey-data-mock-section-name').text().trim();
@@ -8572,6 +8874,7 @@ $(document).ready(function() {
                 selected_section: effectiveSelectedSection,
                 category_name: categoryName,
                 sub_category_name: subCategoryName,
+                clone_index: accCloneIndexPayload,
                 form_data: formData
             },
             success: function(response) {
@@ -8588,6 +8891,9 @@ $(document).ready(function() {
                         
                         // Initialize event handlers for the new section (expand/collapse only)
                         initializeSectionHandlers($newSectionItem);
+                        if (typeof window.initEnhancedUpload === 'function') {
+                            window.initEnhancedUpload($newSectionItem);
+                        }
                         
                         // Initialize carousels and dividers in the new section
                         setTimeout(function() {
@@ -8601,6 +8907,16 @@ $(document).ready(function() {
                         // Hide already-selected rooms in Accommodation Components UI (avoid re-selection)
                         const $uniqSubCategory = $newSectionItem.closest('.survey-data-mock-sub-category');
                         enforceAccommodationComponentLocationUniqueness($uniqSubCategory);
+                    }
+
+                    if (cloneSubKeyConfirm === 'accommodation_components' && response.section_definition_id && response.acc_component_key
+                        && typeof window.ensureAccComponentMergedGroupInDom === 'function') {
+                        window.ensureAccComponentMergedGroupInDom(
+                            $subCategoryContainer,
+                            response.section_definition_id,
+                            response.acc_component_key,
+                            undefined
+                        );
                     }
                     
                     // Close modal
@@ -9213,8 +9529,10 @@ $(document).ready(function() {
             const conditionRating = $sectionItem.find('.survey-data-mock-condition-badge').data('current-rating') || 'ni';
             formData.condition_rating = conditionRating;
             
-            // Get selected image files
-            const selectedFiles = $sectionItem.data('selectedFiles') || [];
+            // Get selected image files (clones / unsaved rows keep files in selectedFiles until first save)
+            const pendingPhotoFiles = (typeof window.collectPendingPhotoFilesForSection === 'function')
+                ? window.collectPendingPhotoFilesForSection($sectionItem)
+                : ($sectionItem.data('selectedFiles') || []).filter(function(f) { return f instanceof File; });
             
             // Create FormData for file upload
             const formDataObj = new FormData();
@@ -9248,7 +9566,7 @@ $(document).ready(function() {
             }
             
             // Append image files (only new File objects - never re-send existing images)
-            (selectedFiles || []).filter(function(f) { return f instanceof File; }).forEach(function(file, index) {
+            pendingPhotoFiles.forEach(function(file, index) {
                 formDataObj.append('photos[' + index + ']', file);
             });
             
@@ -9269,6 +9587,9 @@ $(document).ready(function() {
                             $sectionItem.attr('data-section-id', response.assessment_id);
                             // Update all references to the section ID
                             $sectionItem.find('[data-section-id]').attr('data-section-id', response.assessment_id);
+                            if (typeof window.initEnhancedUpload === 'function') {
+                                window.initEnhancedUpload($sectionItem);
+                            }
                         }
                         
                         // Clear selected files and preview, then add saved photos to grid so they show without refresh
@@ -9282,11 +9603,53 @@ $(document).ready(function() {
                             (window.addPhotosToGrid || addPhotosToGrid)($sectionItem, response.photos);
                             (window.updateImageCount || updateImageCount)($sectionItem);
                         }
+
+                        const subKeyMergeEnsure2 = String($sectionItem.attr('data-subcategory-key') || '');
+                        const accCkMergeEnsure2 = String($sectionItem.attr('data-acc-component-key') || '');
+                        let mergedReportOpt2 = undefined;
+                        if (response.accommodation_component_merged_report !== undefined && response.accommodation_component_merged_report !== null) {
+                            mergedReportOpt2 = String(response.accommodation_component_merged_report || '');
+                        }
+                        if (subKeyMergeEnsure2 === 'accommodation_components' && accCkMergeEnsure2 && typeof window.ensureAccComponentMergedGroupInDom === 'function') {
+                            window.ensureAccComponentMergedGroupInDom(
+                                $sectionItem.closest('.survey-data-mock-sub-category'),
+                                sectionDefinitionId,
+                                accCkMergeEnsure2,
+                                mergedReportOpt2,
+                                true
+                            );
+                        }
                         
-                        // Hide form, show report
-                        $details.slideUp(300);
-                        $reportContent.find('.survey-data-mock-report-textarea').val(response.report_content || '');
-                        $reportContent.slideDown(300);
+                        // Hide form, show report (merged Accommodation Components: single combined narrative on host)
+                        const isMergedAccChild2 = $sectionItem.attr('data-merged-acc-child') === '1';
+                        const $mergedAccHostSave2 = $sectionItem.closest('[data-merged-acc-host="1"]');
+                        if (isMergedAccChild2 && $mergedAccHostSave2.length) {
+                            $details.slideUp(300);
+                            const $mergedTa2 = $mergedAccHostSave2.find('[data-merged-component-report-textarea="1"]');
+                            if (response.accommodation_component_merged_report !== undefined && response.accommodation_component_merged_report !== null) {
+                                $mergedTa2.val(String(response.accommodation_component_merged_report || ''));
+                            }
+                            const mergedTrim2 = String($mergedTa2.val() || '').trim();
+                            if (mergedTrim2) {
+                                $mergedAccHostSave2.find('.survey-data-mock-acc-comp-merged-children .survey-data-mock-section-details').slideUp(300);
+                                $mergedAccHostSave2.attr('data-saved', 'true');
+                                $mergedAccHostSave2.attr('data-has-report', 'true');
+                                $mergedAccHostSave2.addClass('expanded');
+                                $mergedAccHostSave2.find('.survey-data-mock-section-title-bar').slideDown(200);
+                                $mergedAccHostSave2.find('[data-merged-report-wrap="1"]').slideDown(300);
+                            } else {
+                                $mergedAccHostSave2.attr('data-has-report', 'false');
+                                $mergedAccHostSave2.attr('data-saved', 'false');
+                                $mergedAccHostSave2.removeClass('expanded');
+                                $mergedAccHostSave2.find('[data-merged-report-wrap="1"]').hide();
+                                $mergedAccHostSave2.find('.survey-data-mock-section-title-bar').hide();
+                                $mergedAccHostSave2.children('.survey-data-mock-acc-comp-merged-children').css('display', 'block');
+                            }
+                        } else {
+                            $details.slideUp(300);
+                            $reportContent.find('.survey-data-mock-report-textarea').val(response.report_content || '');
+                            $reportContent.slideDown(300);
+                        }
                         
                         // Mark section as saved and has report
                         $sectionItem.attr('data-saved', 'true');
@@ -9312,7 +9675,7 @@ $(document).ready(function() {
                         }, 0);
                         
                         // Initialize lock state (unlocked by default)
-                        updateLockState($sectionItem, false);
+                        updateLockState(isMergedAccChild2 && $mergedAccHostSave2.length ? $mergedAccHostSave2 : $sectionItem, false);
                         
                         // Show success message
                         if (typeof toastr !== 'undefined') {
@@ -10549,27 +10912,67 @@ $(document).ready(function() {
     // ENHANCED UPLOAD DROPZONE
     // ============================================
     
+    /** Section row that owns a dropzone (never the merged accommodation host wrapper). */
+    function resolveUploadRowItem($from) {
+        const $el = $from && $from.jquery ? $from : $($from);
+        if (!$el.length) {
+            return $();
+        }
+        if ($el.hasClass('survey-data-mock-upload-dropzone')) {
+            return $el.closest('.survey-data-mock-section-item').filter(function() {
+                return $(this).attr('data-merged-acc-host') !== '1';
+            }).first();
+        }
+        if ($el.attr('data-merged-acc-host') === '1') {
+            return $();
+        }
+        return $el;
+    }
+
+    function imagesSectionScope($rowItem) {
+        const $row = resolveUploadRowItem($rowItem);
+        if (!$row.length) {
+            return $();
+        }
+        const $imagesSection = $row.find('.survey-data-mock-images-section').first();
+        return $imagesSection.length ? $imagesSection : $row;
+    }
+
     // Initialize enhanced upload areas (supports multiple dropzones per section, e.g. per accommodation component)
     function initEnhancedUpload($sectionItem) {
-        const $dropzones = $sectionItem.find('.survey-data-mock-upload-dropzone');
-        if ($dropzones.length === 0) return;
+        if ($sectionItem.attr('data-merged-acc-host') === '1') {
+            $sectionItem.children('.survey-data-mock-acc-comp-merged-children')
+                .children('.survey-data-mock-section-item')
+                .each(function() {
+                    initEnhancedUpload($(this));
+                });
+            return;
+        }
+
+        const $dropzones = $sectionItem.find('.survey-data-mock-images-section .survey-data-mock-upload-dropzone');
+        if ($dropzones.length === 0) {
+            return;
+        }
 
         $dropzones.each(function() {
             const $dropzone = $(this);
-            if ($dropzone.data('upload-initialized')) return;
+            const $rowItem = resolveUploadRowItem($dropzone);
+            if (!$rowItem.length || !$rowItem.is($sectionItem)) {
+                return;
+            }
+            if ($dropzone.data('upload-initialized')) {
+                return;
+            }
             $dropzone.data('upload-initialized', true);
 
             const $imagesWrap = $dropzone.closest('.survey-data-mock-images-section');
-            let $fileInput = $dropzone.prev('.survey-data-mock-file-input');
+            let $fileInput = $imagesWrap.find('.survey-data-mock-file-input').first();
             if (!$fileInput.length) {
-                $fileInput = $imagesWrap.find('.survey-data-mock-file-input').first();
-            }
-            if (!$fileInput.length) {
-                $fileInput = $sectionItem.find('.survey-data-mock-file-input').first();
+                $fileInput = $dropzone.siblings('.survey-data-mock-file-input').first();
             }
 
             $dropzone.off('click.upload dragover.upload dragleave.upload drop.upload');
-            $fileInput.off('change');
+            $fileInput.off('change.upload');
 
             $dropzone.on('click.upload', function(e) {
                 e.stopPropagation();
@@ -10595,15 +10998,15 @@ $(document).ready(function() {
 
                 const files = Array.from(e.originalEvent.dataTransfer.files).filter(file => file.type.startsWith('image/'));
                 if (files.length > 0) {
-                    handleEnhancedFilesSelected($sectionItem, files, $dropzone);
+                    handleEnhancedFilesSelected($rowItem, files, $dropzone);
                 }
             });
 
-            $fileInput.on('change', function(e) {
+            $fileInput.on('change.upload', function(e) {
                 e.stopPropagation();
                 const files = Array.from(this.files);
                 if (files.length > 0) {
-                    handleEnhancedFilesSelected($sectionItem, files, $dropzone);
+                    handleEnhancedFilesSelected($rowItem, files, $dropzone);
                 }
                 $(this).val('');
             });
@@ -10612,17 +11015,58 @@ $(document).ready(function() {
 
     window.initEnhancedUpload = initEnhancedUpload;
 
+    /**
+     * Pending image File objects for a section row (unsaved clone / new assessment).
+     */
+    window.collectPendingPhotoFilesForSection = function($sectionItem) {
+        const fromStore = function($root) {
+            return ($root.data('selectedFiles') || []).filter(function(f) {
+                return f instanceof File;
+            });
+        };
+
+        let files = fromStore($sectionItem);
+        if (files.length) {
+            return files;
+        }
+
+        const $imagesSection = $sectionItem.find('.survey-data-mock-images-section').first();
+        if ($imagesSection.length) {
+            files = fromStore($imagesSection);
+            if (files.length) {
+                return files;
+            }
+        }
+
+        const selected = $sectionItem.data('selectedFiles') || [];
+        const fromPreview = [];
+        $sectionItem.find('.survey-data-mock-images-preview .survey-data-mock-image-card[data-file-index]').each(function() {
+            const idx = parseInt($(this).attr('data-file-index'), 10);
+            if (!isNaN(idx) && selected[idx] instanceof File) {
+                fromPreview.push(selected[idx]);
+            }
+        });
+
+        return fromPreview;
+    };
+
     function handleEnhancedFilesSelected($sectionItem, files, $dropzoneCtx) {
         const validFiles = files.filter(file => file.type.startsWith('image/'));
         if (validFiles.length === 0) return;
 
-        const $dz = ($dropzoneCtx && $dropzoneCtx.length) ? $dropzoneCtx : $sectionItem.find('.survey-data-mock-upload-dropzone').first();
+        const $rowItem = resolveUploadRowItem($dropzoneCtx || $sectionItem);
+        if (!$rowItem.length) {
+            return;
+        }
+
+        const $dz = ($dropzoneCtx && $dropzoneCtx.length) ? $dropzoneCtx : $rowItem.find('.survey-data-mock-images-section .survey-data-mock-upload-dropzone').first();
         const componentKey = String($dz.data('component-key') || '').trim();
         const $mediaRoot = $dz.closest('.survey-data-mock-accommodation-component-media');
-        const $gridTarget = $mediaRoot.length ? $mediaRoot : $sectionItem;
+        const $imagesScope = imagesSectionScope($rowItem);
+        const $gridTarget = $mediaRoot.length ? $mediaRoot : $imagesScope;
 
-        const sectionId = $sectionItem.attr('data-section-id');
-        const accommodationId = $sectionItem.attr('data-accommodation-id');
+        const sectionId = $rowItem.attr('data-section-id');
+        const accommodationId = $rowItem.attr('data-accommodation-id');
         const isNumericId = /^\d+$/.test((sectionId || accommodationId || '').toString());
         const surveyId = $('.survey-data-mock-content').data('survey-id');
 
@@ -10670,9 +11114,9 @@ $(document).ready(function() {
                         });
                     }
                     if (list.length > 0) {
-                        $gridTarget.find('.survey-data-mock-existing-images .survey-data-mock-images-grid-enhanced').empty();
-                        (window.addPhotosToGrid || addPhotosToGrid)($gridTarget, list);
-                        (window.updateImageCount || updateImageCount)($sectionItem);
+                        $gridTarget.find('.survey-data-mock-existing-images .survey-data-mock-images-grid-enhanced').first().empty();
+                        (window.addPhotosToGrid || addPhotosToGrid)($rowItem, list);
+                        (window.updateImageCount || updateImageCount)($rowItem);
                     }
 
                     if (!accommodationId && response.accommodation_photo_updates && typeof window.applyAccommodationPhotoUpdatesFromResponse === 'function') {
@@ -10682,6 +11126,7 @@ $(document).ready(function() {
                         setTimeout(function() {
                             syncAllAccommodationShellTableRowsFromDom();
                         }, 0);
+                        refreshMergedAccHostAggregateUi($rowItem.closest('[data-merged-acc-host="1"]'));
                     }
 
                     $uploadTitle.text(originalTitle);
@@ -10716,7 +11161,7 @@ $(document).ready(function() {
                 }
             });
         } else {
-            const storeRoot = $mediaRoot.length ? $mediaRoot : $sectionItem;
+            const storeRoot = $mediaRoot.length ? $mediaRoot : $imagesScope;
             let selectedFiles = storeRoot.data('selectedFiles') || [];
             validFiles.forEach(file => {
                 const isDuplicate = selectedFiles.some(f => f.name === file.name && f.size === file.size);
@@ -10725,6 +11170,7 @@ $(document).ready(function() {
                 }
             });
             storeRoot.data('selectedFiles', selectedFiles);
+            $rowItem.data('selectedFiles', selectedFiles);
 
             const $previewArea = storeRoot.find('.survey-data-mock-images-preview');
             const $previewGrid = $previewArea.find('.survey-data-mock-images-grid-enhanced');
@@ -10743,7 +11189,7 @@ $(document).ready(function() {
             $previewArea.show();
             $uploadTitle.text(originalTitle);
             $dz.css('pointer-events', 'auto');
-            (window.updateImageCount || updateImageCount)($sectionItem);
+            (window.updateImageCount || updateImageCount)($rowItem);
         }
     }
     
@@ -10776,8 +11222,17 @@ $(document).ready(function() {
     
     // Add photos to existing grid
     function addPhotosToGrid($sectionItem, photos) {
-        let $existingContainer = $sectionItem.find('.survey-data-mock-existing-images');
-        let $existingGrid = $existingContainer.find('.survey-data-mock-images-grid-enhanced');
+        const $rowItem = resolveUploadRowItem($sectionItem);
+        if (!$rowItem.length) {
+            return;
+        }
+        const $scope = imagesSectionScope($rowItem);
+
+        let $existingContainer = $scope.children('.survey-data-mock-existing-images').first();
+        if (!$existingContainer.length) {
+            $existingContainer = $scope.find('.survey-data-mock-existing-images').first();
+        }
+        let $existingGrid = $existingContainer.find('.survey-data-mock-images-grid-enhanced').first();
         
         if ($existingContainer.length === 0) {
             $existingContainer = $(`
@@ -10786,8 +11241,7 @@ $(document).ready(function() {
                 </div>
             `);
             $existingGrid = $existingContainer.find('.survey-data-mock-images-grid-enhanced');
-            // Insert after the dropzone
-            $sectionItem.find('.survey-data-mock-upload-dropzone').after($existingContainer);
+            $scope.find('.survey-data-mock-upload-dropzone').first().after($existingContainer);
         }
         
         const existingCount = $existingGrid.find('.survey-data-mock-image-card').length;
@@ -10807,14 +11261,32 @@ $(document).ready(function() {
     // Expose to global scope so save success callbacks in other document.ready blocks can use it
     window.addPhotosToGrid = addPhotosToGrid;
     
-    // Update image count display
+    // Update image count display (scoped to one section row — not merged host / siblings)
     function updateImageCount($sectionItem) {
-        const count = $sectionItem.find('.survey-data-mock-image-card, .survey-data-mock-image-item').length;
-        const $countSpan = $sectionItem.find('[data-image-count]');
-        const $gridCount = $sectionItem.find('.survey-data-mock-images-count');
-        
-        $countSpan.text(count > 0 ? `(${count})` : '');
-        $gridCount.text(`${count} image(s)`);
+        const $rowItem = resolveUploadRowItem($sectionItem);
+        if (!$rowItem.length) {
+            return;
+        }
+        const $scope = imagesSectionScope($rowItem);
+        const count = $scope.find('.survey-data-mock-image-card, .survey-data-mock-image-item').length;
+
+        $scope.find('.survey-data-mock-upload-title').each(function() {
+            const suffix = count === 1 ? '1 image' : count + ' images';
+            $(this).text('Drop images here (' + suffix + ')');
+        });
+
+        $rowItem.find('[data-image-count]').text(count > 0 ? '(' + count + ')' : '');
+        $scope.find('.survey-data-mock-images-count').text(count + ' image(s)');
+
+        const $headerCount = $rowItem.children('.survey-data-mock-section-header').find('.survey-data-mock-status-text').first();
+        if ($headerCount.length) {
+            $headerCount.text(String(count));
+        }
+
+        const $mergedHost = $rowItem.closest('[data-merged-acc-host="1"]');
+        if ($mergedHost.length && typeof refreshMergedAccHostAggregateUi === 'function') {
+            refreshMergedAccHostAggregateUi($mergedHost);
+        }
     }
     
     // Expose to global scope for save success callbacks in other document.ready blocks
@@ -10887,9 +11359,21 @@ $(document).ready(function() {
         });
     };
     
-    // Initialize all sections
+    // Initialize all sections (merged host must init each child row separately — never the host wrapper)
     $('.survey-data-mock-section-item').each(function() {
-        initEnhancedUpload($(this));
+        const $item = $(this);
+        if ($item.attr('data-merged-acc-host') === '1') {
+            $item.children('.survey-data-mock-acc-comp-merged-children')
+                .children('.survey-data-mock-section-item')
+                .each(function() {
+                    initEnhancedUpload($(this));
+                });
+            return;
+        }
+        if ($item.closest('.survey-data-mock-acc-comp-merged-children').length) {
+            return;
+        }
+        initEnhancedUpload($item);
     });
     
     // ============================================

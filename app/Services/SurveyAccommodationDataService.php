@@ -606,6 +606,61 @@ class SurveyAccommodationDataService
     }
 
     /**
+     * All saved accommodation room rows for PDF export (every assessment, ordered by type then clone).
+     * Excludes placeholder types with no assessment record.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getAccommodationRowsForPdf(Survey $survey): array
+    {
+        if (! $this->hasConfiguredAccommodationTypes()) {
+            return [];
+        }
+
+        $assessments = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->with([
+                'accommodationType' => function ($query) {
+                    $query->with(['components' => function ($q) {
+                        $q->where('is_active', true)->orderBy('sort_order');
+                    }]);
+                },
+                'componentAssessments.component',
+                'componentAssessments.material',
+                'componentAssessments.defects',
+                'componentAssessments.location',
+                'location',
+                'photos',
+            ])
+            ->orderBy('accommodation_type_id')
+            ->orderBy('clone_index')
+            ->get()
+            ->filter(function ($assessment) {
+                if (! $assessment->accommodation_type_id || ! $assessment->accommodationType) {
+                    return false;
+                }
+                if (! $assessment->accommodationType->relationLoaded('components')) {
+                    $assessment->accommodationType->load(['components' => function ($query) {
+                        $query->where('is_active', true);
+                    }]);
+                }
+
+                return $assessment->accommodationType->components
+                    && $assessment->accommodationType->components->count() > 0;
+            });
+
+        $gptByType = SurveyAccommodationGptOutput::query()
+            ->where('survey_id', $survey->id)
+            ->get()
+            ->keyBy('accommodation_type_id');
+
+        return $assessments
+            ->map(fn ($assessment) => $this->mapAssessmentToArray($assessment, $gptByType))
+            ->values()
+            ->all();
+    }
+
+    /**
      * Header label for an accommodation row (matches survey data UI and Location multi-select options).
      */
     protected function accommodationAssessmentDisplayLabel(SurveyAccommodationAssessment $assessment): string
@@ -1298,7 +1353,12 @@ class SurveyAccommodationDataService
 
             DB::commit();
 
-            $gptResult = $this->regenerateAccommodationTypeCombinedGpt($survey, $accommodationTypeId);
+            $gptResult = $this->regenerateAccommodationTypeCombinedGpt(
+                $survey,
+                $accommodationTypeId,
+                [],
+                $assessment->id
+            );
 
             // Regeneration writes type-wide GPT bullets onto every component row; re-apply this room's
             // form payload so surveyor-edited per-component fields (including merged GPT observations) persist.
@@ -2088,24 +2148,93 @@ class SurveyAccommodationDataService
     }
 
     /**
+     * Build one display string for a component (Ceiling, etc.) from persisted
+     * {@see SurveyAccommodationComponentSummary} rows for this survey.
+     *
+     * @param  array<int, array<string, array{content: string, component_id: int, input_hash: string|null}>>|null  $summariesByType  Pass null to load from DB.
+     */
+    public function composeMergedComponentGroupReportContent(
+        Survey $survey,
+        string $componentKey,
+        ?array $summariesByType = null
+    ): string {
+        $componentKey = trim($componentKey);
+        if ($componentKey === '') {
+            return '';
+        }
+
+        $summariesByType = $summariesByType ?? $this->getComponentSummariesForSurvey($survey);
+
+        $component = SurveyAccommodationComponent::query()
+            ->where('key_name', $componentKey)
+            ->where('is_active', true)
+            ->first();
+
+        $typeIds = SurveyAccommodationAssessment::query()
+            ->where('survey_id', $survey->id)
+            ->distinct()
+            ->pluck('accommodation_type_id')
+            ->filter()
+            ->values();
+
+        $parts = [];
+        foreach ($typeIds as $typeId) {
+            $tid = (int) $typeId;
+            if ($tid <= 0 || ! $component) {
+                continue;
+            }
+
+            $attached = SurveyAccommodationType::query()->whereKey($tid)->whereHas('components', function ($q) use ($component) {
+                $q->where('survey_accommodation_components.id', $component->id);
+            })->exists();
+
+            if (! $attached) {
+                continue;
+            }
+
+            $text = (string) (($summariesByType[$tid][$componentKey]['content'] ?? '') ?: '');
+            if (trim($text) === '') {
+                continue;
+            }
+
+            $typeName = SurveyAccommodationType::query()->whereKey($tid)->value('display_name');
+            if ($typeName !== null && $typeName !== '' && $typeIds->count() > 1) {
+                $parts[] = $typeName."\n\n".$text;
+            } else {
+                $parts[] = $text;
+            }
+        }
+
+        return $parts !== [] ? implode("\n\n---\n\n", $parts) : '';
+    }
+
+    /**
      * Regenerate combined GPT for every accommodation type on this survey that includes the given component.
      * Used when a surveyor saves an "Accommodation Components" section (acc_component__{key}) so room rows
      * and persisted component observations stay aligned without opening the Accommodation form.
      *
-     * @param list<string> $sectionRoomDisplayLabels When non-empty (Accommodation Components section save),
-     *        GPT bullets for this component are cleared on survey rooms not in this list after regeneration,
-     *        and per-room observation payloads in the API response are refreshed from the database.
+     * @param  list<string>  $sectionRoomDisplayLabels  When non-empty, GPT bullets for this component are cleared on
+     *        accommodation rows not covered by any persisted section row for this component (DB only, no LLM).
+     * @param  bool  $componentSummaryOnly  When true (recommended for section saves): only refresh the merged
+     *        {@see SurveyAccommodationComponentSummary} text (one LLM call per affected accommodation type) and
+     *        return an empty accommodation_gpt_updates list so the UI does not overwrite type narratives or
+     *        per-room GPT observations. When false: full legacy behaviour — runs combined accommodation GPT plus
+     *        summary regeneration (heavy).
      *
-     * @return list<array{accommodation_type_id: int, gpt_narrative: ?string, gpt_observations: array<int, string>, gpt_component_observations: array<string, array<int, string>>, gpt_room_component_observations?: list<array<string, mixed>>, gpt_generation_error: ?string}>
+     * @return array{accommodation_gpt_updates: list<array<string, mixed>>, merged_component_report: string}
      */
     public function regenerateAccommodationGptForTypesUsingComponent(
         Survey $survey,
         string $componentKey,
-        array $sectionRoomDisplayLabels = []
+        array $sectionRoomDisplayLabels = [],
+        bool $componentSummaryOnly = false
     ): array {
         $componentKey = trim($componentKey);
         if ($componentKey === '') {
-            return [];
+            return [
+                'accommodation_gpt_updates' => [],
+                'merged_component_report' => '',
+            ];
         }
 
         $component = SurveyAccommodationComponent::where('key_name', $componentKey)
@@ -2113,7 +2242,10 @@ class SurveyAccommodationDataService
             ->first();
 
         if (! $component) {
-            return [];
+            return [
+                'accommodation_gpt_updates' => [],
+                'merged_component_report' => '',
+            ];
         }
 
         $typeIds = SurveyAccommodationAssessment::query()
@@ -2126,6 +2258,34 @@ class SurveyAccommodationDataService
             ->filter()
             ->values();
 
+        if ($componentSummaryOnly) {
+            if ($sectionRoomDisplayLabels !== []) {
+                $this->clearAccommodationComponentGptObservationsForSurveyRoomsNotInTargets($survey, $component);
+            }
+
+            foreach ($typeIds as $typeId) {
+                $tid = (int) $typeId;
+                if ($tid <= 0) {
+                    continue;
+                }
+                try {
+                    $this->regenerateSingleComponentGroupSummary($survey, $tid, (int) $component->id);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to regenerate accommodation component group summary (lightweight section save)', [
+                        'survey_id' => $survey->id,
+                        'accommodation_type_id' => $tid,
+                        'component_id' => $component->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            return [
+                'accommodation_gpt_updates' => [],
+                'merged_component_report' => $this->composeMergedComponentGroupReportContent($survey, $componentKey),
+            ];
+        }
+
         $out = [];
         foreach ($typeIds as $typeId) {
             $tid = (int) $typeId;
@@ -2133,6 +2293,16 @@ class SurveyAccommodationDataService
                 continue;
             }
             $gpt = $this->regenerateAccommodationTypeCombinedGpt($survey, $tid, $sectionRoomDisplayLabels);
+            try {
+                $this->regenerateSingleComponentGroupSummary($survey, $tid, (int) $component->id);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to regenerate accommodation component group summary after component section save', [
+                    'survey_id' => $survey->id,
+                    'accommodation_type_id' => $tid,
+                    'component_id' => $component->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
             $out[] = [
                 'accommodation_type_id' => $tid,
                 'gpt_narrative' => $gpt['gpt_narrative'],
@@ -2160,16 +2330,25 @@ class SurveyAccommodationDataService
             unset($block);
         }
 
-        return $out;
+        return [
+            'accommodation_gpt_updates' => $out,
+            'merged_component_report' => $this->composeMergedComponentGroupReportContent($survey, $componentKey),
+        ];
     }
 
     /**
      * Regenerate combined GPT narrative + observations for an accommodation type (all non-empty rooms).
      *
      * @param  list<string>  $selectedLocationAccommodationTitles  Accommodation row titles from the section "Location" field (same strings as the Location multi-select), when regenerating after an Accommodation Components save.
-     * @return array{gpt_narrative: ?string, gpt_observations: array<int, string>, gpt_component_observations: array<string, array<int, string>>, gpt_generation_error: ?string}
+     * @param  int|null  $onlyRegenerateRoomComponentObservationsForAssessmentId  When set (accommodation form save path), only this {@see SurveyAccommodationAssessment} row gets new per-component GPT bullets; other rooms keep existing {@see SurveyAccommodationComponentAssessment::$gpt_observations}. Omit or pass null (e.g. Accommodation Components section regen) to refresh bullets for every reportable room. Re-saving the same row still passes that row's id so its bullets can update when inputs change.
+     * @return array{gpt_narrative: ?string, gpt_observations: array<int, string>, gpt_component_observations: array<string, array<int, string>>, gpt_room_component_observations: list<array<string, mixed>>, gpt_generation_error: ?string}
      */
-    public function regenerateAccommodationTypeCombinedGpt(Survey $survey, int $accommodationTypeId, array $selectedLocationAccommodationTitles = []): array
+    public function regenerateAccommodationTypeCombinedGpt(
+        Survey $survey,
+        int $accommodationTypeId,
+        array $selectedLocationAccommodationTitles = [],
+        ?int $onlyRegenerateRoomComponentObservationsForAssessmentId = null
+    ): array
     {
         $assessments = $this->loadAssessmentsForAccommodationType($survey, $accommodationTypeId);
         $rooms = [];
@@ -2236,7 +2415,13 @@ class SurveyAccommodationDataService
 
             // IMPORTANT: combined component bullets are cross-room by definition. Do not copy the same bullets
             // onto every room row; generate room-specific bullets instead so clones differ.
-            $this->syncRoomSpecificComponentAssessmentGptObservations($survey, $accommodationTypeId, $type, $selectedTitles);
+            $this->syncRoomSpecificComponentAssessmentGptObservations(
+                $survey,
+                $accommodationTypeId,
+                $type,
+                $selectedTitles,
+                $onlyRegenerateRoomComponentObservationsForAssessmentId
+            );
 
             return [
                 'gpt_narrative' => $out['narrative'],
@@ -2310,12 +2495,15 @@ class SurveyAccommodationDataService
     /**
      * Generate per-room (per accommodation assessment) component bullets and persist them onto
      * SurveyAccommodationComponentAssessment.gpt_observations, so clones can differ.
+     *
+     * @param  int|null  $onlyForAccommodationAssessmentId  When non-null, only this assessment row is sent to GPT and updated; other rows are left unchanged.
      */
     protected function syncRoomSpecificComponentAssessmentGptObservations(
         Survey $survey,
         int $accommodationTypeId,
         SurveyAccommodationType $type,
-        array $selectedLocationAccommodationTitles = []
+        array $selectedLocationAccommodationTitles = [],
+        ?int $onlyForAccommodationAssessmentId = null
     ): void {
         $assessments = SurveyAccommodationAssessment::query()
             ->where('survey_id', $survey->id)
@@ -2325,6 +2513,10 @@ class SurveyAccommodationDataService
         $componentKeys = $type->components->pluck('key_name')->values()->all();
 
         foreach ($assessments as $assessment) {
+            if ($onlyForAccommodationAssessmentId !== null && (int) $assessment->id !== $onlyForAccommodationAssessmentId) {
+                continue;
+            }
+
             if (!$this->assessmentHasReportableData($assessment)) {
                 continue;
             }

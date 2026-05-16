@@ -7,23 +7,20 @@
     <style>
         @page {
             margin-top: 20mm;
-            margin-bottom: 25mm;
+            margin-bottom: 24mm;
             margin-left: 25mm;
             margin-right: 20mm;
-            footer: html_pageFooter;
-            header: html_pageHeader;
         }
 
         @page :first {
-            margin-top: 20mm;
-            margin-bottom: 30mm;
-            margin-left: 25mm;
-            margin-right: 20mm;
-            footer: html_pageFooter;
+            margin-top: 0;
+            margin-bottom: 0;
+            margin-left: 0;
+            margin-right: 0;
         }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: "DejaVu Sans", sans-serif;
             font-size: 10.5pt;
             line-height: 1.5;
             color: #000000;
@@ -31,47 +28,140 @@
             padding: 0;
         }
 
-        /* Cover Page Styles */
-        .cover-page {
+        /* Cover page (Flettons Level 3 layout) */
+        .pdf-cover-page {
             page-break-after: always;
-            text-align: center;
-            padding: 3cm 0 2cm 0;
-        }
-
-        .company-name {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 18pt;
-            font-weight: bold;
+            width: 210mm;
+            margin: 0;
+            padding: 0;
+            background-color: #FFFFFF;
+            font-family: "DejaVu Sans", sans-serif;
             color: #000000;
-            margin-bottom: 2cm;
         }
 
-        .report-title {
-            font-family: Arial, Helvetica, sans-serif;
+        .pdf-cover-header {
+            background-color: #1b202b;
+            padding: 11mm 14mm;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .pdf-cover-brand {
+            color: #FFFFFF;
+            font-family: "DejaVu Sans", sans-serif;
             font-size: 24pt;
             font-weight: bold;
-            color: #000000;
-            margin: 2cm 0 1.5cm 0;
+            letter-spacing: 0.8px;
         }
 
-        .survey-details {
-            margin-top: 3cm;
-            text-align: left;
-            display: inline-block;
-            font-size: 11pt;
+        .pdf-cover-hero {
+            display: block;
+            width: 100%;
+            height: 95mm;
+            object-fit: cover;
+            margin: 0;
         }
 
-        .survey-details p {
-            margin: 0.5cm 0;
-            font-weight: normal;
-            color: #000000;
+        .pdf-cover-hero--placeholder {
+            width: 100%;
+            height: 95mm;
+            background-color: #E5E7EB;
         }
 
-        .survey-address {
-            font-size: 14pt;
+        .pdf-cover-details {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10mm;
+            margin-left: 14mm;
+            margin-right: 14mm;
+            width: auto;
+        }
+
+        .pdf-cover-details-left {
+            width: 52%;
+            vertical-align: top;
+            padding-right: 8mm;
+        }
+
+        .pdf-cover-details-right {
+            width: 48%;
+            vertical-align: top;
+            padding-left: 4mm;
+        }
+
+        .pdf-cover-level-title {
+            color: #C1EC4A;
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 12.5pt;
             font-weight: bold;
+            line-height: 1.4;
+            text-transform: uppercase;
+            margin-bottom: 5mm;
+            letter-spacing: 0.4px;
+        }
+
+        .pdf-cover-address-line {
+            font-family: "DejaVu Serif", serif;
+            font-size: 15pt;
+            font-weight: normal;
+            line-height: 1.5;
             color: #000000;
-            margin-bottom: 1cm;
+            margin-bottom: 2mm;
+        }
+
+        .pdf-cover-meta-block {
+            margin-bottom: 6mm;
+        }
+
+        .pdf-cover-meta-label {
+            color: #C1EC4A;
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 8.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1.5mm;
+        }
+
+        .pdf-cover-meta-value {
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 12pt;
+            color: #000000;
+            line-height: 1.45;
+        }
+
+        .pdf-cover-bottom {
+            margin-top: 14mm;
+            padding: 0 14mm 14mm 14mm;
+            text-align: center;
+        }
+
+        .pdf-cover-rics {
+            margin-bottom: 4mm;
+        }
+
+        .pdf-cover-rics-mark {
+            display: inline-block;
+            font-size: 16pt;
+            font-weight: bold;
+            color: #1b202b;
+            border: 2px solid #1b202b;
+            padding: 2px 8px;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .pdf-cover-rics-text {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #1b202b;
+            vertical-align: middle;
+        }
+
+        .pdf-cover-disclaimer {
+            font-size: 8.5pt;
+            color: #666666;
+            line-height: 1.45;
         }
 
         /* Header - Blank */
@@ -83,47 +173,76 @@
 
         /* Footer */
         .page-footer-wrapper {
-            background-color: #2C2C54;
+            background-color: #1b202b;
             color: #FFFFFF;
             font-size: 9pt;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: "DejaVu Sans", sans-serif;
             padding: 8px 10px;
             box-sizing: border-box;
         }
 
-        /* Table of Contents */
+        /* Table of Contents — dedicated page(s), separate from report body */
+        .toc-page {
+            page-break-after: always;
+            page-break-inside: auto;
+        }
+
         .toc {
             margin-top: 0;
             margin-bottom: 0;
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #000000;
         }
 
         .toc h2 {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: inherit;
             font-size: 16pt;
             font-weight: bold;
             color: #000000;
             margin-top: 0;
-            margin-bottom: 1cm;
+            margin-bottom: 0.85cm;
             text-align: center;
+            line-height: 1.4;
         }
 
         .toc-item {
-            margin: 0.3cm 0;
-            font-size: 10.5pt;
+            margin: 0.25cm 0;
+            font-size: 12pt;
+            line-height: 1.5;
             color: #000000;
+        }
+
+        .toc-item a,
+        .toc-item a:visited,
+        .toc-item a:hover {
+            font-size: 12pt;
+            color: #000000;
+            text-decoration: none;
+        }
+
+        .toc-item .toc-page-num {
+            font-size: 12pt;
         }
 
         .toc-category {
             font-weight: bold;
             color: #000000;
             margin-top: 0.4cm;
-            font-size: 11pt;
+            font-size: 12pt;
+        }
+
+        .toc-category a,
+        .toc-category a:visited,
+        .toc-category a:hover {
+            font-size: 12pt;
         }
 
         /* Category Styles */
         .category-section {
-            margin-top: 0.8cm;
-            margin-bottom: 0.3cm;
+            margin-top: 0.45cm;
+            margin-bottom: 0.15cm;
         }
 
         .category-section:first-of-type {
@@ -135,8 +254,18 @@
             page-break-inside: avoid;
         }
 
+        /* Keep subcategory bar attached to the first block of content below it */
+        .pdf-subcategory-block {
+            page-break-inside: auto;
+        }
+
+        .pdf-subcategory-block > .subsection-bar {
+            page-break-after: avoid;
+            page-break-inside: avoid;
+        }
+
         .category-title {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: "DejaVu Sans", sans-serif;
             font-size: 14pt;
             font-weight: bold;
             color: #000000;
@@ -151,24 +280,31 @@
             padding: 6px 12px;
             font-size: 12pt;
             font-weight: bold;
-            margin-top: 0.3cm;
-            margin-bottom: 0.2cm;
+            margin-top: 0.25cm;
+            margin-bottom: 0.15cm;
             line-height: 24px;
             page-break-after: avoid;
-        }
-
-        /* Section Styles */
-        .section-item {
-            margin-bottom: 0.5cm;
             page-break-inside: avoid;
         }
 
+        /* Section Styles — allow natural page flow (avoid huge blank gaps) */
+        .section-item {
+            margin-bottom: 0.35cm;
+            page-break-inside: auto;
+        }
+
+        .section-content-flow {
+            page-break-inside: auto;
+        }
+
         .section-header {
-            margin-bottom: 0.3cm;
+            margin-bottom: 0.2cm;
+            page-break-after: avoid;
+            page-break-inside: avoid;
         }
 
         .section-name {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: "DejaVu Sans", sans-serif;
             font-size: 12pt;
             font-weight: bold;
             color: #000000;
@@ -214,9 +350,11 @@
             font-size: 10pt;
         }
 
-        .view-images-link a {
-            color: #0066CC;
-            text-decoration: underline;
+        .view-images-link a,
+        .view-images-link a:visited,
+        .view-images-link a:hover {
+            color: #000000;
+            text-decoration: none;
         }
 
         /* Survey Images Section */
@@ -227,7 +365,7 @@
         }
 
         .survey-images-title {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: "DejaVu Sans", sans-serif;
             font-size: 14pt;
             font-weight: bold;
             color: #000000;
@@ -241,7 +379,7 @@
         }
 
         .image-group-title {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: "DejaVu Sans", sans-serif;
             font-size: 12pt;
             font-weight: bold;
             color: #000000;
@@ -285,7 +423,7 @@
 
         /* Report Content */
         .report-content {
-            margin-top: 0.2cm;
+            margin-top: 0.15cm;
             padding: 0;
             background-color: #FFFFFF;
             border: none;
@@ -293,6 +431,7 @@
             line-height: 1.5;
             color: #000000;
             text-align: left;
+            page-break-inside: auto;
         }
 
         .report-content p {
@@ -342,34 +481,243 @@
             color: #000000;
         }
 
-        /* Costs Table */
-        .costs-table {
+        /* Section estimated costs table (Flettons report layout) */
+        .section-costs-wrap {
+            margin-top: 0.25cm;
+            page-break-before: avoid;
+            page-break-inside: auto;
+        }
+
+        .section-costs-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            font-size: 10.5pt;
+            font-family: "DejaVu Sans", sans-serif;
+        }
+
+        /* Keep column header with its category block (move whole table if it does not fit) */
+        .section-costs-table-block {
+            page-break-inside: avoid;
+            page-break-after: auto;
+            margin-bottom: 0;
+        }
+
+        .section-costs-table-block--splittable {
+            page-break-inside: auto;
+        }
+
+        .section-costs-table-block--splittable thead {
+            display: table-header-group;
+        }
+
+        .section-costs-table-block thead {
+            display: table-header-group;
+            page-break-after: avoid;
+        }
+
+        .section-costs-table-block thead tr {
+            page-break-inside: avoid;
+            page-break-after: avoid;
+        }
+
+        .section-costs-table-block tbody tr.section-costs-category-row {
+            page-break-before: avoid;
+            page-break-after: avoid;
+        }
+
+        .section-costs-table-block--with-totals {
+            page-break-inside: avoid;
+        }
+
+        .section-costs-table-block--with-totals.section-costs-table-block--splittable {
+            page-break-inside: auto;
+        }
+
+        .section-costs-table-block tbody tr.section-costs-totals-row {
+            page-break-before: avoid;
+            page-break-inside: avoid;
+        }
+
+        .section-costs-data-row {
+            page-break-inside: avoid;
+        }
+
+        .section-costs-totals-row {
+            page-break-inside: avoid;
+        }
+
+        .section-costs-table thead th {
+            background-color: #1b202b;
+            color: #FFFFFF;
+            font-weight: bold;
+            padding: 0.35cm 0.4cm;
+            text-align: left;
+            border: 1px solid #1b202b;
+            vertical-align: middle;
+        }
+
+        .section-costs-table tbody td {
+            padding: 0.35cm 0.4cm;
+            border: 1px solid #CCCCCC;
+            vertical-align: top;
+            background-color: #FFFFFF;
+            color: #000000;
+            line-height: 1.45;
+        }
+
+        .section-costs-category-row td {
+            background-color: #666666;
+            color: #FFFFFF;
+            font-weight: bold;
+            border-color: #666666;
+        }
+
+        .section-costs-col-desc {
+            width: 58%;
+        }
+
+        .section-costs-col-due {
+            width: 18%;
+        }
+
+        .section-costs-col-amount {
+            width: 24%;
+            text-align: right;
+        }
+
+        .section-costs-table tbody tr.section-costs-totals-row td {
+            background-color: #1b202b !important;
+            color: #FFFFFF !important;
+            font-weight: bold;
+            vertical-align: middle;
+            border: 1px solid #1b202b !important;
+        }
+
+        .section-costs-totals-label {
+            text-align: left;
+            width: 58%;
+        }
+
+        .section-costs-totals-due {
+            width: 18%;
+        }
+
+        .section-costs-totals-sum {
+            text-align: right;
+            width: 24%;
+        }
+
+        /* Configuration of Accommodation table (Flettons report layout) */
+        .accommodation-config-section {
+            margin-top: 0.25cm;
+            page-break-inside: auto;
+        }
+
+        .accommodation-config-section > .subsection-bar {
+            page-break-after: avoid;
+            page-break-inside: avoid;
+        }
+
+        .accommodation-config-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 0.3cm;
-            font-size: 10pt;
-            border: 1px solid #000000;
+            margin-top: 0;
+            font-size: 10.5pt;
+            font-family: "DejaVu Sans", sans-serif;
+            page-break-inside: auto;
         }
 
-        .costs-table th {
-            background-color: #FFFFFF;
-            color: #000000;
-            padding: 0.3cm;
-            text-align: left;
+        .accommodation-config-table thead {
+            display: table-header-group;
+        }
+
+        .accommodation-config-table tbody tr {
+            page-break-inside: avoid;
+        }
+
+        .accommodation-config-table thead th {
+            background-color: #1b202b;
+            color: #FFFFFF;
             font-weight: bold;
-            font-family: Arial, Helvetica, sans-serif;
-            border: 1px solid #000000;
-            border-bottom: 2px solid #000000;
+            padding: 0.35cm 0.4cm;
+            text-align: left;
+            border: 1px solid #1b202b;
+            vertical-align: middle;
         }
 
-        .costs-table td {
-            padding: 0.3cm;
-            border: 1px solid #000000;
-            color: #000000;
-        }
-
-        .costs-table tr {
+        .accommodation-config-table tbody td {
+            padding: 0.35cm 0.4cm;
+            border: 1px solid #CCCCCC;
+            vertical-align: top;
             background-color: #FFFFFF;
+            color: #000000;
+            line-height: 1.45;
+        }
+
+        .accommodation-config-table .col-room {
+            width: 16%;
+        }
+
+        .accommodation-config-table .col-location {
+            width: 14%;
+        }
+
+        .accommodation-config-table .col-position {
+            width: 14%;
+        }
+
+        .accommodation-config-table .col-observations {
+            width: 56%;
+        }
+
+        .accommodation-config-table .cell-room-name {
+            font-weight: bold;
+        }
+
+        .accommodation-observations-text {
+            margin: 0;
+            padding: 0;
+        }
+
+        .accommodation-observations-text p {
+            margin: 0 0 0.28cm 0;
+            padding: 0;
+        }
+
+        .accommodation-observations-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .accommodation-photo-ref {
+            display: block;
+            margin-top: 0.35cm;
+            color: #666666;
+            font-size: 10pt;
+        }
+
+        .accommodation-photo-ref a,
+        .accommodation-photo-ref a:visited,
+        .accommodation-photo-ref a:hover {
+            color: #666666;
+            text-decoration: none;
+        }
+
+        .pdf-anchor-target {
+            display: block;
+            height: 0;
+            overflow: hidden;
+            line-height: 0;
+            font-size: 0;
+        }
+
+        .accommodation-cell-empty {
+            color: #999999;
+        }
+
+        /* Body pages only — cover uses RICS footer inside .pdf-cover-page (no fixed bar) */
+        .pdf-fixed-footer {
+            display: none;
         }
 
         /* Component Details */
@@ -387,8 +735,12 @@
 
         /* Content Section Styles */
         .content-section {
-            margin-bottom: 0.5cm;
-            page-break-inside: avoid;
+            margin-bottom: 0.35cm;
+            page-break-inside: auto;
+        }
+
+        .content-section > .subsection-bar {
+            page-break-after: avoid;
         }
 
         .content-section-body {
@@ -410,22 +762,13 @@
     </style>
 </head>
 <body>
-    <!-- Cover Page -->
-    <div class="cover-page">
-        <div class="company-name">Flettons Surveyors</div>
-        <div class="report-title">Property Survey Report</div>
-        <div class="survey-details">
-            <p class="survey-address">{{ $survey->full_address ?? 'Property Address Not Provided' }}</p>
-            <p><strong>Job Reference:</strong> {{ $survey->job_reference ?? 'N/A' }}</p>
-            <p><strong>Survey Level:</strong> {{ $survey->level ?? 'N/A' }}</p>
-            <p><strong>Report Date:</strong> {{ now()->format('d F Y') }}</p>
-            @if($survey->surveyor)
-            <p><strong>Surveyor:</strong> {{ $survey->surveyor->name ?? 'N/A' }}</p>
-            @endif
-        </div>
-    </div>
+    @include('surveyor.surveys.pdf.partials.cover-page', [
+        'coverPage' => $coverPage ?? [],
+        'pdfService' => $pdfService ?? null,
+    ])
 
     <!-- Table of Contents -->
+    <div class="toc-page">
     <div class="toc">
         <h2>Table of Contents</h2>
         @php
@@ -434,18 +777,34 @@
         @endphp
         
         @foreach($categories as $categoryName => $subCategories)
-            <div class="toc-item toc-category">{{ $categoryName }}</div>
+            <div class="toc-item toc-category">
+                @if(isset($pdfService))
+                    <a href="#{{ $pdfService->categoryAnchorId($categoryName) }}">{{ $categoryName }}</a>
+                @else
+                    {{ $categoryName }}
+                @endif
+            </div>
             @php
                 $subSectionNumber = 1;
             @endphp
             @foreach($subCategories as $subCategoryName => $sections)
                 @if(!empty($subCategoryName))
-                    <div class="toc-item" style="margin-left: 0.5cm;">{{ $subCategoryName }}</div>
+                    <div class="toc-item" style="margin-left: 0.5cm;">
+                        @if(isset($pdfService))
+                            <a href="#{{ $pdfService->subcategoryAnchorId($categoryName, $subCategoryName) }}">{{ $subCategoryName }}</a>
+                        @else
+                            {{ $subCategoryName }}
+                        @endif
+                    </div>
                     @php $subSectionNumber++; @endphp
                 @endif
                 @foreach($sections as $section)
                     <div class="toc-item" style="margin-left: 1cm;">
-                        <span>{{ $section['name'] }}</span>
+                        @if(isset($pdfService))
+                            <a href="#{{ $pdfService->sectionAnchorId($section) }}">{{ $section['name'] }}</a>
+                        @else
+                            <span>{{ $section['name'] }}</span>
+                        @endif
                         <span style="float: right;">{{ $pageNumber }}</span>
                     </div>
                     @php $pageNumber++; @endphp
@@ -454,22 +813,15 @@
             @php $mainSectionNumber++; @endphp
         @endforeach
 
-        @if(!empty($accommodationSections))
-            <div class="toc-item toc-category" style="margin-top: 0.5cm;">Configuration of Accommodation</div>
-            @php
-                $subSectionNumber = 1;
-            @endphp
-            @foreach($accommodationSections as $accommodation)
-                <div class="toc-item" style="margin-left: 0.5cm;">
-                    <span>{{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}</span>
-                    <span style="float: right;">{{ $pageNumber }}</span>
-                </div>
-                @php 
-                    $pageNumber++;
-                    $subSectionNumber++;
-                @endphp
-            @endforeach
-            @php $mainSectionNumber++; @endphp
+        @if(!empty($accommodationTableRows) || !empty($accommodationSections))
+            <div class="toc-item toc-category" style="margin-top: 0.5cm;">
+                @if(isset($pdfService))
+                    <a href="#{{ $pdfService->accommodationConfigAnchorId() }}">Configuration of Accommodation</a>
+                @else
+                    Configuration of Accommodation
+                @endif
+            </div>
+            @php $pageNumber++; @endphp
         @endif
 
         @if(!empty($contentSections['standalone']))
@@ -479,7 +831,11 @@
             @endphp
             @foreach($contentSections['standalone'] as $contentSection)
                 <div class="toc-item" style="margin-left: 0.5cm;">
-                    <span>{{ $contentSection->title }}</span>
+                    @if(isset($pdfService))
+                        <a href="#{{ $pdfService->contentSectionAnchorId($contentSection) }}">{{ $contentSection->title }}</a>
+                    @else
+                        <span>{{ $contentSection->title }}</span>
+                    @endif
                     <span style="float: right;">{{ $pageNumber }}</span>
                 </div>
                 @php 
@@ -493,15 +849,19 @@
         @if(!empty($surveyImages) && count($surveyImages) > 0)
             @php
                 $imagesPageNumber = $pageNumber;
-                // Estimate pages for images (roughly 2 images per page)
-                $estimatedImagePages = ceil(count($surveyImages) / 2);
             @endphp
             <div class="toc-item toc-category" style="margin-top: 0.5cm;">Survey Images</div>
             <div class="toc-item" style="margin-left: 0.5cm;">
-                <span><a href="#survey-images-section" style="color: #000000; text-decoration: none;">Survey Images</a></span>
+                <a href="#survey-images-section">Survey Images</a>
                 <span style="float: right;">{{ $imagesPageNumber }}</span>
             </div>
+            @foreach($surveyImages as $imageGroup)
+                <div class="toc-item" style="margin-left: 1cm;">
+                    <a href="#{{ $imageGroup['anchor_id'] }}">{{ $imageGroup['name'] }}</a>
+                </div>
+            @endforeach
         @endif
+    </div>
     </div>
 
     <!-- Regular Sections -->
@@ -511,6 +871,7 @@
     @endphp
     @foreach($categories as $categoryName => $subCategories)
         <div class="category-section" style="{{ $firstCategory ? 'margin-top: 0;' : '' }}">
+            <a id="{{ isset($pdfService) ? $pdfService->categoryAnchorId($categoryName) : '' }}" name="{{ isset($pdfService) ? $pdfService->categoryAnchorId($categoryName) : '' }}" class="pdf-anchor-target"></a>
             <div class="category-title-wrapper">
                 <h1 class="category-title">{{ $categoryName }}</h1>
             </div>
@@ -520,7 +881,9 @@
                 $subSectionNumber = 1;
             @endphp
             @foreach($subCategories as $subCategoryName => $sections)
+                <div class="pdf-subcategory-block">
                 @if(!empty($subCategoryName))
+                    <a id="{{ isset($pdfService) ? $pdfService->subcategoryAnchorId($categoryName, $subCategoryName) : '' }}" name="{{ isset($pdfService) ? $pdfService->subcategoryAnchorId($categoryName, $subCategoryName) : '' }}" class="pdf-anchor-target"></a>
                     <div class="subsection-bar">{{ $subCategoryName }}</div>
                     @php $subSectionNumber++; @endphp
                 @endif
@@ -530,7 +893,17 @@
                     $currentSubSection = $subSectionNumber - 1;
                 @endphp
                 @foreach($sections as $section)
+                    @php
+                        $sectionReportText = isset($pdfService)
+                            ? $pdfService->resolveSectionPdfReportContent($section)
+                            : trim((string) ($section['merged_report_content'] ?? $section['report_content'] ?? ''));
+                        $costsPdf = isset($pdfService)
+                            ? $pdfService->buildSectionCostsGroupedForPdf($section)
+                            : ['has_costs' => !empty($section['costs']), 'groups' => [], 'total' => 0.0];
+                    @endphp
+                    <a id="{{ isset($pdfService) ? $pdfService->sectionAnchorId($section) : '' }}" name="{{ isset($pdfService) ? $pdfService->sectionAnchorId($section) : '' }}" class="pdf-anchor-target"></a>
                     <div class="section-item">
+                        <div class="section-content-flow">
                         <div class="section-header">
                             <span class="section-name">{{ $section['name'] }}</span>
                             @if(!empty($section['condition_rating']))
@@ -542,11 +915,11 @@
                             @endif
                         </div>
 
-                        @if(!empty($section['report_content']))
+                        @if(trim($sectionReportText) !== '')
                             <div class="report-content">
-                                {!! nl2br(e($section['report_content'])) !!}
+                                {!! nl2br(e($sectionReportText)) !!}
                             </div>
-                        @else
+                        @elseif(isset($pdfService) && $pdfService->sectionHasPdfDisplayContent($section))
                             <div class="form-data">
                                 @if(!empty($section['location']))
                                     <div class="form-data-row">
@@ -590,42 +963,17 @@
                                         <span class="form-data-value">{{ $section['notes'] }}</span>
                                     </div>
                                 @endif
-                                @if(!empty($section['costs']) && is_array($section['costs']) && count($section['costs']) > 0)
-                                    <div class="form-data-row">
-                                        <span class="form-data-label">Costs:</span>
-                                        <table class="costs-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Category</th>
-                                                    <th>Description</th>
-                                                    <th>Due</th>
-                                                    <th>Cost</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach($section['costs'] as $cost)
-                                                    <tr>
-                                                        <td>{{ $cost['category'] ?? '' }}</td>
-                                                        <td>{{ $cost['description'] ?? '' }}</td>
-                                                        <td>{{ $cost['due'] ?? '' }}</td>
-                                                        <td>£{{ $cost['cost'] ?? '0.00' }}</td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @endif
                             </div>
                         @endif
-                        @if(!empty($section['photos']) && is_array($section['photos']) && count($section['photos']) > 0)
-                            @php
-                                $sectionId = $section['id'] ?? null;
-                                $anchorId = $sectionId ? 'images-section-' . $sectionId : 'images-section-' . md5($section['name']);
-                            @endphp
+                        @if(!empty($costsPdf['has_costs']))
+                            @include('surveyor.surveys.pdf.partials.section-costs-table', ['costsPdf' => $costsPdf, 'pdfService' => $pdfService ?? null])
+                        @endif
+                        @if(isset($pdfService) && $pdfService->sectionHasPhotos($section))
                             <div class="view-images-link">
-                                <a href="#{{ $anchorId }}">View Images</a>
+                                <a href="#{{ $pdfService->sectionImageAnchorId($section) }}">View Images ({{ $pdfService->sectionPhotoCount($section) }})</a>
                             </div>
                         @endif
+                        </div>
                     </div>
                     @php $itemNumber++; @endphp
                 @endforeach
@@ -642,6 +990,7 @@
                         @php $itemNumber++; @endphp
                     @endforeach
                 @endif
+                </div>
             @endforeach
 
             {{-- Content sections linked to this category --}}
@@ -663,105 +1012,98 @@
         @php $mainSectionNumber++; @endphp
     @endforeach
 
-    <!-- Accommodation Sections -->
-    @if(!empty($accommodationSections))
-        <div class="category-section">
-            <div class="category-title-wrapper">
-                <h1 class="category-title">Configuration of Accommodation</h1>
-            </div>
-            
-            @php
-                $subSectionNumber = 1;
-            @endphp
-            @foreach($accommodationSections as $accommodation)
-                <div class="accommodation-section section-item">
-                    <div class="subsection-bar">
-                        {{ $accommodation['accommodation_type_name'] ?? $accommodation['name'] }}
-                        @if(!empty($accommodation['condition_rating']))
-                            @php
-                                $rating = strtolower($accommodation['condition_rating']);
-                                $ratingClass = 'condition-badge--' . ($rating === 'ni' ? 'ni' : $rating);
-                            @endphp
-                            <span class="condition-badge {{ $ratingClass }}"></span>
-                        @endif
-                    </div>
+    <!-- Configuration of Accommodation (table layout) -->
+    @if(!empty($accommodationTableRows) && count($accommodationTableRows) > 0)
+        <div class="category-section accommodation-config-section">
+            <a id="{{ isset($pdfService) ? $pdfService->accommodationConfigAnchorId() : '' }}" name="{{ isset($pdfService) ? $pdfService->accommodationConfigAnchorId() : '' }}" class="pdf-anchor-target"></a>
+            <div class="subsection-bar">Configuration of Accommodation</div>
 
-                    @if(!empty($accommodation['gpt_narrative']))
-                        <div class="report-content gpt-narrative">
-                            {!! nl2br(e($accommodation['gpt_narrative'])) !!}
-                        </div>
-                    @endif
-                    @if(!empty($accommodation['gpt_observations']) && is_array($accommodation['gpt_observations']))
-                        <div class="gpt-observations" style="margin-top: 0.25cm;">
-                            <strong>General observations</strong>
-                            <ul class="defects-list" style="margin-top: 0.15cm;">
-                                @foreach($accommodation['gpt_observations'] as $gptObs)
-                                    <li>{{ $gptObs }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-                    @if(!empty($accommodation['report_content']))
-                        <div class="report-content">
-                            {!! nl2br(e($accommodation['report_content'])) !!}
-                        </div>
-                    @elseif(!empty($accommodation['components']))
-                        <div class="form-data">
-                            @foreach($accommodation['components'] as $component)
-                                <div class="component-details">
-                                    <div class="component-name">{{ $component['component_name'] }}</div>
-                                    @if(!empty($component['material']))
-                                        <div class="form-data-row">
-                                            <span class="form-data-label">Material:</span>
-                                            <span class="form-data-value">{{ $component['material'] }}</span>
-                                        </div>
-                                    @endif
-                                    @if(!empty($component['defects']) && is_array($component['defects']) && count($component['defects']) > 0)
-                                        <div class="form-data-row">
-                                            <span class="form-data-label">Defects:</span>
-                                            <span class="form-data-value">
-                                                <ul class="defects-list">
-                                                    @foreach($component['defects'] as $defect)
-                                                        <li>{{ $defect }}</li>
-                                                    @endforeach
-                                                </ul>
-                                            </span>
-                                        </div>
-                                    @endif
-                                    @if(!empty($component['gpt_observations']) && is_array($component['gpt_observations']))
-                                        <div class="form-data-row" style="margin-top: 0.15cm;">
-                                            <span class="form-data-label">GPT observations:</span>
-                                            <span class="form-data-value">
-                                                <ul class="defects-list">
-                                                    @foreach($component['gpt_observations'] as $gptCompObs)
-                                                        <li>{{ $gptCompObs }}</li>
-                                                    @endforeach
-                                                </ul>
-                                            </span>
-                                        </div>
-                                    @endif
-                                </div>
-                            @endforeach
-                            @if(!empty($accommodation['notes']))
-                                <div class="form-data-row" style="margin-top: 0.3cm;">
-                                    <span class="form-data-label">Notes:</span>
-                                    <span class="form-data-value">{{ $accommodation['notes'] }}</span>
-                                </div>
-                            @endif
-                        </div>
-                    @endif
-                    @if(!empty($accommodation['photos']) && is_array($accommodation['photos']) && count($accommodation['photos']) > 0)
-                        @php
-                            $accommodationId = $accommodation['id'] ?? null;
-                            $anchorId = $accommodationId ? 'images-accommodation-' . $accommodationId : 'images-accommodation-' . md5($accommodation['name']);
-                        @endphp
-                        <div class="view-images-link">
-                            <a href="#{{ $anchorId }}">View Images</a>
-                        </div>
-                    @endif
-                </div>
-                @php $subSectionNumber++; @endphp
-            @endforeach
+            <table class="accommodation-config-table">
+                <thead>
+                    <tr>
+                        <th class="col-room">Room/Area</th>
+                        <th class="col-location">Location</th>
+                        <th class="col-position">Front/Rear/Center</th>
+                        <th class="col-observations">Photos and Observations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($accommodationTableRows as $row)
+                        <tr>
+                            <td class="col-room">
+                                <span class="cell-room-name">{{ $row['room'] }}</span>
+                            </td>
+                            <td class="col-location">
+                                @if(!empty($row['location']))
+                                    {{ $row['location'] }}
+                                @else
+                                    <span class="accommodation-cell-empty">—</span>
+                                @endif
+                            </td>
+                            <td class="col-position">
+                                @if(!empty($row['position']))
+                                    {{ $row['position'] }}
+                                @else
+                                    <span class="accommodation-cell-empty">—</span>
+                                @endif
+                            </td>
+                            <td class="col-observations">
+                                @if(!empty($row['observations']))
+                                    <div class="accommodation-observations-text">
+                                        @foreach(preg_split("/\n\s*\n/", trim($row['observations'])) as $paragraph)
+                                            @if(trim($paragraph) !== '')
+                                                <p>{!! nl2br(e(trim($paragraph))) !!}</p>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <span class="accommodation-cell-empty">No survey data recorded for this room yet.</span>
+                                @endif
+                                @if(!empty($row['photo_ref']))
+                                    <span class="accommodation-photo-ref">
+                                        @if(!empty($row['photo_anchor_id']))
+                                            <a href="#{{ $row['photo_anchor_id'] }}">{{ $row['photo_ref'] }}</a>
+                                        @else
+                                            {{ $row['photo_ref'] }}
+                                        @endif
+                                    </span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @php $mainSectionNumber++; @endphp
+    @elseif(!empty($accommodationSections))
+        <div class="category-section accommodation-config-section">
+            <div class="subsection-bar">Configuration of Accommodation</div>
+            <table class="accommodation-config-table">
+                <thead>
+                    <tr>
+                        <th class="col-room">Room/Area</th>
+                        <th class="col-location">Location</th>
+                        <th class="col-position">Front/Rear/Center</th>
+                        <th class="col-observations">Photos and Observations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($accommodationSections as $accommodation)
+                        <tr>
+                            <td class="col-room"><span class="cell-room-name">{{ $accommodation['display_label'] ?? $accommodation['name'] ?? '' }}</span></td>
+                            <td class="col-location">{{ trim((string) ($accommodation['location'] ?? '')) !== '' ? $accommodation['location'] : '—' }}</td>
+                            <td class="col-position">—</td>
+                            <td class="col-observations">
+                                @if(!empty($accommodation['report_content']))
+                                    {!! nl2br(e($accommodation['report_content'])) !!}
+                                @else
+                                    —
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
         @php $mainSectionNumber++; @endphp
     @endif
@@ -777,6 +1119,7 @@
                 $subSectionNumber = 1;
             @endphp
             @foreach($contentSections['standalone'] as $contentSection)
+                <a id="{{ isset($pdfService) ? $pdfService->contentSectionAnchorId($contentSection) : '' }}" name="{{ isset($pdfService) ? $pdfService->contentSectionAnchorId($contentSection) : '' }}" class="pdf-anchor-target"></a>
                 <div class="content-section">
                     <div class="subsection-bar">{{ $contentSection->title }}</div>
                     <div class="content-section-body">
@@ -790,11 +1133,13 @@
 
     <!-- Survey Images Section -->
     @if(!empty($surveyImages) && count($surveyImages) > 0)
-        <div class="survey-images-section" id="survey-images-section">
+        <a id="survey-images-section" name="survey-images-section" class="pdf-anchor-target"></a>
+        <div class="survey-images-section">
             <h1 class="survey-images-title">Survey Images</h1>
             
             @foreach($surveyImages as $imageGroup)
-                <div class="image-group" id="{{ $imageGroup['anchor_id'] }}">
+                <a id="{{ $imageGroup['anchor_id'] }}" name="{{ $imageGroup['anchor_id'] }}" class="pdf-anchor-target"></a>
+                <div class="image-group">
                     <div class="image-group-title">{{ $imageGroup['name'] }}</div>
                     <div class="image-grid">
                         @php
@@ -806,22 +1151,20 @@
                                 @for($j = $i; $j < min($i + 2, $photoCount); $j++)
                                     @php
                                         $photo = $photos[$j];
-                                        // Handle file path - it's stored relative to storage/app/public
-                                        $filePath = ltrim($photo['file_path'] ?? '', '/');
-                                        $imagePath = storage_path('app/public/' . $filePath);
-                                        // Convert to absolute path with forward slashes for DomPDF compatibility
-                                        $absolutePath = realpath($imagePath) ?: $imagePath;
-                                        $absolutePath = str_replace('\\', '/', $absolutePath);
+                                        $absolutePath = isset($pdfService) ? $pdfService->resolvePhotoAbsolutePathForPdf($photo) : null;
+                                        $photoLabel = isset($photo['pdf_number'])
+                                            ? 'Photo ' . $photo['pdf_number']
+                                            : ($photo['file_name'] ?? 'Image ' . ($j + 1));
                                     @endphp
                                     <div class="image-item">
-                                        @if(file_exists($imagePath))
-                                            <img src="{{ $absolutePath }}" alt="{{ $photo['file_name'] ?? 'Image' }}">
+                                        @if($absolutePath)
+                                            <img src="{{ $absolutePath }}" alt="{{ $photoLabel }}">
                                         @else
                                             <div style="padding: 1cm; border: 1px solid #CCCCCC; text-align: center; color: #999999;">
                                                 Image not found: {{ $photo['file_name'] ?? 'Unknown' }}
                                             </div>
                                         @endif
-                                        <div class="image-caption">{{ $photo['file_name'] ?? 'Image ' . ($j + 1) }}</div>
+                                        <div class="image-caption">{{ $photoLabel }}</div>
                                     </div>
                                 @endfor
                             </div>
@@ -832,26 +1175,27 @@
         </div>
     @endif
 
-    <!-- Page Header -->
-    <htmlpageheader name="html_pageHeader">
-        <div class="page-header"></div>
-    </htmlpageheader>
+<script type="text/php">
+if (isset($pdf)) {
+    $font = $fontMetrics->getFont("dejavu sans", "normal");
+    $fontBold = $fontMetrics->getFont("dejavu sans", "bold");
+    $pageWidth = $pdf->get_width();
+    $pageHeight = $pdf->get_height();
+    $footerHeight = 68;
+    $footerRgb = array(0.106, 0.125, 0.169);
+    $white = array(1, 1, 1);
+    $leftPad = 71;
+    $rightPad = 71;
 
-    <!-- Page Footer -->
-    <htmlpagefooter name="html_pageFooter">
-        <div style="background-color: #2C2C54; color: #FFFFFF; font-size: 9pt; font-family: Arial, Helvetica, sans-serif; padding: 8px 10px; width: 100%;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0; padding: 0; border-collapse: collapse;">
-                <tr>
-                    <td style="padding: 0; color: #FFFFFF; font-size: 9pt; font-family: Arial, Helvetica, sans-serif; vertical-align: middle;">
-                        <div style="margin: 0; padding: 0; line-height: 1.3;">Flettons Surveyors 20-22 Wenlock Road, London, N1 7GU</div>
-                        <div style="margin: 0; padding: 0; line-height: 1.3;"><strong>E:</strong> info@flettons.com | <strong>T:</strong> 0330 043 4650 | <strong>W:</strong> www.flettons.com</div>
-                    </td>
-                    <td style="padding: 0; color: #FFFFFF; font-size: 10pt; font-family: Arial, Helvetica, sans-serif; text-align: right; vertical-align: middle; width: 50px;">
-                        {PAGENO}
-                    </td>
-                </tr>
-            </table>
-        </div>
-    </htmlpagefooter>
+    if ($PAGE_NUM > 1) {
+        $footerY = $pageHeight - $footerHeight;
+        $pdf->filled_rectangle(0, $footerY, $pageWidth, $footerHeight, $footerRgb);
+        $pdf->page_text($leftPad, $footerY + 42, "Flettons Surveyors 20-22 Wenlock Road, London, N1 7GU", $font, 8, $white);
+        $pdf->page_text($leftPad, $footerY + 28, "E: info@flettons.com | T: 0330 043 4650 | W: www.flettons.com", $font, 8, $white);
+        $pdf->page_text($pageWidth - $rightPad - 40, $footerY + 34, "Page {PAGE_NUM}", $font, 9, $white);
+    }
+}
+</script>
+
 </body>
 </html>

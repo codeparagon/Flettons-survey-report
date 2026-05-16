@@ -1,17 +1,24 @@
-<div class="survey-data-mock-section-item"
+<div class="survey-data-mock-section-item{{ !empty($section['as_merged_accommodation_child']) ? ' survey-data-mock-section-item--merged-acc-child' : '' }}"
      data-section-id="{{ $section['id'] }}"
      data-section-definition-id="{{ $section['section_id'] ?? $section['id'] }}"
+     data-clone-index="{{ (int) ($section['clone_index'] ?? 0) }}"
      data-subcategory-key="{{ $section['subcategory_key'] ?? '' }}"
+     @if(!empty($section['as_merged_accommodation_child'])) data-merged-acc-child="1" @endif
      @if(!empty($section['acc_component_key'])) data-acc-component-key="{{ $section['acc_component_key'] }}" @endif
      data-has-report="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}"
      data-saved="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}">
     <div class="survey-data-mock-section-header" data-expandable="true">
         <div class="survey-data-mock-section-name">
             {{ $section['name'] }}
+            @if(!empty($section['merged_acc_room_label']))
+                <div class="text-muted" style="font-size:0.75rem;font-weight:500;margin-top:0.15rem;">{{ $section['merged_acc_room_label'] }}</div>
+            @endif
         </div>
         <div class="survey-data-mock-section-status">
             @php
-                $photoCount = count($section['photos'] ?? []);
+                $photoCount = isset($section['aggregate_photo_count'])
+                    ? (int) $section['aggregate_photo_count']
+                    : count($section['photos'] ?? []);
             @endphp
             <span class="survey-data-mock-status-info">
                 <i class="fas fa-camera survey-data-mock-status-icon"></i>
@@ -258,6 +265,7 @@
     </div>
 
     <!-- Report Content Area (shown after save) -->
+    @if(empty($section['as_merged_accommodation_child']))
     <div class="survey-data-mock-report-content" style="display: none;" data-section-id="{{ $section['id'] }}" data-initial-has-report="{{ ($section['has_report'] ?? false) ? 'true' : 'false' }}">
         <div class="survey-data-mock-report-content-wrapper">
             <textarea class="survey-data-mock-report-textarea" rows="12" placeholder="Report content will be generated after saving...">{{ $section['report_content'] ?? '' }}</textarea>
@@ -282,5 +290,6 @@
             </div>
         </div>
     </div>
+    @endif
 </div>
 

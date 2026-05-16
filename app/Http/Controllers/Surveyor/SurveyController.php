@@ -908,6 +908,7 @@ class SurveyController extends Controller
             'id' => $newSectionId,
             'section_id' => $sectionDefinitionId, // Use the actual section definition ID
             'name' => $newSectionName,
+            'clone_index' => (int) $request->input('clone_index', 0),
             'subcategory_key' => $sectionDefinition->subcategory->name ?? '',
             'acc_component_key' => $accComponentKey,
             'completion' => 0, // New cloned section starts at 0
@@ -957,6 +958,8 @@ class SurveyController extends Controller
             'html' => $html,
             'section_id' => $newSectionId,
             'section_name' => $newSectionName,
+            'section_definition_id' => $sectionDefinitionId,
+            'acc_component_key' => $accComponentKey,
         ]);
     }
 
@@ -1297,6 +1300,7 @@ class SurveyController extends Controller
                 'photos' => $photos,
                 'accommodation_gpt_updates' => $result['accommodation_gpt_updates'] ?? [],
                 'accommodation_photo_updates' => $accommodationPhotoUpdates,
+                'accommodation_component_merged_report' => $result['accommodation_component_merged_report'] ?? null,
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
